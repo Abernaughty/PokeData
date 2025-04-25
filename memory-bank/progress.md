@@ -50,6 +50,16 @@ The current state of the PokeData project includes the following working feature
    - ✅ Console logging for debugging
 
 8. **Recent Improvements**:
+   - ✅ Implemented set grouping by expansion in dropdown menu (2025-04-25)
+   - ✅ Created expansionMapper service to categorize sets by expansion (2025-04-25)
+   - ✅ Modified SearchableSelect component to support grouped items (2025-04-25)
+   - ✅ Improved dropdown styling with indentation and no bullet points (2025-04-25)
+   - ✅ Implemented hybrid caching approach for Scarlet & Violet sets (2025-04-25)
+   - ✅ Added TTL-based pricing data caching with 24-hour expiration (2025-04-25)
+   - ✅ Created set classifier to identify and prioritize current sets (2025-04-25)
+   - ✅ Added background sync for current sets data (2025-04-25)
+   - ✅ Implemented automatic cleanup of expired pricing data (2025-04-25)
+   - ✅ Added pricing data timestamp display for transparency (2025-04-25)
    - ✅ Moved PokeData project to a new repository location (2025-04-25)
    - ✅ Relocated from `C:\Users\maber\Documents\GitHub\git-maber\PokeData-repo` to `C:\Users\maber\Documents\GitHub\PokeData`
    - ✅ Renamed the repository from "PokeData-repo" to "PokeData"
@@ -98,10 +108,16 @@ The current state of the PokeData project includes the following working feature
    - 🔴 Ensure loading states are accessible
 
 2. **Optimized Caching Strategy**:
-   - 🔴 Review current implementation for efficiency
-   - 🔴 Implement smarter cache invalidation
-   - 🔴 Add cache analytics for monitoring
-   - 🔴 Create cache management utilities
+   - ✅ Review current implementation for efficiency
+   - ✅ Implement smarter cache invalidation with TTL for pricing data
+   - ✅ Add cache analytics for monitoring
+   - ✅ Create cache management utilities
+
+3. **Set Grouping in Dropdown**:
+   - ✅ Group sets by expansion in dropdown menu
+   - ✅ Create expansion mapping service
+   - ✅ Implement indented dropdown items
+   - ✅ Improve dropdown styling and usability
 
 3. **SearchableSelect Dropdown Positioning**:
    - 🔴 Fix issue with dropdowns appearing off-screen
@@ -138,7 +154,7 @@ The current state of the PokeData project includes the following working feature
 
 **Project Phase**: Repository Migration and Core Features Enhancement
 
-**Current Sprint Focus**: Repository Location Update, Dependency Evaluation, and Error Handling Improvements
+**Current Sprint Focus**: Repository Location Update, Dependency Evaluation, Caching Optimization, and Error Handling Improvements
 
 **Key Milestones**:
 - ✅ Initial project setup completed
@@ -318,6 +334,12 @@ The technical implementation approach has also evolved:
    - Implement lazy loading
    - Add fallback images
 
+4. **Monitor and Refine Caching Strategy**:
+   - Gather metrics on cache hit rates
+   - Optimize TTL values based on usage patterns
+   - Enhance background sync scheduling
+   - Improve network status handling
+
 ### Short-term Focus (Next 1-2 Sprints)
 1. **Implement Dependency Updates**:
    - Update non-breaking dependencies
@@ -363,6 +385,13 @@ Throughout the development of the PokeData project, several valuable lessons hav
    - Proper setup is crucial for ensuring all dependencies and configurations are transferred
    - Documentation becomes even more important in separate repositories
    - Lesson: Invest time in proper repository setup and documentation
+
+2. **Caching Strategy Design**:
+   - Different data types require different caching strategies
+   - TTL-based caching provides a good balance between freshness and performance
+   - Separating current/frequently accessed data improves user experience
+   - Background sync reduces perceived latency
+   - Lesson: Design caching strategies based on data characteristics and usage patterns
 
 2. **Dependency Management**:
    - Fixed dependency versions ensure stability but can lead to outdated packages

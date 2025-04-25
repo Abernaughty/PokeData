@@ -5,11 +5,14 @@
 
 // Database configuration
 const DB_NAME = 'poke-data-db';
-const DB_VERSION = 1; // Reset to version 1
+const DB_VERSION = 2; // Increment version for schema update
 const STORES = {
   setList: 'setList',
   cardsBySet: 'cardsBySet',
-  cardPricing: 'cardPricing' // Added store for card pricing
+  cardPricing: 'cardPricing',
+  currentSets: 'currentSets',      // New store for current sets
+  currentSetCards: 'currentSetCards', // New store for current set cards
+  config: 'config'                 // New store for configuration
 };
 
 /**
@@ -31,19 +34,42 @@ export const openDatabase = () => {
     
     request.onupgradeneeded = (event) => {
       const db = event.target.result;
+      const oldVersion = event.oldVersion;
+      
+      console.log(`Upgrading database from version ${oldVersion} to ${DB_VERSION}`);
       
       // Create stores if they don't exist
       if (!db.objectStoreNames.contains(STORES.setList)) {
+        console.log('Creating setList store');
         db.createObjectStore(STORES.setList, { keyPath: 'id' });
       }
       
       if (!db.objectStoreNames.contains(STORES.cardsBySet)) {
+        console.log('Creating cardsBySet store');
         db.createObjectStore(STORES.cardsBySet, { keyPath: 'setCode' });
       }
       
       // Create cardPricing store if it doesn't exist
       if (!db.objectStoreNames.contains(STORES.cardPricing)) {
+        console.log('Creating cardPricing store');
         db.createObjectStore(STORES.cardPricing, { keyPath: 'id' });
+      }
+      
+      // Create new stores for current sets
+      if (!db.objectStoreNames.contains(STORES.currentSets)) {
+        console.log('Creating currentSets store');
+        db.createObjectStore(STORES.currentSets, { keyPath: 'code' });
+      }
+      
+      if (!db.objectStoreNames.contains(STORES.currentSetCards)) {
+        console.log('Creating currentSetCards store');
+        db.createObjectStore(STORES.currentSetCards, { keyPath: 'setCode' });
+      }
+      
+      // Create config store if it doesn't exist
+      if (!db.objectStoreNames.contains(STORES.config)) {
+        console.log('Creating config store');
+        db.createObjectStore(STORES.config, { keyPath: 'id' });
       }
     };
   });
@@ -223,7 +249,7 @@ export const dbService = {
         request.onsuccess = () => {
           // If we have the data in the cache, return it
           if (request.result && request.result.data) {
-            resolve(request.result.data);
+            resolve(request.result);
           } else {
             // No data found
             resolve(null);
@@ -315,60 +341,6 @@ export const dbService = {
    * Clear all stored data (useful for testing or resets)
    * @returns {Promise<void>}
    */
-  async storeCardPricing(cardId, pricingData) {
-    try {
-      const db = await openDatabase();
-      const transaction = db.transaction(STORES.cardPricing, 'readwrite');
-      const store = transaction.objectStore(STORES.cardPricing);
-      
-      await store.put({
-        id: cardId,
-        data: pricingData,
-        timestamp: Date.now()
-      });
-      
-      return new Promise((resolve, reject) => {
-        transaction.oncomplete = () => resolve();
-        transaction.onerror = (event) => reject(event.target.error);
-      });
-    } catch (error) {
-      console.error(`Error storing pricing for card ${cardId}:`, error);
-      throw error;
-    }
-  },
-
-  /**
-   * Get card pricing data
-   * @param {string} cardId - The card ID
-   * @returns {Promise<Object>} The pricing data
-   */
-  async getCardPricing(cardId) {
-    try {
-      const db = await openDatabase();
-      const transaction = db.transaction(STORES.cardPricing, 'readonly');
-      const store = transaction.objectStore(STORES.cardPricing);
-      
-      const request = store.get(cardId);
-      
-      return new Promise((resolve, reject) => {
-        request.onsuccess = () => {
-          // If we have the data in the cache, return it
-          if (request.result && request.result.data) {
-            resolve(request.result.data);
-          } else {
-            // No data found
-            resolve(null);
-          }
-        };
-        
-        request.onerror = (event) => reject(event.target.error);
-      });
-    } catch (error) {
-      console.error(`Error getting pricing for card ${cardId}:`, error);
-      throw error;
-    }
-  },
-  
   async clearAllData() {
     try {
       const db = await openDatabase();
@@ -415,5 +387,319 @@ export const dbService = {
         resolve();
       };
     });
+  },
+  
+  /**
+   * Save a current set to IndexedDB
+   * @param {Object} set - The set object
+   * @returns {Promise<void>}
+   */
+  async saveCurrentSet(set) {
+    try {
+      if (!set || !set.code) {
+        console.error('Set code is required to save current set');
+        return;
+      }
+      
+      const db = await openDatabase();
+      const transaction = db.transaction(STORES.currentSets, 'readwrite');
+      const store = transaction.objectStore(STORES.currentSets);
+      
+      await store.put({
+        code: set.code,
+        data: set,
+        timestamp: Date.now()
+      });
+      
+      return new Promise((resolve, reject) => {
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = (event) => reject(event.target.error);
+      });
+    } catch (error) {
+      console.error(`Error saving current set ${set.code}:`, error);
+      throw error;
+    }
+  },
+  
+  /**
+   * Get a current set from IndexedDB
+   * @param {string} setCode - The set code
+   * @returns {Promise<Object>} The set object
+   */
+  async getCurrentSet(setCode) {
+    try {
+      if (!setCode) {
+        console.error('Set code is required to get current set');
+        return null;
+      }
+      
+      const db = await openDatabase();
+      const transaction = db.transaction(STORES.currentSets, 'readonly');
+      const store = transaction.objectStore(STORES.currentSets);
+      
+      const request = store.get(setCode);
+      
+      return new Promise((resolve, reject) => {
+        request.onsuccess = () => {
+          if (request.result && request.result.data) {
+            resolve(request.result.data);
+          } else {
+            resolve(null);
+          }
+        };
+        request.onerror = (event) => reject(event.target.error);
+      });
+    } catch (error) {
+      console.error(`Error getting current set ${setCode}:`, error);
+      throw error;
+    }
+  },
+  
+  /**
+   * Get all current sets from IndexedDB
+   * @returns {Promise<Array>} Array of current set objects
+   */
+  async getAllCurrentSets() {
+    try {
+      const db = await openDatabase();
+      const transaction = db.transaction(STORES.currentSets, 'readonly');
+      const store = transaction.objectStore(STORES.currentSets);
+      
+      const request = store.getAll();
+      
+      return new Promise((resolve, reject) => {
+        request.onsuccess = () => {
+          if (request.result) {
+            resolve(request.result.map(item => item.data));
+          } else {
+            resolve([]);
+          }
+        };
+        request.onerror = (event) => reject(event.target.error);
+      });
+    } catch (error) {
+      console.error('Error getting all current sets:', error);
+      throw error;
+    }
+  },
+  
+  /**
+   * Save cards for a current set to IndexedDB
+   * @param {string} setCode - The set code
+   * @param {Array} cards - The array of card objects for the set
+   * @returns {Promise<void>}
+   */
+  async saveCurrentSetCards(setCode, cards) {
+    try {
+      if (!setCode) {
+        console.error('Set code is required to save current set cards');
+        return;
+      }
+      
+      const db = await openDatabase();
+      const transaction = db.transaction(STORES.currentSetCards, 'readwrite');
+      const store = transaction.objectStore(STORES.currentSetCards);
+      
+      await store.put({
+        setCode: setCode,
+        cards: cards,
+        timestamp: Date.now()
+      });
+      
+      return new Promise((resolve, reject) => {
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = (event) => reject(event.target.error);
+      });
+    } catch (error) {
+      console.error(`Error saving cards for current set ${setCode}:`, error);
+      throw error;
+    }
+  },
+  
+  /**
+   * Get cards for a current set from IndexedDB
+   * @param {string} setCode - The set code
+   * @returns {Promise<Array>} The array of card objects for the set
+   */
+  async getCurrentSetCards(setCode) {
+    try {
+      if (!setCode) {
+        console.error('Set code is required to get current set cards');
+        return null;
+      }
+      
+      const db = await openDatabase();
+      const transaction = db.transaction(STORES.currentSetCards, 'readonly');
+      const store = transaction.objectStore(STORES.currentSetCards);
+      
+      const request = store.get(setCode);
+      
+      return new Promise((resolve, reject) => {
+        request.onsuccess = () => {
+          if (request.result && request.result.cards) {
+            resolve(request.result.cards);
+          } else {
+            resolve(null);
+          }
+        };
+        request.onerror = (event) => reject(event.target.error);
+      });
+    } catch (error) {
+      console.error(`Error getting cards for current set ${setCode}:`, error);
+      throw error;
+    }
+  },
+  
+  /**
+   * Save current sets configuration to IndexedDB
+   * @param {Object} config - The configuration object
+   * @returns {Promise<void>}
+   */
+  async saveCurrentSetsConfig(config) {
+    try {
+      const db = await openDatabase();
+      const transaction = db.transaction(STORES.config, 'readwrite');
+      const store = transaction.objectStore(STORES.config);
+      
+      await store.put({
+        id: 'currentSetsConfig',
+        data: config,
+        timestamp: Date.now()
+      });
+      
+      return new Promise((resolve, reject) => {
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = (event) => reject(event.target.error);
+      });
+    } catch (error) {
+      console.error('Error saving current sets config:', error);
+      throw error;
+    }
+  },
+  
+  /**
+   * Get current sets configuration from IndexedDB
+   * @returns {Promise<Object>} The configuration object
+   */
+  async getCurrentSetsConfig() {
+    try {
+      const db = await openDatabase();
+      const transaction = db.transaction(STORES.config, 'readonly');
+      const store = transaction.objectStore(STORES.config);
+      
+      const request = store.get('currentSetsConfig');
+      
+      return new Promise((resolve, reject) => {
+        request.onsuccess = () => {
+          if (request.result && request.result.data) {
+            resolve(request.result.data);
+          } else {
+            resolve(null);
+          }
+        };
+        request.onerror = (event) => reject(event.target.error);
+      });
+    } catch (error) {
+      console.error('Error getting current sets config:', error);
+      throw error;
+    }
+  },
+  
+  /**
+   * Clean up expired pricing data (older than 24 hours)
+   * @returns {Promise<number>} Number of records deleted
+   */
+  async cleanupExpiredPricingData() {
+    try {
+      const db = await openDatabase();
+      const transaction = db.transaction(STORES.cardPricing, 'readwrite');
+      const store = transaction.objectStore(STORES.cardPricing);
+      
+      const request = store.getAll();
+      
+      return new Promise((resolve, reject) => {
+        request.onsuccess = async () => {
+          const items = request.result;
+          const now = Date.now();
+          const maxAge = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+          let deletedCount = 0;
+          
+          for (const item of items) {
+            if (item.timestamp && (now - item.timestamp > maxAge)) {
+              await store.delete(item.id);
+              deletedCount++;
+            }
+          }
+          
+          console.log(`Cleaned up ${deletedCount} expired pricing records`);
+          resolve(deletedCount);
+        };
+        request.onerror = (event) => reject(event.target.error);
+      });
+    } catch (error) {
+      console.error('Error cleaning up expired pricing data:', error);
+      throw error;
+    }
+  },
+  
+  /**
+   * Get cache statistics
+   * @returns {Promise<Object>} Cache statistics
+   */
+  async getCacheStats() {
+    try {
+      const db = await openDatabase();
+      const stats = {};
+      
+      // Get set list stats
+      const setListTx = db.transaction(STORES.setList, 'readonly');
+      const setListStore = setListTx.objectStore(STORES.setList);
+      const setListCount = await new Promise(resolve => {
+        const countRequest = setListStore.count();
+        countRequest.onsuccess = () => resolve(countRequest.result);
+      });
+      stats.setList = setListCount;
+      
+      // Get current sets stats
+      const currentSetsTx = db.transaction(STORES.currentSets, 'readonly');
+      const currentSetsStore = currentSetsTx.objectStore(STORES.currentSets);
+      const currentSetsCount = await new Promise(resolve => {
+        const countRequest = currentSetsStore.count();
+        countRequest.onsuccess = () => resolve(countRequest.result);
+      });
+      stats.currentSets = currentSetsCount;
+      
+      // Get cards by set stats
+      const cardsBySetTx = db.transaction(STORES.cardsBySet, 'readonly');
+      const cardsBySetStore = cardsBySetTx.objectStore(STORES.cardsBySet);
+      const cardsBySetCount = await new Promise(resolve => {
+        const countRequest = cardsBySetStore.count();
+        countRequest.onsuccess = () => resolve(countRequest.result);
+      });
+      stats.cardsBySet = cardsBySetCount;
+      
+      // Get current set cards stats
+      const currentSetCardsTx = db.transaction(STORES.currentSetCards, 'readonly');
+      const currentSetCardsStore = currentSetCardsTx.objectStore(STORES.currentSetCards);
+      const currentSetCardsCount = await new Promise(resolve => {
+        const countRequest = currentSetCardsStore.count();
+        countRequest.onsuccess = () => resolve(countRequest.result);
+      });
+      stats.currentSetCards = currentSetCardsCount;
+      
+      // Get card pricing stats
+      const cardPricingTx = db.transaction(STORES.cardPricing, 'readonly');
+      const cardPricingStore = cardPricingTx.objectStore(STORES.cardPricing);
+      const cardPricingCount = await new Promise(resolve => {
+        const countRequest = cardPricingStore.count();
+        countRequest.onsuccess = () => resolve(countRequest.result);
+      });
+      stats.cardPricing = cardPricingCount;
+      
+      return stats;
+    } catch (error) {
+      console.error('Error getting cache stats:', error);
+      throw error;
+    }
   }
 };

@@ -1,8 +1,10 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { API_CONFIG } from './data/apiConfig';
   import { pokeDataService } from './services/pokeDataService';
   import { dbService } from './services/storage/db';
+  import { setClassifier } from './services/setClassifier';
+  import { expansionMapper } from './services/expansionMapper';
   import SearchableSelect from './components/SearchableSelect.svelte';
   import CardSearchSelect from './components/CardSearchSelect.svelte';
   import CardVariantSelector from './components/CardVariantSelector.svelte';
@@ -26,6 +28,25 @@
   let cardVariants = [];
   let showVariantSelector = false;
   let selectedVariant = null;
+  
+  // Network status
+  let isOnline = navigator.onLine;
+  
+  // Loading state for set list
+  let isLoadingSets = true;
+  
+  // Grouped sets for the dropdown
+  let groupedSetsForDropdown = [];
+  
+  // Pricing timestamp
+  let pricingTimestamp = null;
+  let pricingFromCache = false;
+  let pricingIsStale = false;
+  
+  // Intervals for background tasks
+  let syncInterval;
+  let cleanupInterval;
+  let configUpdateInterval;
   
   // Format price to always show 2 decimal places
   function formatPrice(value) {
@@ -71,25 +92,19 @@
       // Get cards for the selected set using the pokeDataService
       let cards = await pokeDataService.getCardsForSet(set.code, set.id);
       
-      // If no cards returned, try to use fallback data for certain sets
+      // If no cards returned, generate dummy cards
       if (!cards || cards.length === 0) {
-        console.log(`No cards returned from API for set ${set.code}, trying fallback data`);
+        console.log(`No cards returned from API for set ${set.code}, generating dummy cards`);
         
-        // Use fallback data for Prismatic Evolutions set
-        if (set.code === 'PRE') {
-          console.log('Using fallback data for Prismatic Evolutions');
-          cards = prismaticEvolutionsCards;
-        } else {
-          // Generate some dummy cards for other sets
-          console.log(`Generating dummy cards for set ${set.code}`);
-          cards = Array.from({ length: 20 }, (_, i) => ({
-            id: `dummy-${set.code}-${i+1}`,
-            name: `${set.name} Card ${i+1}`,
-            num: `${i+1}/${100}`,
-            set_code: set.code,
-            set_name: set.name
-          }));
-        }
+        // Generate dummy cards for all sets
+        console.log(`Generating dummy cards for set ${set.code}`);
+        cards = Array.from({ length: 20 }, (_, i) => ({
+          id: `dummy-${set.code}-${i+1}`,
+          name: `${set.name} Card ${i+1}`,
+          num: `${i+1}/${100}`,
+          set_code: set.code,
+          set_name: set.name
+        }));
       }
       
       console.log(`Received ${cards ? cards.length : 0} cards from API/cache`);
@@ -213,6 +228,11 @@
   
   // Load pricing data for a specific variant
   async function loadPricingForVariant(variant) {
+    if (!isOnline) {
+      error = "You are offline. Please connect to the internet to get pricing data.";
+      return;
+    }
+    
     try {
       if (!variant || !variant.id) {
         throw new Error('Invalid card variant');
@@ -220,9 +240,20 @@
       
       isLoading = true;
       error = null;
+      pricingTimestamp = null;
+      pricingFromCache = false;
+      pricingIsStale = false;
       
-      // Get pricing data for the selected variant
-      const rawPriceData = await pokeDataService.getCardPricing(variant.id);
+      // Get pricing data with metadata for the selected variant
+      const result = await pokeDataService.getCardPricingWithMetadata(variant.id);
+      const rawPriceData = result.data;
+      pricingTimestamp = result.timestamp;
+      pricingFromCache = result.fromCache || false;
+      pricingIsStale = result.isStale || false;
+      
+      console.log('Received variant price data:', rawPriceData);
+      console.log('Pricing timestamp:', new Date(pricingTimestamp).toLocaleString());
+      console.log('From cache:', pricingFromCache);
       
       // Filter out zero or null price values
       if (rawPriceData && rawPriceData.pricing) {
@@ -236,34 +267,16 @@
       error = err.message;
       isLoading = false;
       
-      // For development: Use mock data if API fails
-      try {
-        console.log('Attempting to load mock data for variant...');
-        const mockData = await pokeDataService.loadMockData(selectedSet.name, cardName);
-        
-        // Filter the mock data too
-        if (mockData && mockData.pricing) {
-          mockData.pricing = filterValidPrices(mockData.pricing);
-        }
-        
-        if (variant) {
-          // Update mock data to match the selected variant
-          mockData.name = variant.name;
-          mockData.num = variant.num;
-          if (variant.rarity) {
-            mockData.rarity = variant.rarity;
-          }
-        }
-        
-        priceData = mockData;
-        error = "Using mock data (API unavailable). This is for demonstration purposes only.";
-      } catch (mockErr) {
-        console.error('Failed to load mock data:', mockErr);
-      }
+      // No fallback to mock data anymore
     }
   }
 
   async function fetchCardPrice() {
+    if (!isOnline) {
+      error = "You are offline. Please connect to the internet to get pricing data.";
+      return;
+    }
+    
     if (!selectedSet) {
       error = "Please select a set";
       return;
@@ -276,6 +289,9 @@
     
     isLoading = true;
     error = null;
+    pricingTimestamp = null;
+    pricingFromCache = false;
+    pricingIsStale = false;
     
     try {
       // Get the card ID from the selected card
@@ -286,10 +302,16 @@
       
       console.log(`Fetching price data for card ID: ${cardId}`);
       
-      // Load pricing data directly using the card ID
-      const rawPriceData = await pokeDataService.getCardPricing(cardId);
+      // Load pricing data with metadata using the card ID
+      const result = await pokeDataService.getCardPricingWithMetadata(cardId);
+      const rawPriceData = result.data;
+      pricingTimestamp = result.timestamp;
+      pricingFromCache = result.fromCache || false;
+      pricingIsStale = result.isStale || false;
       
       console.log('Received price data:', rawPriceData);
+      console.log('Pricing timestamp:', new Date(pricingTimestamp).toLocaleString());
+      console.log('From cache:', pricingFromCache);
       
       // Filter out zero or null price values
       if (rawPriceData && rawPriceData.pricing) {
@@ -305,21 +327,7 @@
       console.error('API Error:', err);
       error = err.message;
       
-      // For development: Use mock data if API fails
-      try {
-        console.log('Attempting to load mock data...');
-        const mockData = await pokeDataService.loadMockData(selectedSet.name, cardName);
-        
-        // Filter the mock data too
-        if (mockData && mockData.pricing) {
-          mockData.pricing = filterValidPrices(mockData.pricing);
-        }
-        
-        priceData = mockData;
-        error = "Using mock data (API unavailable). This is for demonstration purposes only.";
-      } catch (mockErr) {
-        console.error('Failed to load mock data:', mockErr);
-      }
+      // No fallback to mock data anymore
     } finally {
       isLoading = false;
     }
@@ -328,16 +336,35 @@
   onMount(async () => {
     try {
       console.log('Initializing app and loading set list...');
+      
+      // Set loading state for sets
+      isLoadingSets = true;
+      
+      // Set up network status listeners
+      window.addEventListener('online', handleNetworkChange);
+      window.addEventListener('offline', handleNetworkChange);
+      
       // Get the set list with caching
       const sets = await pokeDataService.getSetList();
       console.log(`Loaded ${sets.length} sets`);
       
+      // Group sets by expansion
+      const groupedSets = expansionMapper.groupSetsByExpansion(sets);
+      groupedSetsForDropdown = expansionMapper.prepareGroupedSetsForDropdown(groupedSets);
+      
+      console.log(`Grouped sets into ${groupedSetsForDropdown.length} expansions`);
+      console.log('Expansion groups:', groupedSetsForDropdown.map(group => group.label));
+      console.log('First expansion group:', groupedSetsForDropdown[0]);
+      
+      // Also keep a flat list of all sets for other operations
+      availableSets = sets;
+      
       // Verify all sets have an ID property
-      const setsWithoutIds = sets.filter(set => !set.id);
+      const setsWithoutIds = availableSets.filter(set => !set.id);
       if (setsWithoutIds.length > 0) {
         console.warn(`Found ${setsWithoutIds.length} sets without IDs`);
         // Add IDs to the sets that don't have them
-        let maxId = Math.max(...sets.filter(set => set.id).map(set => set.id), 0);
+        let maxId = Math.max(...availableSets.filter(set => set.id).map(set => set.id), 0);
         setsWithoutIds.forEach(set => {
           maxId++;
           set.id = maxId;
@@ -346,18 +373,36 @@
       }
       
       // Check for any missing set codes
-      const setsWithoutCodes = sets.filter(set => !set.code);
+      const setsWithoutCodes = availableSets.filter(set => !set.code);
       if (setsWithoutCodes.length > 0) {
         console.warn(`Found ${setsWithoutCodes.length} sets without codes`);
       }
       
-      availableSets = sets;
+      // Start background tasks
+      startBackgroundSync();
+      startCleanupInterval();
+      startConfigUpdateInterval();
+      
+      // Add a small delay before setting loading state to false
+      // This is just for demonstration purposes to make the loading indicator visible
+      setTimeout(() => {
+        isLoadingSets = false;
+        console.log('Set list loading complete');
+      }, 2000); // 2 second delay
+      
     } catch (error) {
       console.error('Error loading set list:', error);
       // Fallback to imported data
       console.log('Using fallback set list');
       const { setList } = await import('./data/setList.js');
       availableSets = setList;
+      
+      // Add a small delay before setting loading state to false
+      // This is just for demonstration purposes to make the loading indicator visible
+      setTimeout(() => {
+        isLoadingSets = false;
+        console.log('Set list loading complete (after error)');
+      }, 2000); // 2 second delay
     }
     
     // Add debugging log to verify sets are loaded
@@ -366,6 +411,101 @@
       console.log('First few sets:', availableSets.slice(0, 3));
     }
   });
+
+  onDestroy(() => {
+    // Clean up event listeners
+    window.removeEventListener('online', handleNetworkChange);
+    window.removeEventListener('offline', handleNetworkChange);
+    
+    // Clear intervals when component is destroyed
+    if (syncInterval) {
+      clearInterval(syncInterval);
+    }
+    if (cleanupInterval) {
+      clearInterval(cleanupInterval);
+    }
+    if (configUpdateInterval) {
+      clearInterval(configUpdateInterval);
+    }
+  });
+
+  // Handle network status changes
+  function handleNetworkChange() {
+    isOnline = navigator.onLine;
+    if (!isOnline && isLoading) {
+      // If we're loading pricing data and go offline, show an error
+      isLoading = false;
+      error = "Network connection lost. Please check your internet connection and try again.";
+    }
+  }
+
+  // Start background sync for current sets
+  function startBackgroundSync() {
+    // Clear any existing interval
+    if (syncInterval) {
+      clearInterval(syncInterval);
+    }
+    
+    // Set up background sync every 24 hours
+    syncInterval = setInterval(async () => {
+      if (navigator.onLine) {
+        console.log('Running background sync for current sets...');
+        await pokeDataService.preloadCurrentSets();
+      }
+    }, 24 * 60 * 60 * 1000); // 24 hours
+    
+    // Also run once at startup if online
+    if (navigator.onLine) {
+      setTimeout(async () => {
+        console.log('Running initial background sync for current sets...');
+        await pokeDataService.preloadCurrentSets();
+      }, 5000); // Wait 5 seconds after app load
+    }
+  }
+
+  // Start cleanup interval for expired pricing data
+  function startCleanupInterval() {
+    // Clear any existing interval
+    if (cleanupInterval) {
+      clearInterval(cleanupInterval);
+    }
+    
+    // Set up cleanup interval every 12 hours
+    cleanupInterval = setInterval(async () => {
+      console.log('Running cleanup for expired pricing data...');
+      await dbService.cleanupExpiredPricingData();
+    }, 12 * 60 * 60 * 1000); // 12 hours
+    
+    // Also run once at startup
+    setTimeout(async () => {
+      console.log('Running initial cleanup for expired pricing data...');
+      await dbService.cleanupExpiredPricingData();
+    }, 10000); // Wait 10 seconds after app load
+  }
+
+  // Start configuration update interval
+  function startConfigUpdateInterval() {
+    // Clear any existing interval
+    if (configUpdateInterval) {
+      clearInterval(configUpdateInterval);
+    }
+    
+    // Set up update interval every 7 days
+    configUpdateInterval = setInterval(async () => {
+      if (navigator.onLine) {
+        console.log('Running scheduled update of current sets configuration...');
+        await pokeDataService.updateCurrentSetsConfiguration();
+      }
+    }, 7 * 24 * 60 * 60 * 1000); // 7 days
+    
+    // Also run once at startup if online
+    if (navigator.onLine) {
+      setTimeout(async () => {
+        console.log('Running initial update of current sets configuration...');
+        await pokeDataService.updateCurrentSetsConfiguration();
+      }, 15000); // Wait 15 seconds after app load
+    }
+  }
 </script>
 
 <main>
@@ -375,14 +515,22 @@
   <div class="form-container">
     <div class="form-group">
       <label for="setSelect">Select Set:</label>
-      <SearchableSelect
-        items={availableSets}
-        labelField="name"
-        secondaryField="code"
-        placeholder="Search for a set..."
-        bind:value={selectedSet}
-        on:select={handleSetSelect}
-      />
+      
+      {#if isLoadingSets}
+        <div class="loading-select">
+          <input disabled placeholder="Loading sets...">
+          <div class="loading-spinner"></div>
+        </div>
+      {:else}
+        <SearchableSelect
+          items={groupedSetsForDropdown}
+          labelField="name"
+          secondaryField="code"
+          placeholder="Search for a set..."
+          bind:value={selectedSet}
+          on:select={handleSetSelect}
+        />
+      {/if}
     </div>
 
     <div class="form-group">
@@ -446,6 +594,21 @@
               </li>
             {/each}
           </ul>
+          
+          <!-- Add pricing timestamp display -->
+          {#if pricingTimestamp}
+            <div class="pricing-timestamp">
+              <small>
+                Pricing data as of: {new Date(pricingTimestamp).toLocaleString()}
+                {#if pricingFromCache}
+                  <span class="cached-indicator">(Cached)</span>
+                {/if}
+                {#if pricingIsStale}
+                  <span class="stale-indicator">(Stale data - using best available)</span>
+                {/if}
+              </small>
+            </div>
+          {/if}
         {/if}
       </div>
     {/if}
@@ -554,6 +717,28 @@
     cursor: not-allowed;
   }
   
+  .loading-select {
+    position: relative;
+  }
+  
+  .loading-spinner {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(60, 90, 166, 0.2);
+    border-top: 2px solid #3c5aa6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    0% { transform: translateY(-50%) rotate(0deg); }
+    100% { transform: translateY(-50%) rotate(360deg); }
+  }
+  
   .error-select input {
     background-color: #fff8f8;
     color: #cc0000;
@@ -629,6 +814,26 @@
     color: #6c757d;
     font-style: italic;
     padding: 0.5rem 0;
+  }
+  
+  .pricing-timestamp {
+    margin-top: 1rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed #ddd;
+    font-size: 0.85rem;
+    color: #666;
+  }
+  
+  .cached-indicator {
+    color: #3c5aa6;
+    font-weight: 500;
+    margin-left: 0.5rem;
+  }
+  
+  .stale-indicator {
+    color: #ee1515;
+    font-weight: 500;
+    margin-left: 0.5rem;
   }
   
   /* Responsive adjustments */

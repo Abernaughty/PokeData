@@ -12,6 +12,7 @@
   let searchText = '';
   let showDropdown = false;
   let filteredItems = [];
+  let flattenedItems = []; // Flattened list of all items for keyboard navigation
   let highlightedIndex = -1;
   let inputElement;
   let dropdownElement;
@@ -25,34 +26,90 @@
     }
   }
   
+  // Check if items are grouped (contains objects with type: 'group')
+  $: isGroupedItems = items.some(item => item.type === 'group');
+  
+  // Flatten grouped items for easier filtering and navigation
+  $: {
+    if (isGroupedItems) {
+      flattenedItems = [];
+      items.forEach(group => {
+        if (group.type === 'group' && Array.isArray(group.items)) {
+          group.items.forEach(item => {
+            flattenedItems.push({
+              ...item,
+              _groupLabel: group.label // Store the group label for reference
+            });
+          });
+        }
+      });
+    } else {
+      flattenedItems = [...items];
+    }
+  }
+  
   // Update filtered items when items or searchText changes
   $: {
     console.log('Filtering items with searchText:', searchText);
     
-    if (items && Array.isArray(items)) {
-      // Only filter if there's search text, otherwise show all items
-      if (searchText && searchText.trim() !== '' && (!value || searchText !== getDisplayText(value))) {
-        const searchLower = searchText.toLowerCase();
+    if (searchText && searchText.trim() !== '' && (!value || searchText !== getDisplayText(value))) {
+      const searchLower = searchText.toLowerCase();
+      
+      if (isGroupedItems) {
+        // Filter the flattened items first
+        const filteredFlat = flattenedItems.filter(item => {
+          if (!item || !item[labelField]) return false;
+          
+          const primaryMatch = item[labelField].toLowerCase().includes(searchLower);
+          const secondaryMatch = secondaryField && item[secondaryField] && 
+                               item[secondaryField].toLowerCase().includes(searchLower);
+          return primaryMatch || secondaryMatch;
+        });
+        
+        // Group the filtered items back into their expansions
+        const groupedFiltered = {};
+        filteredFlat.forEach(item => {
+          const groupLabel = item._groupLabel || 'Other';
+          if (!groupedFiltered[groupLabel]) {
+            groupedFiltered[groupLabel] = [];
+          }
+          groupedFiltered[groupLabel].push(item);
+        });
+        
+        // Convert back to the group format
+        filteredItems = Object.keys(groupedFiltered).map(label => ({
+          type: 'group',
+          label,
+          items: groupedFiltered[label]
+        }));
+      } else {
+        // Regular filtering for non-grouped items
         filteredItems = items.filter(item => {
           if (!item || !item[labelField]) return false;
           
           const primaryMatch = item[labelField].toLowerCase().includes(searchLower);
           const secondaryMatch = secondaryField && item[secondaryField] && 
-                                 item[secondaryField].toLowerCase().includes(searchLower);
+                               item[secondaryField].toLowerCase().includes(searchLower);
           return primaryMatch || secondaryMatch;
         });
-      } else {
-        filteredItems = [...items];
       }
-      
-      console.log(`Filtered to ${filteredItems.length} items`);
     } else {
-      filteredItems = [];
+      // No search text, show all items
+      filteredItems = [...items];
     }
+    
+    console.log(`Filtered to ${isGroupedItems ? 
+      filteredItems.reduce((count, group) => count + (group.items?.length || 0), 0) : 
+      filteredItems.length} items`);
     
     // Reset highlighted index whenever items change
     highlightedIndex = -1;
   }
+  
+  // Get all selectable items in a flat array for keyboard navigation
+  $: allSelectableItems = isGroupedItems ? 
+    filteredItems.flatMap(group => group.items || []) : 
+    filteredItems;
   
   function handleFocus() {
     console.log('Input focused');
@@ -68,7 +125,7 @@
       case 'ArrowDown':
         event.preventDefault();
         if (!showDropdown) showDropdown = true;
-        highlightedIndex = Math.min(highlightedIndex + 1, filteredItems.length - 1);
+        highlightedIndex = Math.min(highlightedIndex + 1, allSelectableItems.length - 1);
         scrollToHighlighted();
         break;
       case 'ArrowUp':
@@ -78,8 +135,8 @@
         scrollToHighlighted();
         break;
       case 'Enter':
-        if (showDropdown && highlightedIndex >= 0 && highlightedIndex < filteredItems.length) {
-          handleItemSelect(filteredItems[highlightedIndex]);
+        if (showDropdown && highlightedIndex >= 0 && highlightedIndex < allSelectableItems.length) {
+          handleItemSelect(allSelectableItems[highlightedIndex]);
         }
         break;
       case 'Escape':
@@ -179,23 +236,50 @@
   
   {#if showDropdown}
     <div class="dropdown" bind:this={dropdownElement}>
-      {#if filteredItems.length === 0}
-        <div class="no-results">No results found</div>
+      {#if isGroupedItems}
+        {#if filteredItems.length === 0}
+          <div class="no-results">No results found</div>
+        {:else}
+          {#each filteredItems as group, groupIndex}
+            {#if group.type === 'group' && group.items && group.items.length > 0}
+              <div class="group-header">{group.label}</div>
+              {#each group.items as item, itemIndex}
+                <!-- Calculate the global index for this item -->
+                <div
+                  class="item item-{allSelectableItems.indexOf(item)} indented {highlightedIndex === allSelectableItems.indexOf(item) ? 'highlighted' : ''}"
+                  on:click={() => handleItemSelect(item)}
+                  on:mouseover={() => highlightedIndex = allSelectableItems.indexOf(item)}
+                >
+                  <span class="label">
+                    {item[labelField]}
+                    {#if secondaryField && item[secondaryField]}
+                      <span class="secondary">({item[secondaryField]})</span>
+                    {/if}
+                  </span>
+                </div>
+              {/each}
+            {/if}
+          {/each}
+        {/if}
       {:else}
-        {#each filteredItems as item, index}
-          <div
-            class="item item-{index} {highlightedIndex === index ? 'highlighted' : ''}"
-            on:click={() => handleItemSelect(item)}
-            on:mouseover={() => highlightedIndex = index}
-          >
-            <span class="label">
-              {item[labelField]}
-              {#if secondaryField && item[secondaryField]}
-                <span class="secondary">({item[secondaryField]})</span>
-              {/if}
-            </span>
-          </div>
-        {/each}
+        {#if filteredItems.length === 0}
+          <div class="no-results">No results found</div>
+        {:else}
+          {#each filteredItems as item, index}
+            <div
+              class="item item-{index} {highlightedIndex === index ? 'highlighted' : ''}"
+              on:click={() => handleItemSelect(item)}
+              on:mouseover={() => highlightedIndex = index}
+            >
+              <span class="label">
+                {item[labelField]}
+                {#if secondaryField && item[secondaryField]}
+                  <span class="secondary">({item[secondaryField]})</span>
+                {/if}
+              </span>
+            </div>
+          {/each}
+        {/if}
       {/if}
     </div>
   {/if}
@@ -234,7 +318,7 @@
     top: 100%;
     left: 0;
     width: 100%;
-    max-height: 300px;
+    max-height: 400px; /* Increased max-height */
     overflow-y: auto;
     background-color: white;
     border: 1px solid #ddd;
@@ -243,11 +327,27 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   }
   
+  .group-header {
+    padding: 0.5rem;
+    font-weight: bold;
+    background-color: #f0f0f0;
+    color: #3c5aa6; /* Pokemon blue */
+    border-bottom: 1px solid #ddd;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+  
   .item {
     padding: 0.5rem;
     cursor: pointer;
     color: #333; /* Added explicit text color */
     border-bottom: 1px solid #f5f5f5;
+  }
+  
+  .indented {
+    padding-left: 1.5rem;
+    position: relative;
   }
   
   .item:last-child {

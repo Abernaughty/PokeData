@@ -49,7 +49,17 @@ While the primary focus is on the enhancements above, we're also addressing:
 
 ## Recent Changes
 
-1. **Moved PokeData project to a new repository location** (2025-04-25):
+1. **Implemented set grouping by expansion in dropdown menu** (2025-04-25):
+   - Created expansionMapper service to categorize sets by expansion
+   - Modified SearchableSelect component to support grouped items
+   - Implemented indentation for sets under expansion headers
+   - Removed bullet points while keeping indentation for cleaner UI
+   - Added sticky headers for expansion groups in the dropdown
+   - Improved dropdown styling with Pokémon-themed colors
+   - Enhanced keyboard navigation for grouped items
+   - Result: Sets are now organized by expansion series (Scarlet & Violet, Sword & Shield, etc.) for easier navigation
+
+2. **Moved PokeData project to a new repository location** (2025-04-25):
    - Moved the repository from `C:\Users\maber\Documents\GitHub\git-maber\PokeData-repo` to `C:\Users\maber\Documents\GitHub\PokeData`
    - Renamed the repository from "PokeData-repo" to "PokeData"
    - Preserved the memory-bank documentation in the new repository
@@ -152,6 +162,12 @@ While the primary focus is on the enhancements above, we're also addressing:
    - Add scroll handling for dropdown positioning
    - Ensure proper mobile device support
 
+4. **Enhance set grouping functionality**:
+   - Add ability to collapse/expand expansion groups
+   - Implement search within expansion groups
+   - Optimize performance for large set lists
+   - Add visual indicators for current/recent sets
+
 ### Medium-term Goals (2-4 weeks)
 1. **Begin collection management feature**:
    - Design data structure for collection items
@@ -240,6 +256,7 @@ While the primary focus is on the enhancements above, we're also addressing:
    - Services in src/services/
    - Data utilities in src/data/
    - Main application in App.svelte
+   - New expansionMapper service in src/services/
 
 2. **Naming Conventions**:
    - PascalCase for component files (SearchableSelect.svelte)
@@ -311,7 +328,9 @@ While the primary focus is on the enhancements above, we're also addressing:
 
 We've gained several insights during the implementation:
 
-1. **Repository Management**: Creating a standalone repository for the project improves focus and clarity but requires careful setup to ensure all dependencies and configurations are properly transferred.
+1. **Expansion Grouping Value**: Organizing sets by expansion series significantly improves user navigation and reduces cognitive load when searching for specific sets.
+
+2. **Repository Management**: Creating a standalone repository for the project improves focus and clarity but requires careful setup to ensure all dependencies and configurations are properly transferred.
 
 2. **Dependency Management**: The project has several outdated dependencies, including major version updates (Svelte 3.x to 5.x). Updating these requires careful planning and incremental testing to avoid breaking changes.
 
@@ -334,6 +353,10 @@ We've gained several insights during the implementation:
 11. **Feedback Importance**: Clear loading states, error messages, and success indicators significantly improve user confidence in the application.
 
 12. **Data Normalization Necessity**: Different API responses require normalization to provide a consistent user experience.
+
+13. **UI Organization Importance**: Hierarchical organization of data (like grouping sets by expansion) significantly improves usability for large datasets.
+
+14. **Component Flexibility**: Designing components to handle both flat and hierarchical data structures (like SearchableSelect) provides greater reusability across the application.
 
 ---
 *This document was updated on 4/25/2025 as part of the Memory Bank update for the PokeData project.*

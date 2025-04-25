@@ -422,13 +422,16 @@ async loadMockData(setName, cardName) {
 The application uses IndexedDB through a service wrapper in `src/services/storage/db.js`:
 
 ```javascript
-// Database structure
-const DB_NAME = 'pokedata-cache';
-const DB_VERSION = 1;
+// Database configuration
+const DB_NAME = 'poke-data-db';
+const DB_VERSION = 2; // Increment version for schema update
 const STORES = {
-  SETS: 'sets',
-  CARDS: 'cards',
-  PRICING: 'pricing'
+  setList: 'setList',
+  cardsBySet: 'cardsBySet',
+  cardPricing: 'cardPricing',
+  currentSets: 'currentSets',      // New store for current sets
+  currentSetCards: 'currentSetCards', // New store for current set cards
+  config: 'config'                 // New store for configuration
 };
 
 // Example methods
@@ -460,88 +463,449 @@ export const dbService = {
 ```
 
 ### Caching Strategy
-The application implements a multi-level caching strategy:
+The application implements a sophisticated hybrid caching strategy:
 
 1. **Set List Caching**:
    - Long-lived cache (days to weeks)
    - Full refresh on version changes
    - Fallback to static data if unavailable
+   - Current sets identified and prioritized
 
-2. **Card List Caching**:
-   - Medium-lived cache (days)
-   - Cached by set code
-   - Loaded on demand when a set is selected
+2. **Card List Caching - Hybrid Approach**:
+   - **Current Sets (Scarlet & Violet era)**:
+     - Dedicated storage in currentSetCards store
+     - Proactive background loading and caching
+     - Automatic refresh via scheduled background sync
+     - Higher priority for cache retention
+   - **Legacy Sets**:
+     - Standard caching in cardsBySet store
+     - Loaded on demand when a set is selected
+     - Lower priority for cache retention
+     - Cached by set code
 
-3. **Pricing Data Caching**:
-   - Short-lived cache (hours)
-   - Cached by card ID
-   - Refreshed on explicit user action
+3. **Pricing Data Caching - TTL-Based**:
+   - Time-To-Live (TTL) of 24 hours
+   - Cached by card ID with timestamp
+   - Automatic expiration and cleanup
+   - Metadata for cache status transparency
+   - Fallback to stale data when API unavailable
+
+4. **Background Processes**:
+   - Automatic sync for current sets (every 24 hours)
+   - Cleanup of expired pricing data (every 12 hours)
+   - Configuration updates for current sets list (every 7 days)
+   - Network status monitoring for offline handling
 
 ## Component Implementation
 
-### SearchableSelect Component
-The SearchableSelect component provides a reusable dropdown with search functionality:
+### SearchableSelect Component with Grouping Support
+The SearchableSelect component provides a reusable dropdown with search functionality and support for grouped items:
 
 ```html
 <!-- src/components/SearchableSelect.svelte -->
 <script>
+  import { createEventDispatcher, onMount } from 'svelte';
+  
+  // Props
   export let items = [];
+  export let placeholder = 'Search...';
   export let labelField = 'name';
   export let secondaryField = null;
-  export let placeholder = 'Search...';
   export let value = null;
   
-  let searchTerm = '';
-  let isOpen = false;
+  // State
+  let searchText = '';
+  let showDropdown = false;
+  let filteredItems = [];
+  let flattenedItems = []; // Flattened list of all items for keyboard navigation
+  let highlightedIndex = -1;
   let inputElement;
+  let dropdownElement;
   
-  $: filteredItems = items.filter(item => {
-    if (!searchTerm) return true;
-    
-    const label = item[labelField] || '';
-    const secondary = secondaryField && item[secondaryField] ? item[secondaryField] : '';
-    
-    return label.toLowerCase().includes(searchTerm.toLowerCase()) ||
-           secondary.toLowerCase().includes(searchTerm.toLowerCase());
-  });
+  const dispatch = createEventDispatcher();
   
-  function handleSelect(item) {
+  // Check if items are grouped (contains objects with type: 'group')
+  $: isGroupedItems = items.some(item => item.type === 'group');
+  
+  // Flatten grouped items for easier filtering and navigation
+  $: {
+    if (isGroupedItems) {
+      flattenedItems = [];
+      items.forEach(group => {
+        if (group.type === 'group' && Array.isArray(group.items)) {
+          group.items.forEach(item => {
+            flattenedItems.push({
+              ...item,
+              _groupLabel: group.label // Store the group label for reference
+            });
+          });
+        }
+      });
+    } else {
+      flattenedItems = [...items];
+    }
+  }
+  
+  // Update filtered items when items or searchText changes
+  $: {
+    if (searchText && searchText.trim() !== '' && (!value || searchText !== getDisplayText(value))) {
+      const searchLower = searchText.toLowerCase();
+      
+      if (isGroupedItems) {
+        // Filter the flattened items first
+        const filteredFlat = flattenedItems.filter(item => {
+          if (!item || !item[labelField]) return false;
+          
+          const primaryMatch = item[labelField].toLowerCase().includes(searchLower);
+          const secondaryMatch = secondaryField && item[secondaryField] && 
+                               item[secondaryField].toLowerCase().includes(searchLower);
+          return primaryMatch || secondaryMatch;
+        });
+        
+        // Group the filtered items back into their expansions
+        const groupedFiltered = {};
+        filteredFlat.forEach(item => {
+          const groupLabel = item._groupLabel || 'Other';
+          if (!groupedFiltered[groupLabel]) {
+            groupedFiltered[groupLabel] = [];
+          }
+          groupedFiltered[groupLabel].push(item);
+        });
+        
+        // Convert back to the group format
+        filteredItems = Object.keys(groupedFiltered).map(label => ({
+          type: 'group',
+          label,
+          items: groupedFiltered[label]
+        }));
+      } else {
+        // Regular filtering for non-grouped items
+        filteredItems = items.filter(item => {
+          if (!item || !item[labelField]) return false;
+          
+          const primaryMatch = item[labelField].toLowerCase().includes(searchLower);
+          const secondaryMatch = secondaryField && item[secondaryField] && 
+                               item[secondaryField].toLowerCase().includes(searchLower);
+          return primaryMatch || secondaryMatch;
+        });
+      }
+    } else {
+      // No search text, show all items
+      filteredItems = [...items];
+    }
+  }
+  
+  // Get all selectable items in a flat array for keyboard navigation
+  $: allSelectableItems = isGroupedItems ? 
+    filteredItems.flatMap(group => group.items || []) : 
+    filteredItems;
+  
+  function handleItemSelect(item) {
+    if (!item) return;
+    
+    // Update the internal value and search text
     value = item;
-    isOpen = false;
+    searchText = getDisplayText(item);
+    
+    // Close dropdown
+    showDropdown = false;
+    
+    // Dispatch the select event
     dispatch('select', item);
   }
   
-  import { createEventDispatcher } from 'svelte';
-  const dispatch = createEventDispatcher();
+  function getDisplayText(item) {
+    if (!item) return '';
+    if (secondaryField && item[secondaryField]) {
+      return `${item[labelField]} (${item[secondaryField]})`;
+    }
+    return item[labelField];
+  }
 </script>
 
 <!-- Component template -->
 <div class="searchable-select">
-  <input
-    bind:this={inputElement}
-    bind:value={searchTerm}
-    {placeholder}
-    on:focus={() => isOpen = true}
-    on:blur={() => setTimeout(() => isOpen = false, 200)}
-  />
+  <div class="input-wrapper">
+    <input
+      type="text"
+      bind:this={inputElement}
+      bind:value={searchText}
+      on:input={handleInput}
+      on:focus={handleFocus}
+      on:keydown={handleKeydown}
+      placeholder={placeholder}
+      autocomplete="off"
+    />
+    <span class="dropdown-icon">{showDropdown ? '▲' : '▼'}</span>
+  </div>
   
-  {#if isOpen}
-    <ul class="dropdown">
-      {#each filteredItems as item}
-        <li on:mousedown={() => handleSelect(item)}>
-          <span class="primary">{item[labelField] || ''}</span>
-          {#if secondaryField && item[secondaryField]}
-            <span class="secondary">{item[secondaryField]}</span>
-          {/if}
-        </li>
-      {/each}
-    </ul>
+  {#if showDropdown}
+    <div class="dropdown" bind:this={dropdownElement}>
+      {#if isGroupedItems}
+        {#if filteredItems.length === 0}
+          <div class="no-results">No results found</div>
+        {:else}
+          {#each filteredItems as group, groupIndex}
+            {#if group.type === 'group' && group.items && group.items.length > 0}
+              <div class="group-header">{group.label}</div>
+              {#each group.items as item, itemIndex}
+                <div
+                  class="item item-{allSelectableItems.indexOf(item)} indented {highlightedIndex === allSelectableItems.indexOf(item) ? 'highlighted' : ''}"
+                  on:click={() => handleItemSelect(item)}
+                  on:mouseover={() => highlightedIndex = allSelectableItems.indexOf(item)}
+                >
+                  <span class="label">
+                    {item[labelField]}
+                    {#if secondaryField && item[secondaryField]}
+                      <span class="secondary">({item[secondaryField]})</span>
+                    {/if}
+                  </span>
+                </div>
+              {/each}
+            {/if}
+          {/each}
+        {/if}
+      {:else}
+        {#if filteredItems.length === 0}
+          <div class="no-results">No results found</div>
+        {:else}
+          {#each filteredItems as item, index}
+            <div
+              class="item item-{index} {highlightedIndex === index ? 'highlighted' : ''}"
+              on:click={() => handleItemSelect(item)}
+              on:mouseover={() => highlightedIndex = index}
+            >
+              <span class="label">
+                {item[labelField]}
+                {#if secondaryField && item[secondaryField]}
+                  <span class="secondary">({item[secondaryField]})</span>
+                {/if}
+              </span>
+            </div>
+          {/each}
+        {/if}
+      {/if}
+    </div>
   {/if}
 </div>
 
 <style>
-  /* Component styles */
+  .searchable-select {
+    position: relative;
+    width: 100%;
+  }
+  
+  .input-wrapper {
+    position: relative;
+  }
+  
+  input {
+    width: 100%;
+    padding: 0.5rem;
+    padding-right: 2rem;
+    font-size: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+  
+  .dropdown-icon {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #666;
+    pointer-events: none;
+  }
+  
+  .dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    max-height: 400px;
+    overflow-y: auto;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 0 0 4px 4px;
+    z-index: 10;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .group-header {
+    padding: 0.5rem;
+    font-weight: bold;
+    background-color: #f0f0f0;
+    color: #3c5aa6; /* Pokemon blue */
+    border-bottom: 1px solid #ddd;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+  
+  .item {
+    padding: 0.5rem;
+    cursor: pointer;
+    color: #333;
+    border-bottom: 1px solid #f5f5f5;
+  }
+  
+  .indented {
+    padding-left: 1.5rem;
+    position: relative;
+  }
+  
+  .item:hover, .highlighted {
+    background-color: #f5f5f5;
+    color: #3c5aa6; /* Blue color on hover */
+  }
 </style>
+```
+
+### ExpansionMapper Service
+The ExpansionMapper service categorizes sets by their expansion series:
+
+```javascript
+// src/services/expansionMapper.js
+/**
+ * Expansion Mapper Service
+ * Maps set codes to their respective expansions for grouping in the UI
+ */
+
+// Define expansion patterns based on set codes
+const EXPANSION_PATTERNS = [
+  { pattern: /^sv|^JTG|^PRE|^SSP/, expansion: "Scarlet & Violet" },
+  { pattern: /^sm|^SMP/, expansion: "Sun & Moon" },
+  { pattern: /^xy|^XYP/, expansion: "XY" },
+  { pattern: /^bw|^BWP/, expansion: "Black & White" },
+  { pattern: /^hs|^HSP/, expansion: "HeartGold & SoulSilver" },
+  { pattern: /^dp|^DPP/, expansion: "Diamond & Pearl" },
+  { pattern: /^ex/, expansion: "EX" },
+  { pattern: /^PL|^SV|^RR|^SF|^LA|^MD/, expansion: "Platinum" },
+  { pattern: /^CL|^TM|^UD|^UL/, expansion: "Call of Legends" },
+  { pattern: /^N\d/, expansion: "Neo" },
+  { pattern: /^G\d/, expansion: "Gym" },
+  { pattern: /^BS|^B2|^JU|^FO|^RO/, expansion: "Base Set" },
+];
+
+// Special cases for sets that don't follow the pattern
+const SPECIAL_CASES = {
+  "CRZ": "Sword & Shield",
+  "SIT": "Sword & Shield",
+  // ... more special cases
+};
+
+// Fallback expansion for sets that don't match any pattern
+const FALLBACK_EXPANSION = "Other";
+
+/**
+ * Determine the expansion for a set based on its code or name
+ * @param {Object} set - The set object
+ * @returns {string} The expansion name
+ */
+function getExpansionForSet(set) {
+  // If the set doesn't have a code, try to determine from the name
+  if (!set.code) {
+    // Check if the name contains an expansion name
+    for (const { expansion } of EXPANSION_PATTERNS) {
+      if (set.name && set.name.includes(expansion)) {
+        return expansion;
+      }
+    }
+    return FALLBACK_EXPANSION;
+  }
+
+  // Check special cases first
+  if (SPECIAL_CASES[set.code]) {
+    return SPECIAL_CASES[set.code];
+  }
+
+  // Check patterns
+  for (const { pattern, expansion } of EXPANSION_PATTERNS) {
+    if (pattern.test(set.code)) {
+      return expansion;
+    }
+  }
+
+  // If no match found, use the fallback
+  return FALLBACK_EXPANSION;
+}
+
+/**
+ * Group sets by their expansion
+ * @param {Array} sets - Array of set objects
+ * @returns {Object} Object with expansion names as keys and arrays of sets as values
+ */
+function groupSetsByExpansion(sets) {
+  const groupedSets = {};
+
+  // First pass: group sets by expansion
+  sets.forEach(set => {
+    const expansion = getExpansionForSet(set);
+    if (!groupedSets[expansion]) {
+      groupedSets[expansion] = [];
+    }
+    groupedSets[expansion].push(set);
+  });
+
+  // Second pass: sort sets within each expansion by release date (newest first)
+  Object.keys(groupedSets).forEach(expansion => {
+    groupedSets[expansion].sort((a, b) => {
+      // Compare release dates in descending order (newest first)
+      const dateA = new Date(a.release_date || 0);
+      const dateB = new Date(b.release_date || 0);
+      return dateB - dateA;
+    });
+  });
+
+  return groupedSets;
+}
+
+/**
+ * Convert grouped sets to a format suitable for the dropdown
+ * @param {Object} groupedSets - Object with expansion names as keys and arrays of sets as values
+ * @returns {Array} Array of objects with type, label, and items properties
+ */
+function prepareGroupedSetsForDropdown(groupedSets) {
+  // Sort expansions by priority (newest first)
+  const expansionPriority = [
+    "Scarlet & Violet",
+    "Sword & Shield",
+    "Sun & Moon",
+    "XY",
+    "Black & White",
+    "HeartGold & SoulSilver",
+    "Call of Legends",
+    "Platinum",
+    "Diamond & Pearl",
+    "EX",
+    "Neo",
+    "Gym",
+    "Base Set",
+    "Other"
+  ];
+
+  // Create an array of group objects
+  const result = [];
+
+  // Add groups in priority order
+  expansionPriority.forEach(expansion => {
+    if (groupedSets[expansion] && groupedSets[expansion].length > 0) {
+      result.push({
+        type: 'group',
+        label: expansion,
+        items: groupedSets[expansion]
+      });
+    }
+  });
+
+  return result;
+}
+
+export const expansionMapper = {
+  getExpansionForSet,
+  groupSetsByExpansion,
+  prepareGroupedSetsForDropdown
+};
 ```
 
 ### CardSearchSelect Component

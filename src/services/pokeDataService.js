@@ -1,6 +1,7 @@
 import { fetchWithProxy } from '../corsProxy';
 import { API_CONFIG } from '../data/apiConfig';
 import { dbService } from './storage/db';
+import { setClassifier } from './setClassifier';
 
 /**
  * Helper function to sort sets by release date in descending order
@@ -55,6 +56,10 @@ export const pokeDataService = {
   async getSetList() {
     try {
       console.log('Fetching set list...');
+      
+      // First try to load current sets configuration from database
+      await setClassifier.loadFromDatabase(dbService);
+      
       // First try to get from cache
       const cachedSets = await dbService.getSetList();
       if (cachedSets && cachedSets.length > 0) {
@@ -79,34 +84,43 @@ export const pokeDataService = {
       const data = await response.json();
       console.log('API response for sets:', data);
       
-      // Check for different response formats
-      let setsData = data;
-      
-      // Handle data wrapper
-      if (!Array.isArray(data) && data.data && Array.isArray(data.data)) {
-        console.log('Found data wrapper in sets response');
-        setsData = data.data;
-      }
-      
-      // Handle sets wrapper
-      if (!Array.isArray(data) && data.sets && Array.isArray(data.sets)) {
-        console.log('Found sets wrapper in response');
-        setsData = data.sets;
-      }
+      // Process the data to handle different response formats
+      let setsData = this.processSetResponse(data);
       
       // Ensure all sets have IDs
       const processedData = ensureSetsHaveIds(setsData);
       console.log(`Processed ${processedData.length} sets with IDs`);
       
-      // Cache the results
+      // Update the current sets classifier with the latest data
+      setClassifier.updateFromApiData(processedData);
+      
+      // Save the updated configuration
+      await setClassifier.saveToDatabase(dbService);
+      
+      // Cache all sets in the general setList store
       if (processedData && Array.isArray(processedData)) {
         await dbService.saveSetList(processedData);
+      }
+      
+      // Separately cache current sets in the currentSets store
+      for (const set of processedData) {
+        if (set.code && setClassifier.isCurrentSet(set.code)) {
+          await dbService.saveCurrentSet(set);
+        }
       }
       
       return sortSetsByReleaseDate(processedData);
     } catch (error) {
       console.error('Error fetching sets:', error);
-      // Return the fallback list which already has IDs
+      
+      // Try to get sets from cache
+      const cachedSets = await dbService.getSetList();
+      if (cachedSets && cachedSets.length > 0) {
+        console.log(`Using cached sets data - ${cachedSets.length} sets`);
+        return sortSetsByReleaseDate(ensureSetsHaveIds(cachedSets));
+      }
+      
+      // If no cache, use the fallback list which already has IDs
       console.log('Using hard-coded fallback set list due to API error');
       const { setList } = await import('../data/setList');
       return sortSetsByReleaseDate(setList);
@@ -133,16 +147,28 @@ export const pokeDataService = {
         setCode = `id_${setId}`;
       }
       
-      // Try to get from cache first
-      const cachedCards = await dbService.getCardsForSet(setCode);
-      if (cachedCards && cachedCards.length > 0) {
-        console.log(`Using cached cards for set ${setCode}: ${cachedCards.length} cards`);
-        return cachedCards;
+      // Check if this is a current set
+      const isCurrentSet = setClassifier.isCurrentSet(setCode);
+      console.log(`Set ${setCode} is ${isCurrentSet ? 'a current set' : 'not a current set'}`);
+      
+      // For current sets, try to get from currentSetCards store first
+      if (isCurrentSet) {
+        const currentSetCards = await dbService.getCurrentSetCards(setCode);
+        if (currentSetCards && currentSetCards.length > 0) {
+          console.log(`Using cached cards for current set ${setCode}: ${currentSetCards.length} cards`);
+          return currentSetCards;
+        }
+      } else {
+        // For legacy sets, try to get from regular cache
+        const cachedCards = await dbService.getCardsForSet(setCode);
+        if (cachedCards && cachedCards.length > 0) {
+          console.log(`Using cached cards for set ${setCode}: ${cachedCards.length} cards`);
+          return cachedCards;
+        }
       }
       
+      // If not in cache, fetch from API
       console.log(`Fetching cards for set ${setCode} (ID: ${setId}) from API...`);
-      
-      // If not in cache, fetch from API using set_id
       const url = API_CONFIG.buildCardsForSetUrl(setId);
       console.log(`API URL for cards: ${url}`);
       
@@ -160,39 +186,7 @@ export const pokeDataService = {
       console.log(`API response for set ${setCode}:`, data);
       
       // Process the cards data
-      let cards = [];
-      
-      // Check if we have a cards property in the response
-      if (data && data.cards && Array.isArray(data.cards)) {
-        console.log(`Found cards array with ${data.cards.length} items`);
-        cards = data.cards;
-      }
-      // If no cards property, check if the response itself is an array of cards
-      else if (data && Array.isArray(data)) {
-        console.log(`Response is a direct array with ${data.length} items`);
-        cards = data;
-      }
-      // If we have a data property with an array
-      else if (data && data.data && Array.isArray(data.data)) {
-        console.log(`Response has a data array with ${data.data.length} items`);
-        cards = data.data;
-      }
-      // If we have a results property with an array
-      else if (data && data.results && Array.isArray(data.results)) {
-        console.log(`Response has a results array with ${data.results.length} items`);
-        cards = data.results;
-      }
-      else {
-        console.warn('Unexpected data format:', data);
-        // Try to extract cards from any array property as a last resort
-        for (const key in data) {
-          if (Array.isArray(data[key]) && data[key].length > 0) {
-            console.log(`Found potential cards array in property '${key}' with ${data[key].length} items`);
-            cards = data[key];
-            break;
-          }
-        }
-      }
+      const cards = this.processCardResponse(data);
       
       // If we found any cards, log the first one as a sample
       if (cards.length > 0) {
@@ -204,12 +198,35 @@ export const pokeDataService = {
       
       // Cache the results if we have cards
       if (cards.length > 0) {
+        // For current sets, cache in both stores
+        if (isCurrentSet) {
+          await dbService.saveCurrentSetCards(setCode, cards);
+        }
+        // Always cache in the regular store too
         await dbService.saveCardsForSet(setCode, cards);
       }
       
       return cards;
     } catch (error) {
       console.error(`Error fetching cards for set ${setCode}:`, error);
+      
+      // For current sets, try to get from currentSetCards as a last resort
+      if (setClassifier.isCurrentSet(setCode)) {
+        const currentSetCards = await dbService.getCurrentSetCards(setCode);
+        if (currentSetCards && currentSetCards.length > 0) {
+          console.log(`Using cached cards for current set ${setCode} after API error`);
+          return currentSetCards;
+        }
+      }
+      
+      // For legacy sets, try to get from regular cache as a last resort
+      const cachedCards = await dbService.getCardsForSet(setCode);
+      if (cachedCards && cachedCards.length > 0) {
+        console.log(`Using cached cards for set ${setCode} after API error`);
+        return cachedCards;
+      }
+      
+      // If all else fails, return empty array
       return [];
     }
   },
@@ -229,12 +246,22 @@ export const pokeDataService = {
       
       // Try to get from cache first
       const cachedPricing = await dbService.getCardPricing(cardId);
-      if (cachedPricing) {
-        console.log(`Using cached pricing for card ${cardId}`);
-        return cachedPricing;
+      
+      // Check if we have valid cached data within TTL
+      if (cachedPricing && cachedPricing.data && cachedPricing.timestamp) {
+        const now = Date.now();
+        const cacheAge = now - cachedPricing.timestamp;
+        const ttl = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+        
+        if (cacheAge < ttl) {
+          console.log(`Using cached pricing for card ${cardId} (${Math.round(cacheAge / (60 * 60 * 1000))} hours old)`);
+          return cachedPricing.data;
+        } else {
+          console.log(`Cached pricing for card ${cardId} is expired (${Math.round(cacheAge / (60 * 60 * 1000))} hours old), fetching fresh data`);
+        }
       }
       
-      // If not in cache, fetch from API
+      // If not in cache or cache is expired, fetch from API
       const url = API_CONFIG.buildPricingUrl(cardId);
       console.log(`API URL for pricing: ${url}`);
       
@@ -251,14 +278,8 @@ export const pokeDataService = {
       const data = await response.json();
       console.log(`Pricing API response for card ${cardId}:`, data);
       
-      // Process the pricing data based on the API response format
-      let pricingData = data;
-      
-      // Check if the API returns a data wrapper object
-      if (data && data.data && typeof data.data === 'object') {
-        console.log('Found data wrapper in pricing response');
-        pricingData = data.data;
-      }
+      // Process the pricing data
+      const pricingData = this.processPricingResponse(data);
       
       // Cache the results
       if (pricingData) {
@@ -268,41 +289,264 @@ export const pokeDataService = {
       return pricingData;
     } catch (error) {
       console.error(`Error fetching pricing for card ${cardId}:`, error);
+      
+      // If API fails, try to use cached data regardless of age as a fallback
+      const cachedPricing = await dbService.getCardPricing(cardId);
+      if (cachedPricing && cachedPricing.data) {
+        console.log(`API failed, using cached pricing for card ${cardId} as fallback`);
+        return cachedPricing.data;
+      }
+      
+      // If no cache available, throw the error
       throw error;
     }
   },
   
   /**
-   * Load mock data for testing when API is unavailable
-   * @param {string} setName - The set name
-   * @param {string} cardName - The card name
-   * @returns {Promise<Object>} Mock card pricing data
+   * Get pricing data for a specific card with metadata
+   * @param {string} cardId - The card ID
+   * @returns {Promise<Object>} Card pricing data with metadata
    */
-  async loadMockData(setName, cardName) {
+  async getCardPricingWithMetadata(cardId) {
     try {
-      const response = await fetch('./mock/pricing-response.json');
-      const mockData = await response.json();
+      if (!cardId) {
+        throw new Error('Card ID is required to fetch pricing data');
+      }
+
+      console.log(`Getting pricing data with metadata for card ID: ${cardId}`);
       
-      // Customize the mock data
-      mockData.name = cardName || 'Charizard';
-      mockData.set_name = setName || 'Base Set';
+      // Try to get from cache first
+      const cachedPricing = await dbService.getCardPricing(cardId);
       
-      return mockData;
-    } catch (error) {
-      console.error('Error loading mock data:', error);
-      
-      // Return minimal mock data if JSON file fails to load
-      return {
-        id: 'mock-id',
-        name: cardName || 'Charizard',
-        set_name: setName || 'Base Set',
-        num: '4/102',
-        rarity: 'Rare Holo',
-        pricing: {
-          'market': { value: 299.99, currency: 'USD' },
-          'tcgplayer': { value: 305.42, currency: 'USD' }
+      // Check if we have valid cached data within TTL
+      if (cachedPricing && cachedPricing.data && cachedPricing.timestamp) {
+        const now = Date.now();
+        const cacheAge = now - cachedPricing.timestamp;
+        const ttl = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+        
+        if (cacheAge < ttl) {
+          console.log(`Using cached pricing for card ${cardId} (${Math.round(cacheAge / (60 * 60 * 1000))} hours old)`);
+          return {
+            data: cachedPricing.data,
+            timestamp: cachedPricing.timestamp,
+            fromCache: true
+          };
+        } else {
+          console.log(`Cached pricing for card ${cardId} is expired (${Math.round(cacheAge / (60 * 60 * 1000))} hours old), fetching fresh data`);
         }
+      }
+      
+      // If not in cache or cache is expired, fetch from API
+      const url = API_CONFIG.buildPricingUrl(cardId);
+      console.log(`API URL for pricing: ${url}`);
+      
+      const response = await fetchWithProxy(url, {
+        headers: API_CONFIG.getHeaders()
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unable to get error details');
+        console.error(`API error for pricing ${cardId}: ${response.status} - ${errorText}`);
+        throw new Error(`API error: ${response.status}. Details: ${errorText}`);
+      }
+      
+      const data = await response.json();
+      console.log(`Pricing API response for card ${cardId}:`, data);
+      
+      // Process the pricing data
+      const pricingData = this.processPricingResponse(data);
+      
+      // Cache the results
+      const timestamp = Date.now();
+      if (pricingData) {
+        await dbService.saveCardPricing(cardId, pricingData);
+      }
+      
+      return {
+        data: pricingData,
+        timestamp: timestamp,
+        fromCache: false
       };
+    } catch (error) {
+      console.error(`Error fetching pricing for card ${cardId}:`, error);
+      
+      // If API fails, try to use cached data regardless of age as a fallback
+      const cachedPricing = await dbService.getCardPricing(cardId);
+      if (cachedPricing && cachedPricing.data) {
+        console.log(`API failed, using cached pricing for card ${cardId} as fallback`);
+        return {
+          data: cachedPricing.data,
+          timestamp: cachedPricing.timestamp,
+          fromCache: true,
+          isStale: true
+        };
+      }
+      
+      // If no cache available, throw the error
+      throw error;
     }
+  },
+  
+  /**
+   * Preload current sets data
+   * @returns {Promise<boolean>} True if successful
+   */
+  async preloadCurrentSets() {
+    try {
+      console.log('Preloading current set data...');
+      
+      // Get all current set codes
+      const currentSetCodes = setClassifier.getCurrentSetCodes();
+      
+      // Get all sets
+      const allSets = await this.getSetList();
+      
+      // Filter to current sets
+      const currentSets = allSets.filter(set => 
+        set.code && currentSetCodes.includes(set.code)
+      );
+      
+      console.log(`Found ${currentSets.length} current sets to preload`);
+      
+      // For each current set, load and cache its cards
+      for (const set of currentSets) {
+        if (set.id && set.code) {
+          console.log(`Preloading cards for ${set.name} (${set.code})...`);
+          
+          // Check if we already have this set's cards cached
+          const cachedCards = await dbService.getCurrentSetCards(set.code);
+          if (cachedCards && cachedCards.length > 0) {
+            console.log(`Already have ${cachedCards.length} cards cached for ${set.code}, skipping`);
+            continue;
+          }
+          
+          // Load cards for this set
+          const cards = await this.getCardsForSet(set.code, set.id);
+          console.log(`Loaded ${cards.length} cards for ${set.name}`);
+        }
+      }
+      
+      console.log('Finished preloading current set data');
+      return true;
+    } catch (error) {
+      console.error('Error preloading current sets:', error);
+      return false;
+    }
+  },
+  
+  /**
+   * Update current sets configuration
+   * @returns {Promise<boolean>} True if successful
+   */
+  async updateCurrentSetsConfiguration() {
+    try {
+      console.log('Updating current sets configuration...');
+      
+      // Get all sets
+      const allSets = await this.getSetList();
+      
+      // Update the classifier with the latest data
+      const updated = setClassifier.updateFromApiData(allSets);
+      
+      if (updated) {
+        // Save the updated configuration
+        await setClassifier.saveToDatabase(dbService);
+        
+        // Preload cards for any newly added current sets
+        await this.preloadCurrentSets();
+        
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error updating current sets configuration:', error);
+      return false;
+    }
+  },
+  
+  /**
+   * Process API response for sets
+   * @param {Object} data - API response data
+   * @returns {Array} Processed set data
+   */
+  processSetResponse(data) {
+    // Handle different response formats
+    let setsData = data;
+    
+    // Handle data wrapper
+    if (!Array.isArray(data) && data.data && Array.isArray(data.data)) {
+      console.log('Found data wrapper in sets response');
+      setsData = data.data;
+    }
+    
+    // Handle sets wrapper
+    if (!Array.isArray(data) && data.sets && Array.isArray(data.sets)) {
+      console.log('Found sets wrapper in response');
+      setsData = data.sets;
+    }
+    
+    return setsData;
+  },
+  
+  /**
+   * Process API response for cards
+   * @param {Object} data - API response data
+   * @returns {Array} Processed card data
+   */
+  processCardResponse(data) {
+    let cards = [];
+    
+    // Check if we have a cards property in the response
+    if (data && data.cards && Array.isArray(data.cards)) {
+      console.log(`Found cards array with ${data.cards.length} items`);
+      cards = data.cards;
+    }
+    // If no cards property, check if the response itself is an array of cards
+    else if (data && Array.isArray(data)) {
+      console.log(`Response is a direct array with ${data.length} items`);
+      cards = data;
+    }
+    // If we have a data property with an array
+    else if (data && data.data && Array.isArray(data.data)) {
+      console.log(`Response has a data array with ${data.data.length} items`);
+      cards = data.data;
+    }
+    // If we have a results property with an array
+    else if (data && data.results && Array.isArray(data.results)) {
+      console.log(`Response has a results array with ${data.results.length} items`);
+      cards = data.results;
+    }
+    else {
+      console.warn('Unexpected data format:', data);
+      // Try to extract cards from any array property as a last resort
+      for (const key in data) {
+        if (Array.isArray(data[key]) && data[key].length > 0) {
+          console.log(`Found potential cards array in property '${key}' with ${data[key].length} items`);
+          cards = data[key];
+          break;
+        }
+      }
+    }
+    
+    return cards;
+  },
+  
+  /**
+   * Process API response for pricing
+   * @param {Object} data - API response data
+   * @returns {Object} Processed pricing data
+   */
+  processPricingResponse(data) {
+    // Process the pricing data based on the API response format
+    let pricingData = data;
+    
+    // Check if the API returns a data wrapper object
+    if (data && data.data && typeof data.data === 'object') {
+      console.log('Found data wrapper in pricing response');
+      pricingData = data.data;
+    }
+    
+    return pricingData;
   }
 };
