@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Production build files
+/public/build/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Package manager files
+package-lock.json
+
+# Editor directories and files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Vim swap files
+*.sw[a-p]
+.*.sw[a-p]
+*_BACKUP_*.bat
+*_BASE_*.bat
+*_LOCAL_*.bat
+*_REMOTE_*.bat
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.log
+*.tmp
+
+# Local batch files
+init-git.bat
+stage-and-commit.bat
+push-to-github.bat
