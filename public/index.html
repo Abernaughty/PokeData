@@ -7,9 +7,9 @@
   <title>Pokémon Card Price Checker</title>
 
   <link rel='icon' type='image/x-icon' href='./images/favicon.ico'>
-  <link rel='stylesheet' href='./global.css'>
-  <link rel='stylesheet' href='./build/bundle.css'>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel='stylesheet' href='./global.css' id="global-css">
+  <link rel='stylesheet' href='./build/bundle.css' id="bundle-css">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" id="font-css">
 
   <!-- Prevent LiveReload on production -->
   <script>
@@ -29,46 +29,195 @@
     })();
   </script>
   
-  <!-- Database reset script -->
+  <!-- Database version check script -->
   <script>
-    // Delete any existing database before loading the app
-    function resetDatabase() {
+    // Check database version and only reset if needed
+    function checkDatabaseVersion() {
       return new Promise((resolve, reject) => {
         try {
           const DB_NAME = 'poke-data-db';
-          const request = indexedDB.deleteDatabase(DB_NAME);
+          const CURRENT_VERSION = 2; // Match the version in db.js
           
-          request.onsuccess = () => {
-            console.log(`Database ${DB_NAME} deleted successfully on page load`);
+          // First try to open the database to check its version
+          const openRequest = indexedDB.open(DB_NAME);
+          
+          openRequest.onsuccess = (event) => {
+            const db = event.target.result;
+            const existingVersion = db.version;
+            db.close();
+            
+            console.log(`Existing database version: ${existingVersion}, Current version: ${CURRENT_VERSION}`);
+            
+            // Only delete the database if there's a version mismatch or other specific reason
+            if (existingVersion < CURRENT_VERSION) {
+              console.log('Database version mismatch, resetting database...');
+              
+              const deleteRequest = indexedDB.deleteDatabase(DB_NAME);
+              
+              deleteRequest.onsuccess = () => {
+                console.log(`Database ${DB_NAME} deleted successfully due to version update`);
+                resolve();
+              };
+              
+              deleteRequest.onerror = (event) => {
+                console.error('Error deleting database:', event.target.error);
+                resolve();
+              };
+              
+              deleteRequest.onblocked = () => {
+                console.warn('Database deletion blocked - may have open connections in other tabs');
+                // Add a delay to allow connections to close
+                setTimeout(resolve, 1000);
+              };
+            } else {
+              console.log('Database version is current, no reset needed');
+              resolve();
+            }
+          };
+          
+          openRequest.onerror = (event) => {
+            console.error('Error opening database for version check:', event.target.error);
             resolve();
           };
           
-          request.onerror = (event) => {
-            console.error('Error deleting database:', event.target.error);
-            // Still resolve so the app can load
-            resolve();
-          };
-          
-          request.onblocked = () => {
-            console.warn('Database deletion blocked');
-            // Still resolve so the app can load
+          // If the database doesn't exist yet, this will be called
+          openRequest.onupgradeneeded = (event) => {
+            console.log('Database does not exist yet or needs upgrade');
+            const db = event.target.result;
+            db.close();
             resolve();
           };
         } catch (error) {
-          console.error('Error in database reset script:', error);
-          // Still resolve so the app can load
+          console.error('Error in database version check:', error);
           resolve();
         }
       });
     }
 
-    // Reset database before loading app
-    resetDatabase().then(() => {
-      console.log('Database reset complete, app will now load');
+    // Check database version before loading app
+    checkDatabaseVersion().then(() => {
+      console.log('Database check complete, app will now load');
     });
   </script>
 
-  <script type="module" src='./build/main.js'></script>
+  <!-- CSS Loading Check -->
+  <script>
+    // Ensure CSS is loaded before initializing the app
+    function checkCSSLoaded() {
+      return new Promise((resolve) => {
+        const globalCSS = document.getElementById('global-css');
+        const bundleCSS = document.getElementById('bundle-css');
+        const fontCSS = document.getElementById('font-css');
+        
+        // Check if stylesheets are loaded
+        let globalLoaded = false;
+        let bundleLoaded = false;
+        let fontLoaded = false;
+        
+        // Function to check if all stylesheets are loaded
+        function checkAllLoaded() {
+          if (globalLoaded && bundleLoaded && fontLoaded) {
+            console.log('All CSS files loaded successfully');
+            resolve();
+          }
+        }
+        
+        // Check global.css
+        if (globalCSS) {
+          if (globalCSS.sheet) {
+            console.log('global.css already loaded');
+            globalLoaded = true;
+            checkAllLoaded();
+          } else {
+            globalCSS.onload = () => {
+              console.log('global.css loaded');
+              globalLoaded = true;
+              checkAllLoaded();
+            };
+          }
+        } else {
+          console.warn('global.css element not found');
+          globalLoaded = true; // Continue anyway
+          checkAllLoaded();
+        }
+        
+        // Check bundle.css
+        if (bundleCSS) {
+          if (bundleCSS.sheet) {
+            console.log('bundle.css already loaded');
+            bundleLoaded = true;
+            checkAllLoaded();
+          } else {
+            bundleCSS.onload = () => {
+              console.log('bundle.css loaded');
+              bundleLoaded = true;
+              checkAllLoaded();
+            };
+          }
+        } else {
+          console.warn('bundle.css element not found');
+          bundleLoaded = true; // Continue anyway
+          checkAllLoaded();
+        }
+        
+        // Check font CSS
+        if (fontCSS) {
+          if (fontCSS.sheet) {
+            console.log('font CSS already loaded');
+            fontLoaded = true;
+            checkAllLoaded();
+          } else {
+            fontCSS.onload = () => {
+              console.log('font CSS loaded');
+              fontLoaded = true;
+              checkAllLoaded();
+            };
+          }
+        } else {
+          console.warn('font CSS element not found');
+          fontLoaded = true; // Continue anyway
+          checkAllLoaded();
+        }
+        
+        // Set a timeout to resolve anyway after 3 seconds
+        // This prevents the app from being blocked if CSS loading fails
+        setTimeout(() => {
+          console.warn('CSS loading timeout reached, continuing anyway');
+          resolve();
+        }, 3000);
+      });
+    }
+  </script>
+  
+  <!-- App Initialization -->
+  <script>
+    // Wait for document to be ready
+    document.addEventListener('DOMContentLoaded', function() {
+      // First check database version
+      checkDatabaseVersion().then(() => {
+        console.log('Database check complete, app will now load');
+        
+        // Then check CSS loading
+        return checkCSSLoaded();
+      }).then(() => {
+        console.log('All initialization complete, loading app...');
+        
+        // Create script element dynamically to ensure it loads after initialization
+        const script = document.createElement('script');
+        script.type = 'module';
+        script.src = './build/main.js';
+        document.head.appendChild(script);
+      }).catch(error => {
+        console.error('Error during initialization:', error);
+        
+        // Load app anyway in case of error
+        const script = document.createElement('script');
+        script.type = 'module';
+        script.src = './build/main.js';
+        document.head.appendChild(script);
+      });
+    });
+  </script>
 </head>
 
 <body>

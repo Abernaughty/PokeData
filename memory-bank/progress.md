@@ -50,6 +50,11 @@ The current state of the PokeData project includes the following working feature
    - ✅ Console logging for debugging
 
 8. **Recent Improvements**:
+   - ✅ Fixed database reset issue causing problems with multiple tabs (2025-04-25)
+   - ✅ Improved CSS loading sequence to ensure proper styling (2025-04-25)
+   - ✅ Enhanced error handling in SearchableSelect component (2025-04-25)
+   - ✅ Fixed JavaScript syntax error in app initialization (2025-04-25)
+   - ✅ Implemented proper script loading sequence with error handling (2025-04-25)
    - ✅ Implemented set grouping by expansion in dropdown menu (2025-04-25)
    - ✅ Created expansionMapper service to categorize sets by expansion (2025-04-25)
    - ✅ Modified SearchableSelect component to support grouped items (2025-04-25)
@@ -176,7 +181,28 @@ The current state of the PokeData project includes the following working feature
 
 ## Known Issues
 
-1. **Outdated Dependencies**:
+1. **Database Reset Issue**: ✅ FIXED
+   - Issue: Database was being reset on every page load, causing problems with multiple tabs
+   - Cause: Reset script was running unconditionally on page load
+   - Impact: Data loss when using multiple tabs, inconsistent state
+   - Solution: Implemented version check that only resets when necessary
+   - Status: ✅ Fixed on 2025-04-25
+
+2. **CSS Loading Issue**: ✅ FIXED
+   - Issue: Site content sometimes loaded without proper styling
+   - Cause: Race condition between CSS loading and app initialization
+   - Impact: Poor user experience with unstyled content
+   - Solution: Added CSS loading check before app initialization
+   - Status: ✅ Fixed on 2025-04-25
+
+3. **JavaScript Syntax Error**: ✅ FIXED
+   - Issue: "Unexpected end of input" error in main.js
+   - Cause: Race condition in script loading sequence
+   - Impact: Application failed to initialize properly
+   - Solution: Improved script loading sequence with proper error handling
+   - Status: ✅ Fixed on 2025-04-25
+
+4. **Outdated Dependencies**:
    - Issue: Several dependencies are outdated, including major version updates (Svelte 3.x to 5.x)
    - Cause: Project has been maintained with fixed dependency versions
    - Impact: Missing new features, potential security updates, and performance improvements

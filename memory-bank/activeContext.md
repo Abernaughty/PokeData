@@ -49,7 +49,25 @@ While the primary focus is on the enhancements above, we're also addressing:
 
 ## Recent Changes
 
-1. **Implemented set grouping by expansion in dropdown menu** (2025-04-25):
+1. **Fixed database reset issue causing problems with multiple tabs** (2025-04-25):
+   - Identified issue where database was being reset on every page load
+   - Replaced reset script with version check script that only resets when necessary
+   - Implemented proper database version comparison logic
+   - Added error handling for database operations
+   - Added logging for database version checks
+   - Result: Database now persists properly across page reloads and multiple tabs
+
+2. **Fixed CSS loading and JavaScript syntax issues** (2025-04-25):
+   - Improved CSS loading sequence to ensure proper styling
+   - Enhanced error handling in SearchableSelect component
+   - Fixed JavaScript syntax error in app initialization
+   - Implemented proper script loading sequence with error handling
+   - Added CSS loading check before app initialization
+   - Separated database check and CSS loading into distinct phases
+   - Added fallback for script loading errors
+   - Result: Application now loads reliably with proper styling and without JavaScript errors
+
+3. **Implemented set grouping by expansion in dropdown menu** (2025-04-25):
    - Created expansionMapper service to categorize sets by expansion
    - Modified SearchableSelect component to support grouped items
    - Implemented indentation for sets under expansion headers

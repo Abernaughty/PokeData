@@ -16,6 +16,8 @@
   let highlightedIndex = -1;
   let inputElement;
   let dropdownElement;
+  let isGroupedItems = false; // Initialize isGroupedItems
+  let allSelectableItems = []; // Initialize allSelectableItems
   
   const dispatch = createEventDispatcher();
   
@@ -27,89 +29,166 @@
   }
   
   // Check if items are grouped (contains objects with type: 'group')
-  $: isGroupedItems = items.some(item => item.type === 'group');
+  $: {
+    // Add more robust checking and logging
+    const hasGroupedItems = Array.isArray(items) && items.some(item => item && item.type === 'group');
+    
+    if (isGroupedItems !== hasGroupedItems) {
+      console.log(`SearchableSelect: Grouped items status changed to ${hasGroupedItems}`);
+      if (hasGroupedItems) {
+        console.log(`SearchableSelect: Found ${items.filter(item => item && item.type === 'group').length} groups`);
+      }
+    }
+    
+    isGroupedItems = hasGroupedItems;
+  }
   
   // Flatten grouped items for easier filtering and navigation
   $: {
-    if (isGroupedItems) {
-      flattenedItems = [];
-      items.forEach(group => {
-        if (group.type === 'group' && Array.isArray(group.items)) {
-          group.items.forEach(item => {
-            flattenedItems.push({
-              ...item,
-              _groupLabel: group.label // Store the group label for reference
-            });
+    try {
+      if (isGroupedItems) {
+        console.log('SearchableSelect: Flattening grouped items');
+        flattenedItems = [];
+        
+        if (!Array.isArray(items)) {
+          console.warn('SearchableSelect: items is not an array', items);
+        } else {
+          items.forEach(group => {
+            if (!group) {
+              console.warn('SearchableSelect: Null or undefined group in items');
+            } else if (group.type !== 'group') {
+              console.warn('SearchableSelect: Non-group item in grouped items', group);
+            } else if (!Array.isArray(group.items)) {
+              console.warn('SearchableSelect: Group items is not an array', group);
+            } else {
+              // Process valid group
+              group.items.forEach(item => {
+                if (!item) {
+                  console.warn('SearchableSelect: Null or undefined item in group', group.label);
+                } else {
+                  flattenedItems.push({
+                    ...item,
+                    _groupLabel: group.label // Store the group label for reference
+                  });
+                }
+              });
+            }
           });
         }
-      });
-    } else {
-      flattenedItems = [...items];
+        
+        console.log(`SearchableSelect: Flattened ${flattenedItems.length} items from groups`);
+      } else {
+        // For non-grouped items, just copy the array
+        flattenedItems = Array.isArray(items) ? [...items] : [];
+        if (!Array.isArray(items)) {
+          console.warn('SearchableSelect: Non-grouped items is not an array', items);
+        }
+      }
+    } catch (error) {
+      console.error('SearchableSelect: Error flattening items', error);
+      // Fallback to empty array on error
+      flattenedItems = [];
     }
   }
   
   // Update filtered items when items or searchText changes
   $: {
-    console.log('Filtering items with searchText:', searchText);
-    
-    if (searchText && searchText.trim() !== '' && (!value || searchText !== getDisplayText(value))) {
-      const searchLower = searchText.toLowerCase();
+    try {
+      console.log('SearchableSelect: Filtering items with searchText:', searchText);
       
-      if (isGroupedItems) {
-        // Filter the flattened items first
-        const filteredFlat = flattenedItems.filter(item => {
-          if (!item || !item[labelField]) return false;
+      if (searchText && searchText.trim() !== '' && (!value || searchText !== getDisplayText(value))) {
+        const searchLower = searchText.toLowerCase();
+        
+        if (isGroupedItems) {
+          // Filter the flattened items first
+          const filteredFlat = flattenedItems.filter(item => {
+            if (!item || !item[labelField]) return false;
+            
+            const primaryMatch = item[labelField].toLowerCase().includes(searchLower);
+            const secondaryMatch = secondaryField && item[secondaryField] && 
+                                 item[secondaryField].toLowerCase().includes(searchLower);
+            return primaryMatch || secondaryMatch;
+          });
           
-          const primaryMatch = item[labelField].toLowerCase().includes(searchLower);
-          const secondaryMatch = secondaryField && item[secondaryField] && 
-                               item[secondaryField].toLowerCase().includes(searchLower);
-          return primaryMatch || secondaryMatch;
-        });
-        
-        // Group the filtered items back into their expansions
-        const groupedFiltered = {};
-        filteredFlat.forEach(item => {
-          const groupLabel = item._groupLabel || 'Other';
-          if (!groupedFiltered[groupLabel]) {
-            groupedFiltered[groupLabel] = [];
-          }
-          groupedFiltered[groupLabel].push(item);
-        });
-        
-        // Convert back to the group format
-        filteredItems = Object.keys(groupedFiltered).map(label => ({
-          type: 'group',
-          label,
-          items: groupedFiltered[label]
-        }));
+          // Group the filtered items back into their expansions
+          const groupedFiltered = {};
+          filteredFlat.forEach(item => {
+            const groupLabel = item._groupLabel || 'Other';
+            if (!groupedFiltered[groupLabel]) {
+              groupedFiltered[groupLabel] = [];
+            }
+            groupedFiltered[groupLabel].push(item);
+          });
+          
+          // Convert back to the group format
+          filteredItems = Object.keys(groupedFiltered).map(label => ({
+            type: 'group',
+            label,
+            items: groupedFiltered[label]
+          }));
+          
+          console.log(`SearchableSelect: Filtered to ${filteredItems.length} groups`);
+        } else {
+          // Regular filtering for non-grouped items
+          filteredItems = Array.isArray(items) ? items.filter(item => {
+            if (!item || !item[labelField]) return false;
+            
+            const primaryMatch = item[labelField].toLowerCase().includes(searchLower);
+            const secondaryMatch = secondaryField && item[secondaryField] && 
+                                 item[secondaryField].toLowerCase().includes(searchLower);
+            return primaryMatch || secondaryMatch;
+          }) : [];
+          
+          console.log(`SearchableSelect: Filtered to ${filteredItems.length} items`);
+        }
       } else {
-        // Regular filtering for non-grouped items
-        filteredItems = items.filter(item => {
-          if (!item || !item[labelField]) return false;
-          
-          const primaryMatch = item[labelField].toLowerCase().includes(searchLower);
-          const secondaryMatch = secondaryField && item[secondaryField] && 
-                               item[secondaryField].toLowerCase().includes(searchLower);
-          return primaryMatch || secondaryMatch;
-        });
+        // No search text, show all items
+        // Make a defensive copy to avoid reference issues
+        filteredItems = Array.isArray(items) ? 
+          (isGroupedItems ? 
+            items.map(group => ({...group, items: [...(group.items || [])]})) : 
+            [...items]
+          ) : [];
+        
+        console.log(`SearchableSelect: No search text, showing all ${isGroupedItems ? 
+          filteredItems.reduce((count, group) => count + ((group && group.items) ? group.items.length : 0), 0) : 
+          filteredItems.length} items`);
       }
-    } else {
-      // No search text, show all items
-      filteredItems = [...items];
+      
+      // Reset highlighted index whenever items change
+      highlightedIndex = -1;
+    } catch (error) {
+      console.error('SearchableSelect: Error filtering items', error);
+      // Fallback to empty array on error
+      filteredItems = [];
+      highlightedIndex = -1;
     }
-    
-    console.log(`Filtered to ${isGroupedItems ? 
-      filteredItems.reduce((count, group) => count + (group.items?.length || 0), 0) : 
-      filteredItems.length} items`);
-    
-    // Reset highlighted index whenever items change
-    highlightedIndex = -1;
   }
   
   // Get all selectable items in a flat array for keyboard navigation
-  $: allSelectableItems = isGroupedItems ? 
-    filteredItems.flatMap(group => group.items || []) : 
-    filteredItems;
+  $: {
+    try {
+      if (isGroupedItems) {
+        // For grouped items, flatten all groups
+        allSelectableItems = [];
+        if (Array.isArray(filteredItems)) {
+          filteredItems.forEach(group => {
+            if (group && group.items && Array.isArray(group.items)) {
+              allSelectableItems.push(...group.items);
+            }
+          });
+        }
+      } else {
+        // For non-grouped items, just use the filtered items
+        allSelectableItems = Array.isArray(filteredItems) ? filteredItems : [];
+      }
+      
+      console.log(`SearchableSelect: ${allSelectableItems.length} selectable items available`);
+    } catch (error) {
+      console.error('SearchableSelect: Error getting selectable items', error);
+      allSelectableItems = [];
+    }
+  }
   
   function handleFocus() {
     console.log('Input focused');
