@@ -35,53 +35,60 @@ This document outlines the technologies used, development setup, technical const
 2. **Repository Structure**:
    ```
    PokeData/
-   ├── src/                  # Source code
-   │   ├── components/       # UI components
+   ├── docs/                  # Documentation files
+   │   ├── azure-deployment.md
+   │   ├── debugging-guide.md
+   │   └── quick-debug-guide.md
+   ├── memory-bank/           # Project memory documentation
+   │   ├── activeContext.md
+   │   ├── productContext.md
+   │   ├── progress.md
+   │   ├── projectbrief.md
+   │   ├── systemPatterns.md
+   │   └── techContext.md
+   ├── public/                # Static assets
+   │   ├── build/             # Compiled code (generated)
+   │   ├── images/            # Images
+   │   ├── mock/              # Mock data for development
+   │   ├── debug-api.js       # API debugging utilities
+   │   ├── global.css         # Global styles
+   │   ├── index.html         # HTML entry point
+   │   └── staticwebapp.config.json # Azure Static Web Apps configuration
+   ├── src/                   # Source code
+   │   ├── components/        # UI components
    │   │   ├── CardSearchSelect.svelte
    │   │   ├── CardVariantSelector.svelte
    │   │   ├── SearchableInput.svelte
    │   │   └── SearchableSelect.svelte
-   │   ├── data/             # Static data and configuration
+   │   ├── data/              # Static data and configuration
    │   │   ├── apiConfig.js
    │   │   ├── prismaticEvolutionsCards.js
    │   │   └── setList.js
-   │   ├── services/         # Business logic and API services
+   │   ├── services/          # Business logic and API services
    │   │   ├── pokeDataService.js
    │   │   └── storage/
    │   │       └── db.js
-   │   ├── App.svelte        # Main application component
-   │   ├── corsProxy.js      # CORS proxy utility
-   │   ├── debug-env.js      # Debugging utilities
-   │   └── main.js           # Application entry point
-   ├── public/               # Static assets
-   │   ├── build/            # Compiled code (generated)
-   │   ├── images/           # Images
-   │   ├── mock/             # Mock data for development
-   │   ├── debug-api.js      # API debugging utilities
-   │   ├── global.css        # Global styles
-   │   ├── index.html        # HTML entry point
-   │   └── staticwebapp.config.json # Azure Static Web Apps configuration
-   ├── docs/                 # Documentation
-   │   ├── azure-deployment.md
-   │   ├── debugging-guide.md
-   │   └── quick-debug-guide.md
-   ├── .env.example          # Example environment variables
-   ├── .gitignore            # Git ignore file
-   ├── .npmrc                # NPM configuration
-   ├── build.bat             # Build script
-   ├── build.js              # Build configuration
-   ├── dev.bat               # Development server script
-   ├── diagnose-env.bat      # Environment diagnostics script
-   ├── fix-node-path.bat     # Node.js path fix script
-   ├── node-test.js          # Node.js test script
-   ├── package.json          # Package configuration
-   ├── pnpm-lock.yaml        # PNPM lock file
-   ├── README.md             # Project documentation
-   ├── rollup.config.cjs     # Rollup configuration (CommonJS)
-   ├── rollup.config.js      # Rollup configuration (ES modules)
-   ├── setup.bat             # Setup script
-   ├── start.bat             # Start script
-   └── TASKS.md              # Development tasks and status
+   │   ├── App.svelte         # Main application component
+   │   ├── corsProxy.js       # CORS proxy utility
+   │   ├── debug-env.js       # Debugging utilities
+   │   └── main.js            # Application entry point
+   ├── .env.example           # Example environment variables
+   ├── .gitignore             # Git ignore file
+   ├── .npmrc                 # NPM configuration
+   ├── build.bat              # Build script
+   ├── build.js               # Build configuration
+   ├── dev.bat                # Development server script
+   ├── diagnose-env.bat       # Environment diagnostics script
+   ├── fix-node-path.bat      # Node.js path fix utility
+   ├── node-test.js           # Node.js test script
+   ├── package.json           # Package configuration
+   ├── pnpm-lock.yaml         # PNPM lock file
+   ├── README.md              # Project documentation
+   ├── rollup.config.cjs      # Rollup configuration (CommonJS)
+   ├── rollup.config.js       # Rollup configuration (ES modules)
+   ├── setup.bat              # Setup script
+   ├── start.bat              # Start script
+   └── TASKS.md               # Development tasks and status
    ```
 
 3. **Setup Commands**:
@@ -96,6 +103,8 @@ This document outlines the technologies used, development setup, technical const
    # Start development server
    pnpm dev
    ```
+
+   Note: The PokeData repository is located at `C:\Users\maber\Documents\GitHub\PokeData`. There is a separate static web app workflow directory at `C:\Users\maber\Documents\GitHub\git-maber\PokeData` that should not be modified unless explicitly requested.
 
 4. **Automation Scripts**:
    - `setup.bat`: Checks and installs Node.js, pnpm, and project dependencies
@@ -151,13 +160,51 @@ This document outlines the technologies used, development setup, technical const
 
 ## Dependencies
 
+### Current Dependency Status
+The project currently uses fixed dependency versions to ensure stability. As of April 25, 2025, several dependencies are outdated and require evaluation for updates:
+
+| Package | Current Version | Latest Version | Status |
+|---------|----------------|----------------|--------|
+| PNPM | 8.15.4 | 10.9.0 | Update available |
+| Svelte | 3.38.3 | 5.28.2 | Major version update |
+| Rollup | 2.30.0 | 4.40.0 | Major version update |
+| @rollup/plugin-commonjs | 17.0.0 | 28.0.3 | Major version update |
+| @rollup/plugin-node-resolve | 11.0.0 | 16.0.1 | Major version update |
+| rollup-plugin-css-only | 3.1.0 | 4.5.2 | Major version update |
+| rollup-plugin-livereload | 2.0.0 | 2.0.5 | Minor update |
+| rollup-plugin-svelte | 7.0.0 | 7.2.2 | Minor update |
+| rollup-plugin-terser | 7.0.0 | 7.0.2 | Patch update |
+| sirv-cli | 1.0.0 | 3.0.1 | Major version update |
+
+### Dependency Update Plan
+1. **Package Manager Update**:
+   - Update PNPM from 8.15.4 to 10.9.0
+   - Evaluate compatibility with existing scripts and workflows
+   - Document any changes to PNPM commands or behavior
+
+2. **Non-Breaking Updates**:
+   - Apply patch and minor updates first (rollup-plugin-livereload, rollup-plugin-svelte, rollup-plugin-terser)
+   - Test application functionality after each update
+   - Document any changes in behavior or configuration
+
+3. **Major Version Updates**:
+   - Evaluate each major update separately (Rollup, plugins, sirv-cli)
+   - Research breaking changes and migration guides
+   - Create migration plan for each dependency
+   - Implement updates incrementally with thorough testing
+
+4. **Svelte Framework Update**:
+   - Special consideration for Svelte 3.x to 5.x update
+   - Research Svelte 5 migration guide
+   - Identify breaking changes and required code modifications
+   - Create a separate branch for Svelte 5 migration
+   - Test thoroughly before merging
+
 ### Production Dependencies
 ```json
 {
   "dependencies": {
-    "svelte": "^3.55.0",
-    "idb": "^7.1.0",
-    "chart.js": "^4.2.0"
+    "sirv-cli": "1.0.0"
   }
 }
 ```
@@ -166,13 +213,17 @@ This document outlines the technologies used, development setup, technical const
 ```json
 {
   "devDependencies": {
-    "rollup": "^3.10.0",
-    "rollup-plugin-svelte": "^7.1.0",
-    "rollup-plugin-css-only": "^4.3.0",
-    "rollup-plugin-terser": "^7.0.2",
-    "rollup-plugin-livereload": "^2.0.5",
-    "svelte-preprocess": "^5.0.0",
-    "sirv-cli": "^2.0.2"
+    "@rollup/plugin-commonjs": "17.0.0",
+    "@rollup/plugin-node-resolve": "11.0.0",
+    "@rollup/plugin-replace": "6.0.2",
+    "dotenv": "16.5.0",
+    "rimraf": "3.0.2",
+    "rollup": "2.30.0",
+    "rollup-plugin-css-only": "3.1.0",
+    "rollup-plugin-livereload": "2.0.0",
+    "rollup-plugin-svelte": "7.0.0",
+    "rollup-plugin-terser": "7.0.0",
+    "svelte": "3.38.3"
   }
 }
 ```
@@ -180,29 +231,32 @@ This document outlines the technologies used, development setup, technical const
 ### Key Dependency Details
 
 1. **Svelte**:
-   - Version: 3.55.0
+   - Current Version: 3.38.3
+   - Latest Version: 5.28.2
    - Purpose: UI framework for building reactive components
    - Features Used: Component system, reactivity, event handling, conditional rendering
+   - Update Considerations: Major version jump with significant API changes
 
-2. **idb**:
-   - Version: 7.1.0
-   - Purpose: IndexedDB wrapper for simpler database operations
-   - Features Used: Promise-based API, transaction management, object stores
-
-3. **chart.js** (planned):
-   - Version: 4.2.0
-   - Purpose: Charting library for price history visualization
-   - Features Used: Line charts, time series, responsive sizing
-
-4. **Rollup**:
-   - Version: 3.10.0
+2. **Rollup**:
+   - Current Version: 2.30.0
+   - Latest Version: 4.40.0
    - Purpose: JavaScript module bundler
    - Features Used: Code splitting, tree shaking, plugin system
+   - Update Considerations: Configuration changes required for v4
 
-5. **sirv-cli**:
-   - Version: 2.0.2
+3. **PNPM**:
+   - Current Version: 8.15.4
+   - Latest Version: 10.9.0
+   - Purpose: Fast, disk space efficient package manager
+   - Features Used: Package installation, script running, dependency management
+   - Update Considerations: Command behavior changes, lockfile format changes
+
+4. **sirv-cli**:
+   - Current Version: 1.0.0
+   - Latest Version: 3.0.1
    - Purpose: Static file server for development and production
    - Features Used: HTTP serving, compression, caching
+   - Update Considerations: Command line options may have changed
 
 ## Tool Usage Patterns
 
@@ -595,22 +649,28 @@ The application displays user-friendly error messages in the UI:
 ## Future Technical Considerations
 
 ### Planned Technical Enhancements
-1. **TypeScript Integration**:
+1. **Dependency Updates**:
+   - Update PNPM to version 10.9.0
+   - Evaluate and implement updates for Rollup and plugins
+   - Research and plan migration to Svelte 5.x
+   - Document breaking changes and migration steps
+
+2. **TypeScript Integration**:
    - Add type safety to the codebase
    - Improve developer experience
    - Enhance code quality and maintainability
 
-2. **Testing Framework**:
+3. **Testing Framework**:
    - Implement Jest or Vitest for unit testing
    - Add component testing with Testing Library
    - Create end-to-end tests with Cypress
 
-3. **Build Optimization**:
+4. **Build Optimization**:
    - Implement code splitting for better performance
    - Add service worker for offline capabilities
    - Optimize asset loading and caching
 
-4. **State Management**:
+5. **State Management**:
    - Consider adding Svelte stores for global state
    - Implement more structured state management
    - Improve state persistence
@@ -637,4 +697,4 @@ The application displays user-friendly error messages in the UI:
    - Enhance screen reader support
 
 ---
-*This document was created on 4/25/2025 as part of the Memory Bank initialization for the PokeData project.*
+*This document was updated on 4/25/2025 as part of the Memory Bank update for the PokeData project.*

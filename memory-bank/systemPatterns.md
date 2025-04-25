@@ -30,6 +30,58 @@ The PokeData application follows a client-side architecture with a focus on offl
 └─────────────────────────────────────────────────────────┘
 ```
 
+### Repository Structure
+The PokeData project is now maintained in a standalone Git repository at `C:\Users\maber\Documents\GitHub\PokeData` with the following structure:
+
+```
+PokeData/
+├── docs/                  # Documentation files
+│   ├── azure-deployment.md
+│   ├── debugging-guide.md
+│   └── quick-debug-guide.md
+├── memory-bank/           # Project memory documentation
+│   ├── activeContext.md
+│   ├── productContext.md
+│   ├── progress.md
+│   ├── projectbrief.md
+│   ├── systemPatterns.md
+│   └── techContext.md
+├── public/                # Static assets and build output
+│   ├── build/             # Compiled JS/CSS
+│   ├── data/              # Static data files
+│   ├── images/            # Image assets
+│   ├── mock/              # Mock data for testing
+│   ├── debug-api.js       # Debugging utilities
+│   ├── global.css         # Global styles
+│   ├── index.html         # Main HTML file
+│   └── staticwebapp.config.json  # Azure config
+├── src/                   # Source code
+│   ├── components/        # UI components
+│   ├── data/              # Data utilities
+│   ├── services/          # Business logic services
+│   ├── App.svelte         # Main application component
+│   ├── corsProxy.js       # CORS proxy utility
+│   ├── debug-env.js       # Debug environment setup
+│   └── main.js            # Application entry point
+├── .env.example           # Environment variables template
+├── .gitignore             # Git ignore file
+├── .npmrc                 # NPM configuration
+├── build.bat              # Build script
+├── build.js               # Build configuration
+├── dev.bat                # Development script
+├── diagnose-env.bat       # Environment diagnostics
+├── fix-node-path.bat      # Node path fix utility
+├── node-test.js           # Node environment test
+├── package.json           # Dependencies and scripts
+├── pnpm-lock.yaml         # PNPM lock file
+├── README.md              # Project documentation
+├── rollup.config.cjs      # Rollup config (CommonJS)
+├── rollup.config.js       # Rollup config (ES modules)
+├── setup.bat              # Setup script
+├── start.bat              # Start script
+└── TASKS.md               # Task tracking
+```
+
 ### Component Layer
 - **UI Components**: Svelte components for user interface elements
 - **Form Controls**: Specialized input components like SearchableSelect
@@ -108,27 +160,34 @@ The current implementation focuses on a client-side architecture with robust cac
 
 ## Key Technical Decisions
 
-### 1. Svelte as Frontend Framework
+### 1. Standalone Repository Architecture
+- **Rationale**: Better isolation, focused development, and clearer project boundaries
+- **Alternatives Considered**: Multi-project repository, monorepo approach
+- **Trade-offs**: Requires additional setup but provides cleaner project management and better focus
+- **Implementation**: Moved from `C:\Users\maber\Documents\GitHub\git-maber\PokeData-repo` to `C:\Users\maber\Documents\GitHub\PokeData`
+- **Note**: The directory at `C:\Users\maber\Documents\GitHub\git-maber\PokeData` is a separate static web app workflow directory and should not be modified unless explicitly requested
+
+### 2. Svelte as Frontend Framework
 - **Rationale**: Lightweight, reactive framework with excellent performance characteristics
 - **Alternatives Considered**: React, Vue.js
 - **Trade-offs**: Smaller ecosystem than React, but better performance and simpler state management
 
-### 2. IndexedDB for Caching
+### 3. IndexedDB for Caching
 - **Rationale**: Provides robust, persistent storage with larger capacity than localStorage
 - **Alternatives Considered**: localStorage, sessionStorage
 - **Trade-offs**: More complex API but better performance and storage capacity
 
-### 3. CORS Proxy Implementation
+### 4. CORS Proxy Implementation
 - **Rationale**: Necessary to handle cross-origin requests to external APIs
 - **Alternatives Considered**: Server-side API, third-party CORS proxies
 - **Trade-offs**: Added complexity but enables client-side only architecture
 
-### 4. Two-Step Search Process
+### 5. Two-Step Search Process
 - **Rationale**: Improves user experience by breaking down the search into manageable steps
 - **Alternatives Considered**: Single search field with autocomplete
 - **Trade-offs**: Additional step in the process but more structured and efficient search
 
-### 5. Client-Side Only Architecture
+### 6. Client-Side Only Architecture
 - **Rationale**: Simplifies deployment and enables offline functionality
 - **Alternatives Considered**: Full-stack application with backend API
 - **Trade-offs**: Limited by browser capabilities but easier to deploy and maintain
@@ -389,29 +448,35 @@ App.svelte
 
 ## Future Architecture Considerations
 
-1. **Collection Management**:
+1. **Dependency Management**:
+   - Evaluation of major version updates (Svelte 3.x to 5.x)
+   - Incremental update strategy for dependencies
+   - Testing framework for compatibility verification
+   - Documentation of breaking changes and solutions
+
+2. **Collection Management**:
    - Local storage for user collections
    - Data structure for collection items
    - CRUD operations for collection management
    - Collection statistics and valuation
 
-2. **Price History**:
+3. **Price History**:
    - Time-series data storage
    - Graph visualization components
    - Historical data API integration
    - Date range selection UI
 
-3. **Dark Mode**:
+4. **Dark Mode**:
    - Theme system with CSS variables
    - User preference persistence
    - Smooth theme transitions
    - Consistent styling across themes
 
-4. **Responsive Enhancements**:
+5. **Responsive Enhancements**:
    - Optimized mobile layouts
    - Touch-friendly interactions
    - Adaptive component rendering
    - Performance optimizations for mobile devices
 
 ---
-*This document was created on 4/25/2025 as part of the Memory Bank initialization for the PokeData project.*
+*This document was updated on 4/25/2025 as part of the Memory Bank update for the PokeData project.*

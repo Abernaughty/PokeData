@@ -49,7 +49,18 @@ While the primary focus is on the enhancements above, we're also addressing:
 
 ## Recent Changes
 
-1. **Converted Card Name field to use SearchableSelect component** (2025-03-16):
+1. **Moved PokeData project to a new repository location** (2025-04-25):
+   - Moved the repository from `C:\Users\maber\Documents\GitHub\git-maber\PokeData-repo` to `C:\Users\maber\Documents\GitHub\PokeData`
+   - Renamed the repository from "PokeData-repo" to "PokeData"
+   - Preserved the memory-bank documentation in the new repository
+   - Installed all dependencies using npm
+   - Verified the application works correctly in the new repository
+   - Tested core functionality (set selection, card search, price display)
+   - Identified outdated dependencies for future updates
+   - Note: The directory at `C:\Users\maber\Documents\GitHub\git-maber\PokeData` is a separate static web app workflow directory and should not be modified unless explicitly requested
+   - Result: Successfully created a standalone PokeData repository with full functionality in a cleaner location
+
+2. **Converted Card Name field to use SearchableSelect component** (2025-03-16):
    - Replaced basic input field with SearchableSelect component
    - Implemented dynamic loading of cards when a set is selected
    - Added filtering and search functionality for card names
@@ -57,7 +68,7 @@ While the primary focus is on the enhancements above, we're also addressing:
    - Enhanced keyboard navigation and accessibility
    - Result: Users can now more easily find and select cards within a set
 
-2. **Filtered Zero-Value Pricing Results** (2025-03-16):
+3. **Filtered Zero-Value Pricing Results** (2025-03-16):
    - Added logic to filter out pricing sources with $0 or null values
    - Implemented safety checks for null/undefined pricing data
    - Created a dedicated function for filtering valid prices
@@ -65,7 +76,7 @@ While the primary focus is on the enhancements above, we're also addressing:
    - Added logging for filtered pricing data
    - Result: Pricing results now only show relevant, non-zero values, reducing confusion
 
-3. **Formatted Price Decimal Places** (2025-03-16):
+4. **Formatted Price Decimal Places** (2025-03-16):
    - Implemented toFixed(2) formatting for consistent decimal display
    - Created a formatPrice utility function
    - Applied formatting to all price displays
@@ -73,14 +84,14 @@ While the primary focus is on the enhancements above, we're also addressing:
    - Added safety checks to prevent NaN errors
    - Result: All prices now display with 2 decimal places for consistency
 
-4. **Enhanced error handling for API failures** (2025-03-10):
+5. **Enhanced error handling for API failures** (2025-03-10):
    - Improved error catching in API requests
    - Added more detailed error logging
    - Implemented fallback to mock data when API fails
    - Added user-friendly error messages
    - Result: Application now gracefully handles API failures with clear user feedback
 
-5. **Optimized set list loading** (2025-03-05):
+6. **Optimized set list loading** (2025-03-05):
    - Improved caching of set list data
    - Added sorting by release date
    - Ensured all sets have unique IDs
@@ -88,7 +99,7 @@ While the primary focus is on the enhancements above, we're also addressing:
    - Added fallback to imported data when API fails
    - Result: Set list loads faster and more reliably, with better organization
 
-6. **Improved card variant handling** (2025-02-28):
+7. **Improved card variant handling** (2025-02-28):
    - Enhanced CardVariantSelector component
    - Added support for multiple variant types
    - Implemented variant confirmation workflow
@@ -98,25 +109,29 @@ While the primary focus is on the enhancements above, we're also addressing:
 ## Next Steps
 
 ### Immediate Next Steps
-1. **Improve error handling**:
+1. **Update dependencies**:
+   - Evaluate updating PNPM from 8.15.4 to 10.9.0
+   - Assess compatibility issues with updating major dependencies
+   - Create a plan for incremental updates, especially for Svelte (3.38.3 to 5.x)
+   - Test application functionality after each update
+
+2. **Improve error handling**:
    - Create more specific error messages for different API failure scenarios
    - Implement visual error states in the UI
    - Add retry functionality for failed requests
    - Enhance error logging for debugging
 
-2. **Add card images to price results**:
+3. **Add card images to price results**:
    - Integrate image URLs from the API response
    - Create image component with loading and error states
    - Implement lazy loading for performance
    - Add fallback images for missing card images
 
-3. **Implement price history graphs**:
+4. **Implement price history graphs**:
    - Research and select a charting library
    - Design the graph component UI
    - Create mock data for development
    - Implement basic line chart for price trends
-
-4. **Update memory bank documentation** with current status and insights.
 
 ### Short-term Goals (1-2 weeks)
 1. **Enhance loading indicators**:
@@ -159,17 +174,28 @@ While the primary focus is on the enhancements above, we're also addressing:
 ## Active Decisions and Considerations
 
 ### Architecture Decisions
-1. **Caching Strategy**: Using IndexedDB through the dbService for efficient offline caching.
+1. **Repository Management**: Moved to a standalone repository for the PokeData project at `C:\Users\maber\Documents\GitHub\PokeData`.
+   - Pros: Better isolation, focused development, clearer project boundaries, cleaner directory structure
+   - Cons: Requires additional setup, potential duplication of common code
+   - Decision: Maintain as a separate repository for cleaner project management
+   - Note: The directory at `C:\Users\maber\Documents\GitHub\git-maber\PokeData` is a separate static web app workflow directory and should not be modified
+
+2. **Dependency Management**: Continuing with current dependency versions for stability.
+   - Pros: Ensures current functionality works reliably
+   - Cons: Missing out on new features and security updates
+   - Decision: Plan for incremental updates with careful testing
+
+3. **Caching Strategy**: Using IndexedDB through the dbService for efficient offline caching.
    - Pros: Better performance than localStorage, supports larger data sets
    - Cons: More complex implementation, browser compatibility considerations
    - Decision: Continue with IndexedDB but add better error handling and fallbacks
 
-2. **API Client Structure**: Using a centralized service with proxy support.
+4. **API Client Structure**: Using a centralized service with proxy support.
    - Pros: Consistent error handling, centralized caching, easier debugging
    - Cons: Potential bottleneck, more complex than direct fetch calls
    - Decision: Maintain the centralized approach but optimize for performance
 
-3. **Component Architecture**: Using Svelte components with clear separation of concerns.
+5. **Component Architecture**: Using Svelte components with clear separation of concerns.
    - Pros: Maintainable, reusable, efficient updates
    - Cons: Requires careful state management
    - Decision: Continue with component-based architecture, improve documentation
@@ -285,25 +311,29 @@ While the primary focus is on the enhancements above, we're also addressing:
 
 We've gained several insights during the implementation:
 
-1. **API Integration Challenges**: Working with external card pricing APIs presents challenges with inconsistent data formats, requiring robust parsing and normalization.
+1. **Repository Management**: Creating a standalone repository for the project improves focus and clarity but requires careful setup to ensure all dependencies and configurations are properly transferred.
 
-2. **Caching Complexity**: Effective caching requires careful consideration of cache invalidation, storage limits, and fallback mechanisms.
+2. **Dependency Management**: The project has several outdated dependencies, including major version updates (Svelte 3.x to 5.x). Updating these requires careful planning and incremental testing to avoid breaking changes.
 
-3. **Search UX Importance**: The two-step search process (set then card) significantly improves user experience compared to a single search field.
+3. **API Integration Challenges**: Working with external card pricing APIs presents challenges with inconsistent data formats, requiring robust parsing and normalization.
 
-4. **Error Handling Significance**: Comprehensive error handling with user-friendly messages and fallbacks is crucial for maintaining a positive user experience.
+4. **Caching Complexity**: Effective caching requires careful consideration of cache invalidation, storage limits, and fallback mechanisms.
 
-5. **Performance Considerations**: Large datasets of card information require optimization techniques like pagination, filtering, and efficient rendering.
+5. **Search UX Importance**: The two-step search process (set then card) significantly improves user experience compared to a single search field.
 
-6. **Component Reusability**: Investing in reusable components like SearchableSelect pays dividends across the application.
+6. **Error Handling Significance**: Comprehensive error handling with user-friendly messages and fallbacks is crucial for maintaining a positive user experience.
 
-7. **Variant Handling Complexity**: Pokémon cards often have multiple variants with different pricing, requiring special handling in the UI and data model.
+7. **Performance Considerations**: Large datasets of card information require optimization techniques like pagination, filtering, and efficient rendering.
 
-8. **Offline Support Value**: Users appreciate the ability to access previously viewed data when offline or when APIs are unavailable.
+8. **Component Reusability**: Investing in reusable components like SearchableSelect pays dividends across the application.
 
-9. **Feedback Importance**: Clear loading states, error messages, and success indicators significantly improve user confidence in the application.
+9. **Variant Handling Complexity**: Pokémon cards often have multiple variants with different pricing, requiring special handling in the UI and data model.
 
-10. **Data Normalization Necessity**: Different API responses require normalization to provide a consistent user experience.
+10. **Offline Support Value**: Users appreciate the ability to access previously viewed data when offline or when APIs are unavailable.
+
+11. **Feedback Importance**: Clear loading states, error messages, and success indicators significantly improve user confidence in the application.
+
+12. **Data Normalization Necessity**: Different API responses require normalization to provide a consistent user experience.
 
 ---
-*This document was created on 4/25/2025 as part of the Memory Bank initialization for the PokeData project.*
+*This document was updated on 4/25/2025 as part of the Memory Bank update for the PokeData project.*

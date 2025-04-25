@@ -228,6 +228,7 @@ The PokeData project will be considered successful when:
 - Implement card variant support
 - Add error handling and fallbacks
 - Optimize caching strategy
+- Move repository to `C:\Users\maber\Documents\GitHub\PokeData` (Completed April 25, 2025)
 
 ### Phase 3: Enhancement (Upcoming)
 - Add card images to results
@@ -235,6 +236,7 @@ The PokeData project will be considered successful when:
 - Improve error handling
 - Enhance loading indicators
 - Optimize performance
+- Update dependencies to latest versions
 
 ### Phase 4: Advanced Features (Future)
 - Develop collection management
@@ -267,12 +269,15 @@ The PokeData project will be considered successful when:
 - Access to Pokémon card pricing APIs
 - Existing card data and set information
 - Development tools and infrastructure
+- Standalone Git repository at `C:\Users\maber\Documents\GitHub\PokeData` for focused development
+- Note: The directory at `C:\Users\maber\Documents\GitHub\git-maber\PokeData` is a separate static web app workflow directory
 
 ### Constraints
 - API rate limits and data availability
 - Browser compatibility requirements
 - Performance considerations for mobile devices
 - Offline functionality limitations
+- Dependency update requirements
 
 ## Assumptions and Dependencies
 
@@ -287,6 +292,7 @@ The PokeData project will be considered successful when:
 - Browser support for required features
 - Consistent card identification across data sources
 - Stable internet connection for initial data loading
+- Compatibility with current and future Svelte versions
 
 ## Risks and Mitigations
 
@@ -307,9 +313,13 @@ The PokeData project will be considered successful when:
    - Risk: Features may not work in all browsers
    - Mitigation: Use progressive enhancement and feature detection
 
+5. **Dependency Obsolescence**
+   - Risk: Dependencies may become outdated or unsupported
+   - Mitigation: Regular evaluation and incremental updates of dependencies
+
 ## Conclusion
 
 The PokeData project aims to create a valuable tool for Pokémon card collectors by providing easy access to pricing information across multiple sources. By focusing on usability, performance, and reliability, the application will help users make informed decisions about their card collections. The phased approach allows for incremental development and improvement, with a clear path from core functionality to advanced features.
 
 ---
-*This document was created on 4/25/2025 as part of the Memory Bank initialization for the PokeData project.*
+*This document was updated on 4/25/2025 as part of the Memory Bank update for the PokeData project.*

@@ -136,6 +136,8 @@ Recent improvements include:
 - Converting the Card Name field to use the SearchableSelect component
 - Filtering zero-value pricing results for clearer presentation
 - Formatting price decimal places consistently
+- Moving the repository from `C:\Users\maber\Documents\GitHub\git-maber\PokeData-repo` to `C:\Users\maber\Documents\GitHub\PokeData` for better project management
+- Note: The directory at `C:\Users\maber\Documents\GitHub\git-maber\PokeData` is a separate static web app workflow directory
 
 ## Success Metrics
 
@@ -182,6 +184,7 @@ Based on the current implementation and user needs, planned enhancements include
    - Optimized caching strategy
    - Better API response handling
    - Enhanced offline capabilities
+   - Dependency updates and modernization
 
 ---
-*This document was created on 4/25/2025 as part of the Memory Bank initialization for the PokeData project.*
+*This document was updated on 4/25/2025 as part of the Memory Bank update for the PokeData project.*
