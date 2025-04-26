@@ -92,9 +92,24 @@ This document outlines the technologies used, development setup, technical const
    ```
 
 3. **Setup Commands**:
+   
+   **Command Prompt:**
    ```bash
    # Clone repository
-   git clone <repository-url>
+   git clone https://github.com/Abernaughty/PokeData.git
+   cd PokeData
+
+   # Install dependencies
+   pnpm install
+
+   # Start development server
+   pnpm dev
+   ```
+   
+   **PowerShell:**
+   ```powershell
+   # Clone repository
+   git clone https://github.com/Abernaughty/PokeData.git
    cd PokeData
 
    # Install dependencies
@@ -104,9 +119,10 @@ This document outlines the technologies used, development setup, technical const
    pnpm dev
    ```
 
-   Note: The PokeData repository is located at `C:\Users\maber\Documents\GitHub\PokeData`. There is a separate static web app workflow directory at `C:\Users\maber\Documents\GitHub\git-maber\PokeData` that should not be modified unless explicitly requested.
+   Note: The PokeData repository is located at `C:\Users\maber\Documents\GitHub\PokeData` and is also available on GitHub at https://github.com/Abernaughty/PokeData. There is a separate static web app workflow directory at `C:\Users\maber\Documents\GitHub\git-maber\PokeData` that should not be modified unless explicitly requested.
 
 4. **Automation Scripts**:
+   - `run-app.bat`: Runs the setup script and then starts the application
    - `setup.bat`: Checks and installs Node.js, pnpm, and project dependencies
    - `dev.bat`: Starts the development server
    - `start.bat`: Starts the production server

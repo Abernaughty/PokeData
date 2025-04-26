@@ -49,7 +49,15 @@ While the primary focus is on the enhancements above, we're also addressing:
 
 ## Recent Changes
 
-1. **Fixed database reset issue causing problems with multiple tabs** (2025-04-25):
+1. **Created run-app.bat file and updated README.md** (2025-04-25):
+   - Created run-app.bat script to simplify application startup
+   - Updated README.md with PowerShell command equivalents for all bash commands
+   - Corrected repository URL to https://github.com/Abernaughty/PokeData
+   - Enhanced documentation with more detailed dependency descriptions
+   - Expanded features and project structure sections in README.md
+   - Result: Improved documentation and easier application startup for users
+
+2. **Fixed database reset issue causing problems with multiple tabs** (2025-04-25):
    - Identified issue where database was being reset on every page load
    - Replaced reset script with version check script that only resets when necessary
    - Implemented proper database version comparison logic
@@ -80,6 +88,7 @@ While the primary focus is on the enhancements above, we're also addressing:
 2. **Moved PokeData project to a new repository location** (2025-04-25):
    - Moved the repository from `C:\Users\maber\Documents\GitHub\git-maber\PokeData-repo` to `C:\Users\maber\Documents\GitHub\PokeData`
    - Renamed the repository from "PokeData-repo" to "PokeData"
+   - Created GitHub repository at https://github.com/Abernaughty/PokeData
    - Preserved the memory-bank documentation in the new repository
    - Installed all dependencies using npm
    - Verified the application works correctly in the new repository

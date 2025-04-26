@@ -1,6 +1,6 @@
 # Pokémon Card Price Checker
 
-A web application for looking up Pokémon card pricing data based on set name and card name.
+A web application for looking up Pokémon card pricing data based on set name and card name. This tool helps collectors make informed decisions by providing pricing information from multiple sources in a user-friendly interface.
 
 ## Features
 
@@ -9,13 +9,23 @@ A web application for looking up Pokémon card pricing data based on set name an
 - Support for multiple card variants
 - Offline caching for improved performance
 - Responsive design
+- Set grouping by expansion series (Scarlet & Violet, Sword & Shield, etc.)
+- Filtering of zero-value pricing results
+- Consistent price decimal formatting
+- Enhanced error handling with fallbacks
 
 ## Quick Start
 
 The easiest way to run the application is to use the provided batch file:
 
+### Command Prompt
 ```bash
 run-app.bat
+```
+
+### PowerShell
+```powershell
+.\run-app.bat
 ```
 
 This script will automatically check and install all required dependencies before starting the application.
@@ -28,28 +38,50 @@ This script will automatically check and install all required dependencies befor
 
 ## Dependencies
 
-- Svelte (UI framework)
-- Rollup (module bundler)
-- PNPM (package manager)
-- SirvCLI (static file server)
+- Svelte (UI framework) - Core UI framework for building the application
+- Rollup (module bundler) - Bundles JavaScript modules for browser use
+- PNPM (package manager) - Fast, disk space efficient package manager
+- SirvCLI (static file server) - Serves the compiled application files during development and production, handling HTTP requests to the local server at port 3000
 
 ## Manual Installation
 
 If you prefer to set up manually, this project uses pnpm for package management.
 
 1. Clone the repository:
+   
+   **Command Prompt:**
    ```bash
-   git clone https://github.com/git-maber/PokeData.git
+   git clone https://github.com/Abernaughty/PokeData.git
+   cd PokeData
+   ```
+   
+   **PowerShell:**
+   ```powershell
+   git clone https://github.com/Abernaughty/PokeData.git
    cd PokeData
    ```
 
 2. Install dependencies:
+   
+   **Command Prompt:**
    ```bash
+   pnpm install
+   ```
+   
+   **PowerShell:**
+   ```powershell
    pnpm install
    ```
 
 3. Start the application:
+   
+   **Command Prompt:**
    ```bash
+   pnpm start
+   ```
+   
+   **PowerShell:**
+   ```powershell
    pnpm start
    ```
 
@@ -66,14 +98,26 @@ The following batch files are available to help with setup and running the appli
 
 Start the development server:
 
+**Command Prompt:**
 ```bash
+pnpm dev
+```
+
+**PowerShell:**
+```powershell
 pnpm dev
 ```
 
 Or use the included batch file:
 
+**Command Prompt:**
 ```bash
 dev.bat
+```
+
+**PowerShell:**
+```powershell
+.\dev.bat
 ```
 
 The app will be available at http://localhost:3000 with hot reloading enabled.
@@ -82,34 +126,60 @@ The app will be available at http://localhost:3000 with hot reloading enabled.
 
 Build for production:
 
+**Command Prompt:**
 ```bash
+pnpm build
+```
+
+**PowerShell:**
+```powershell
 pnpm build
 ```
 
 Start the production server:
 
+**Command Prompt:**
 ```bash
+pnpm start
+```
+
+**PowerShell:**
+```powershell
 pnpm start
 ```
 
 ## Available Scripts
 
+### Command Prompt
 - `pnpm dev` - Start development server
 - `pnpm build` - Build for production
 - `pnpm start` - Start production server
 - `pnpm clean` - Clean installation files
 - `pnpm prod-install` - Install production dependencies only
 
+### PowerShell
+- `pnpm dev` - Start development server
+- `pnpm build` - Build for production
+- `pnpm start` - Start production server
+- `pnpm clean` - Clean installation files
+- `pnpm prod-install` - Install production dependencies only
+
+Note: When running batch files in PowerShell, prefix them with `.\` (e.g., `.\run-app.bat`, `.\dev.bat`)
+
 ## Project Structure
 
 - `src/` - Source code
-  - `components/` - UI components
+  - `components/` - UI components (SearchableSelect, CardSearchSelect, etc.)
   - `data/` - Static data and configuration
   - `services/` - API and data services
+    - `storage/` - Database and caching services
 - `public/` - Static assets
   - `build/` - Compiled code (generated)
   - `images/` - Images
   - `mock/` - Mock data for development
+  - `data/` - Static data files
+- `docs/` - Documentation files
+- `memory-bank/` - Project memory documentation
 
 ## License
 

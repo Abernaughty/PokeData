@@ -50,6 +50,11 @@ The current state of the PokeData project includes the following working feature
    - ✅ Console logging for debugging
 
 8. **Recent Improvements**:
+   - ✅ Created run-app.bat file for simplified application startup (2025-04-25)
+   - ✅ Updated README.md with PowerShell command equivalents (2025-04-25)
+   - ✅ Corrected repository URL to https://github.com/Abernaughty/PokeData (2025-04-25)
+   - ✅ Enhanced documentation with detailed dependency descriptions (2025-04-25)
+   - ✅ Expanded features and project structure sections in README.md (2025-04-25)
    - ✅ Fixed database reset issue causing problems with multiple tabs (2025-04-25)
    - ✅ Improved CSS loading sequence to ensure proper styling (2025-04-25)
    - ✅ Enhanced error handling in SearchableSelect component (2025-04-25)
@@ -67,6 +72,7 @@ The current state of the PokeData project includes the following working feature
    - ✅ Added pricing data timestamp display for transparency (2025-04-25)
    - ✅ Moved PokeData project to a new repository location (2025-04-25)
    - ✅ Relocated from `C:\Users\maber\Documents\GitHub\git-maber\PokeData-repo` to `C:\Users\maber\Documents\GitHub\PokeData`
+   - ✅ Created GitHub repository at https://github.com/Abernaughty/PokeData (2025-04-25)
    - ✅ Renamed the repository from "PokeData-repo" to "PokeData"
    - ✅ Verified functionality in the new repository environment
    - ✅ Identified outdated dependencies for future updates
