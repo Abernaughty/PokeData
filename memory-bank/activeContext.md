@@ -49,7 +49,14 @@ While the primary focus is on the enhancements above, we're also addressing:
 
 ## Recent Changes
 
-1. **Improved Clear Button Design in Search Components** (2025-04-26):
+1. **Fixed Error When Clearing Set Selection** (2025-04-26):
+   - Modified the handleSetSelect function to properly handle null selections
+   - Added specific logic to clear card-related state when set selection is cleared
+   - Prevented error message from showing when clearing a selection
+   - Improved user experience by allowing users to clear selections without errors
+   - Result: Users can now clear the set selection without seeing an error message
+
+2. **Improved Clear Button Design in Search Components** (2025-04-26):
    - Replaced custom SVG X with Material Design close icon for better quality and centering
    - Increased spacing between clear button and dropdown arrow for improved visual separation
    - Updated both SearchableSelect and CardSearchSelect components for consistency

@@ -58,10 +58,24 @@
   async function handleSetSelect(event) {
     selectedSet = event.detail;
     console.log('Selected set:', selectedSet);
-    // Verify we have the set ID before loading cards
-    if (selectedSet && selectedSet.id) {
+    
+    // Clear any previous error
+    error = null;
+    
+    // Handle different cases for selectedSet
+    if (!selectedSet) {
+      // User cleared the selection - this is valid, just clear card-related state
+      console.log('Set selection cleared');
+      // Clear card-related state
+      priceData = null;
+      selectedCard = null;
+      cardName = '';
+      cardsInSet = [];
+    } else if (selectedSet.id) {
+      // Valid set with ID - load cards
       loadCardsForSet(selectedSet);
     } else {
+      // Set selected but missing ID - show error
       console.error('Selected set does not have an ID property:', selectedSet);
       error = 'Invalid set data. Please select a different set.';
     }
