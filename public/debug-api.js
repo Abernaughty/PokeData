@@ -28,8 +28,6 @@ window.debugApiCredentials = function() {
     // Log API configuration
     console.log('✅ API_CONFIG is defined');
     console.log('API Base URL:', API_CONFIG.baseUrl);
-    console.log('API Key exists:', !!API_CONFIG.apiKey);
-    console.log('API Key length:', API_CONFIG.apiKey ? API_CONFIG.apiKey.length : 0);
     console.log('Subscription Key exists:', !!API_CONFIG.subscriptionKey);
     console.log('Subscription Key length:', API_CONFIG.subscriptionKey ? API_CONFIG.subscriptionKey.length : 0);
     console.log('Environment:', API_CONFIG.environment);
@@ -45,14 +43,6 @@ window.debugApiCredentials = function() {
       console.log(`- ${key}: ${displayValue}`);
       
       // Check for empty or malformed values
-      if (key === 'Authorization') {
-        if (!value || value === 'Bearer ' || value === 'Bearer') {
-          console.error('❌ Authorization header is empty or malformed');
-        } else {
-          console.log('✅ Authorization header format looks correct');
-        }
-      }
-      
       if (key === 'Ocp-Apim-Subscription-Key') {
         if (!value || value.length === 0) {
           console.error('❌ Subscription Key header is empty');
@@ -68,12 +58,8 @@ window.debugApiCredentials = function() {
     console.log('URL that would be called:', mockUrl);
     
     // Check for common issues
-    if (API_CONFIG.apiKey === '') {
-      console.error('❌ API Key is empty - check if environment variables were properly injected during build');
-    }
-    
     if (API_CONFIG.subscriptionKey === '') {
-      console.error('❌ Subscription Key is empty - check if environment variables were properly injected during build');
+      console.error('❌ Subscription Key is empty - check configuration in apiConfig.js');
     }
     
     console.log('=== End API Credentials Debug ===');
@@ -81,11 +67,8 @@ window.debugApiCredentials = function() {
     return {
       status: 'completed',
       apiConfigExists: true,
-      apiKeyExists: !!API_CONFIG.apiKey,
-      apiKeyLength: API_CONFIG.apiKey ? API_CONFIG.apiKey.length : 0,
       subscriptionKeyExists: !!API_CONFIG.subscriptionKey,
       subscriptionKeyLength: API_CONFIG.subscriptionKey ? API_CONFIG.subscriptionKey.length : 0,
-      authHeaderValid: !!(headers['Authorization'] && headers['Authorization'] !== 'Bearer ' && headers['Authorization'] !== 'Bearer'),
       subscriptionHeaderValid: !!(headers['Ocp-Apim-Subscription-Key'] && headers['Ocp-Apim-Subscription-Key'].length > 0)
     };
   } catch (error) {

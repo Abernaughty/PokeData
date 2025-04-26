@@ -50,6 +50,13 @@ The current state of the PokeData project includes the following working feature
    - ✅ Console logging for debugging
 
 8. **Recent Improvements**:
+   - ✅ Simplified API Authentication Approach (2025-04-25)
+     - Implemented hardcoded subscription key in apiConfig.js instead of using environment variables
+     - Removed API key since authentication is handled by API Management service
+     - Updated getHeaders() method to only include subscription key header
+     - Modified rollup.config.cjs to remove environment variable replacements for API credentials
+     - Updated debug tools to reflect the simplified approach
+     - Result: Simplified development workflow while maintaining security through API Management restrictions
    - ✅ Created run-app.bat file for simplified application startup (2025-04-25)
    - ✅ Updated README.md with PowerShell command equivalents (2025-04-25)
    - ✅ Corrected repository URL to https://github.com/Abernaughty/PokeData (2025-04-25)
@@ -318,7 +325,16 @@ Feature priorities evolved based on user feedback and development insights:
 ### Technical Approach Evolution
 The technical implementation approach has also evolved:
 
-1. **Storage Strategy**:
+1. **API Authentication Approach**:
+   - Initial Approach: Environment variables for API key and subscription key
+     - Pros: Follows best practices for configuration management
+     - Cons: More complex setup, requires .env file management
+   - Current Approach: Hardcoded subscription key with API Management service handling authentication
+     - Pros: Simplified development workflow, no environment variables to manage
+     - Cons: Less flexibility for different environments
+   - Rationale: Security is maintained through API Management restrictions (origin limitations, rate limits) while simplifying the development process
+
+2. **Storage Strategy**:
    - Initial Approach: localStorage for simple caching
      - Pros: Simple API, easy implementation
      - Cons: Limited storage space, string-only storage
@@ -460,6 +476,12 @@ Throughout the development of the PokeData project, several valuable lessons hav
    - Consistent project structure aids navigation
    - Clear documentation saves time
    - Lesson: Invest in development tooling and documentation
+
+8. **API Authentication Approaches**:
+   - Hardcoded keys with proper API Management restrictions can be secure for client-side applications
+   - Origin restrictions and rate limiting provide effective security layers
+   - Simplifying development workflow can be balanced with security considerations
+   - Lesson: Consider the specific security needs and development workflow when choosing authentication approaches
 
 ---
 *This document was updated on 4/25/2025 as part of the Memory Bank update for the PokeData project.*

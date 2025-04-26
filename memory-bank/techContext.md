@@ -327,42 +327,47 @@ The project currently uses fixed dependency versions to ensure stability. As of 
 ## API Integration
 
 ### API Configuration
-The application uses a configurable API client defined in `src/data/apiConfig.js`:
+The application uses a simplified API client with hardcoded subscription key defined in `src/data/apiConfig.js`:
 
 ```javascript
 export const API_CONFIG = {
-  // Base URLs for different environments
-  baseUrl: 'https://api.pokemoncards.com/v1',
+  // Base URL for the API
+  baseUrl: 'https://maber-apim-test.azure-api.net/pokedata-api/v0',
   
-  // Endpoint paths
+  // Subscription key for API Management
+  subscriptionKey: '1c3e73f4352b415c98eb89f91541c4e4',
+  
+  // Endpoints
   endpoints: {
-    sets: '/sets',
-    cards: '/cards',
-    pricing: '/pricing'
+    pricing: '/pricing', // Get Info and Pricing for Card or Product
+    sets: '/sets',      // List All Sets 
+    set: '/set'         // List Cards in Set
   },
   
-  // Build full URLs for different resources
+  // Headers function to get standard headers
+  getHeaders() {
+    return {
+      'Ocp-Apim-Subscription-Key': this.subscriptionKey,
+      'Content-Type': 'application/json'
+    };
+  },
+  
+  // URL builder functions
+  buildPricingUrl(id) {
+    return `${this.baseUrl}${this.endpoints.pricing}?id=${encodeURIComponent(id)}&asset_type=CARD`;
+  },
+  
   buildSetsUrl() {
     return `${this.baseUrl}${this.endpoints.sets}`;
   },
   
   buildCardsForSetUrl(setId) {
-    return `${this.baseUrl}${this.endpoints.cards}?set_id=${setId}`;
-  },
-  
-  buildPricingUrl(cardId) {
-    return `${this.baseUrl}${this.endpoints.pricing}/${cardId}`;
-  },
-  
-  // Headers for API requests
-  getHeaders() {
-    return {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    };
+    return `${this.baseUrl}${this.endpoints.set}?set_id=${encodeURIComponent(setId)}`;
   }
 };
 ```
+
+This approach uses a hardcoded subscription key instead of environment variables, simplifying the development workflow while maintaining security through API Management restrictions (origin limitations, rate limits). Authentication is handled by the API Management service, which adds the actual API key on the server side.
 
 ### CORS Proxy
 The application uses a CORS proxy to handle cross-origin requests:

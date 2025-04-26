@@ -1,35 +1,32 @@
-// Environment Variables Debug Script
-// Include this file in your application to debug environment variables
+// API Configuration Debug Script
+// Include this file in your application to debug API configuration
 // IMPORTANT: Remove this file before deploying to production!
 
+import { API_CONFIG } from './data/apiConfig';
+
 (function() {
-  console.log('=== Environment Variables Debug ===');
+  console.log('=== API Configuration Debug ===');
   console.log('Running debug check at:', new Date().toISOString());
   
   // Check Node environment
   console.log('NODE_ENV:', process.env.NODE_ENV || 'not set');
   
   // Check API configuration
-  console.log('API_BASE_URL exists:', !!process.env.API_BASE_URL);
-  if (process.env.API_BASE_URL) {
-    console.log('API_BASE_URL:', process.env.API_BASE_URL);
-  }
+  console.log('API Base URL:', API_CONFIG.baseUrl);
   
   // Safely check API credentials
-  console.log('API_KEY exists:', !!process.env.API_KEY);
-  if (process.env.API_KEY) {
-    console.log('API_KEY length:', process.env.API_KEY.length);
-    console.log('API_KEY first 4 chars:', process.env.API_KEY.substring(0, 4) + '...');
+  console.log('Subscription Key exists:', !!API_CONFIG.subscriptionKey);
+  if (API_CONFIG.subscriptionKey) {
+    console.log('Subscription Key length:', API_CONFIG.subscriptionKey.length);
+    console.log('Subscription Key first 4 chars:', API_CONFIG.subscriptionKey.substring(0, 4) + '...');
   }
   
-  console.log('API_SUBSCRIPTION_KEY exists:', !!process.env.API_SUBSCRIPTION_KEY);
-  if (process.env.API_SUBSCRIPTION_KEY) {
-    console.log('API_SUBSCRIPTION_KEY length:', process.env.API_SUBSCRIPTION_KEY.length);
-    console.log('API_SUBSCRIPTION_KEY first 4 chars:', process.env.API_SUBSCRIPTION_KEY.substring(0, 4) + '...');
-  }
+  // Check headers
+  const headers = API_CONFIG.getHeaders();
+  console.log('API Headers:', Object.keys(headers).join(', '));
   
   // Check build information
   console.log('BUILD_TIME:', process.env.BUILD_TIME || 'not set');
   
-  console.log('=== End Environment Debug ===');
+  console.log('=== End API Configuration Debug ===');
 })();

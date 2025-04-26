@@ -15,8 +15,6 @@ const production = !process.env.ROLLUP_WATCH;
 
 // Get environment variables with fallbacks
 const API_BASE_URL = process.env.API_BASE_URL || 'https://maber-apim-test.azure-api.net/pokedata-api/v0';
-const API_KEY = process.env.API_KEY || '';
-const API_SUBSCRIPTION_KEY = process.env.API_SUBSCRIPTION_KEY || '';
 
 function serve() {
     let server;
@@ -48,18 +46,16 @@ module.exports = {
         dir: 'public/build'
     },
     plugins: [
-        // Replace environment variables in the bundle
-        replace({
-            preventAssignment: true,
-            values: {
-                'process.env.NODE_ENV': JSON.stringify(production ? 'production' : 'development'),
-                'process.env.API_BASE_URL': JSON.stringify(API_BASE_URL),
-                'process.env.API_KEY': JSON.stringify(API_KEY),
-                'process.env.API_SUBSCRIPTION_KEY': JSON.stringify(API_SUBSCRIPTION_KEY),
-                // Add a timestamp for cache busting in development
-                'process.env.BUILD_TIME': JSON.stringify(new Date().toISOString())
-            }
-        }),
+// Replace environment variables in the bundle
+replace({
+    preventAssignment: true,
+    values: {
+        'process.env.NODE_ENV': JSON.stringify(production ? 'production' : 'development'),
+        'process.env.API_BASE_URL': JSON.stringify(API_BASE_URL),
+        // Add a timestamp for cache busting in development
+        'process.env.BUILD_TIME': JSON.stringify(new Date().toISOString())
+    }
+}),
         svelte({
             compilerOptions: {
                 dev: !production

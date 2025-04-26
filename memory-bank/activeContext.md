@@ -49,7 +49,15 @@ While the primary focus is on the enhancements above, we're also addressing:
 
 ## Recent Changes
 
-1. **Created run-app.bat file and updated README.md** (2025-04-25):
+1. **Simplified API Authentication Approach** (2025-04-25):
+   - Implemented hardcoded subscription key in apiConfig.js instead of using environment variables
+   - Removed API key since authentication is handled by API Management service
+   - Updated getHeaders() method to only include subscription key header
+   - Modified rollup.config.cjs to remove environment variable replacements for API credentials
+   - Updated debug tools to reflect the simplified approach
+   - Result: Simplified development workflow while maintaining security through API Management restrictions
+
+2. **Created run-app.bat file and updated README.md** (2025-04-25):
    - Created run-app.bat script to simplify application startup
    - Updated README.md with PowerShell command equivalents for all bash commands
    - Corrected repository URL to https://github.com/Abernaughty/PokeData
