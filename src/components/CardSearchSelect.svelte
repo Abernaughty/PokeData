@@ -212,6 +212,19 @@
       placeholder={placeholder}
       autocomplete="off"
     />
+    {#if searchText}
+      <span 
+        class="clear-icon" 
+        on:click|stopPropagation={() => clearSelection()}
+        title="Clear selection"
+      >
+        <div class="clear-icon-circle">
+          <svg viewBox="0 0 24 24" width="14" height="14">
+            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" fill="white"/>
+          </svg>
+        </div>
+      </span>
+    {/if}
     <span class="icon">{showDropdown ? '▲' : '▼'}</span>
   </div>
   
@@ -254,11 +267,39 @@
   input {
     width: 100%;
     padding: 0.6rem 0.75rem;
-    padding-right: 2rem;
+    padding-right: 3.5rem;
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 1rem;
     transition: border-color 0.3s ease;
+  }
+  
+  .clear-icon {
+    position: absolute;
+    right: 2.5rem; /* Position it to the left of the dropdown arrow - increased spacing */
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .clear-icon-circle {
+    background-color: #ee1515; /* Pokemon red */
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    box-sizing: border-box;
+    transition: background-color 0.2s ease;
+  }
+
+  .clear-icon:hover .clear-icon-circle {
+    background-color: #cc0000; /* Darker red on hover */
   }
   
   input:focus {
