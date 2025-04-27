@@ -50,6 +50,38 @@ The current state of the PokeData project includes the following working feature
    - ✅ Console logging for debugging
 
 8. **Recent Improvements**:
+   - ✅ Improved Development Server Workflow (2025-04-27)
+     - Updated rollup.config.cjs to ensure the development server always uses port 3000
+     - Simplified dev.bat script to use the standard `pnpm dev` command
+     - Removed unnecessary dev-port-3000.bat script that was causing port conflicts
+     - Documented the development server workflow in the memory bank
+     - Result: Cleaner development workflow with consistent port usage and working livereload
+
+   - ✅ Fixed Logger Formatting Issues (2025-04-27)
+     - Identified issue where CSS styling information was appearing directly in console log output
+     - Refactored the formatLogArgs function in loggerService.js to properly handle styling parameters
+     - Updated all logging methods to use the new formatting approach
+     - Added test function in main.js to verify the logger formatting changes
+     - Maintained caller information in logs for debugging context
+     - Result: Console logs now display properly formatted without showing CSS styling code
+   
+   - ✅ Fixed Debug System Issues (2025-04-27)
+     - Fixed context loggers in loggerService.js to include specialized methods like logDbOperation
+     - Corrected debug configuration exports in debug-config.js to avoid duplicate exports
+     - Updated window.pokeDataDebug object in main.js to use directly imported functions
+     - Simplified the help function to use a single console.log with a multi-line string
+     - Fixed debug panel button functionality for enabling/disabling debug mode
+     - Ensured log level buttons work correctly in the debug panel
+     - Result: Debug panel now works correctly, and all debug functions operate as expected
+   
+   - ✅ Fixed CSS Loading and API Authentication Issues (2025-04-27)
+     - Enhanced CORS proxy implementation to properly handle authentication headers
+     - Improved CSS loading sequence to ensure styles are fully loaded before app initialization
+     - Added localStorage backup for database version to prevent unnecessary resets
+     - Implemented a more robust caching strategy with proper timestamps and TTL
+     - Created rebuild scripts to ensure proper application rebuilding
+     - Added detailed logging for API requests and CSS loading
+     - Result: Application now loads properly with correct styling even when API calls fail
    - ✅ Fixed Error When Clearing Set Selection (2025-04-26)
      - Modified the handleSetSelect function to properly handle null selections
      - Added specific logic to clear card-related state when set selection is cleared
@@ -276,6 +308,14 @@ The current state of the PokeData project includes the following working feature
    - Workaround: Pagination of results (manual implementation)
    - Status: 🔴 Pending optimization
 
+8. **Development Server Port Issues**: ✅ FIXED
+   - Issue: Development server sometimes runs on different ports when port 3000 is already in use
+   - Cause: Multiple instances of the development server running simultaneously
+   - Impact: API calls fail because only port 3000 is whitelisted in the APIM configuration
+   - Solution: Updated rollup.config.cjs to ensure consistent port usage and simplified the development workflow
+   - Workaround (if issue recurs): Check for running servers on port 3000 before starting a new one
+   - Status: ✅ Fixed on 2025-04-27
+
 ## Evolution of Project Decisions
 
 ### Initial Concept
@@ -495,5 +535,12 @@ Throughout the development of the PokeData project, several valuable lessons hav
    - Simplifying development workflow can be balanced with security considerations
    - Lesson: Consider the specific security needs and development workflow when choosing authentication approaches
 
+9. **Development Server Configuration**:
+   - Consistent port usage is critical when working with API services that have whitelisted endpoints
+   - Simpler development scripts are often more reliable than complex ones
+   - Livereload functionality requires proper configuration to work correctly
+   - Multiple development server instances can cause port conflicts and unexpected behavior
+   - Lesson: Keep development server configuration simple and ensure consistent port usage
+
 ---
-*This document was updated on 4/26/2025 as part of the Memory Bank update for the PokeData project.*
+*This document was updated on 4/27/2025 as part of the Memory Bank update for the PokeData project.*

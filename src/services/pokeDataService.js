@@ -51,23 +51,115 @@ function ensureSetsHaveIds(sets) {
 export const pokeDataService = {
   /**
    * Get the list of all Pokémon card sets
+   * @param {boolean} forceRefresh - Whether to force a refresh from the API
    * @returns {Promise<Array>} Array of set objects
    */
-  async getSetList() {
+  async getSetList(forceRefresh = false) {
     try {
-      console.log('Fetching set list...');
+      console.log('Getting set list...');
       
       // First try to load current sets configuration from database
       await setClassifier.loadFromDatabase(dbService);
       
-      // First try to get from cache
-      const cachedSets = await dbService.getSetList();
-      if (cachedSets && cachedSets.length > 0) {
-        console.log(`Using cached sets data - ${cachedSets.length} sets`);
-        return sortSetsByReleaseDate(ensureSetsHaveIds(cachedSets));
+      // Start with the static set list to ensure we always have data
+      let { setList: staticSetList } = await import('../data/setList');
+      console.log(`Loaded static set list with ${staticSetList.length} sets`);
+      
+      // Ensure static sets have IDs
+      staticSetList = ensureSetsHaveIds(staticSetList);
+      
+      // Try to get from cache if not forcing refresh
+      if (!forceRefresh) {
+        const cachedSets = await dbService.getSetList();
+        if (cachedSets && cachedSets.length > 0) {
+          console.log(`Using cached sets data - ${cachedSets.length} sets`);
+          
+          // Check if cache is recent enough (within 24 hours)
+          const cacheTimestamp = await dbService.getSetListTimestamp();
+          if (cacheTimestamp) {
+            const cacheAge = Date.now() - cacheTimestamp;
+            const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+            
+            if (cacheAge < maxAge) {
+              console.log(`Cache is recent (${Math.round(cacheAge / (60 * 60 * 1000))} hours old)`);
+              return sortSetsByReleaseDate(ensureSetsHaveIds(cachedSets));
+            } else {
+              console.log(`Cache is stale (${Math.round(cacheAge / (60 * 60 * 1000))} hours old), will try API after returning cached data`);
+              // Start API fetch in background but return cache immediately
+              this.refreshSetListInBackground();
+              return sortSetsByReleaseDate(ensureSetsHaveIds(cachedSets));
+            }
+          }
+          
+          // If no timestamp, still use cache but try to refresh in background
+          this.refreshSetListInBackground();
+          return sortSetsByReleaseDate(ensureSetsHaveIds(cachedSets));
+        }
       }
       
-      // If not in cache, fetch from API
+      // If forcing refresh or no cache, try API but with a timeout
+      // to ensure we don't block the UI for too long
+      try {
+        console.log('Attempting to fetch sets from API with timeout...');
+        
+        // Create a timeout promise
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('API request timed out')), 5000);
+        });
+        
+        // Create the API fetch promise
+        const fetchPromise = this.fetchSetListFromApi();
+        
+        // Race the fetch against the timeout
+        const sets = await Promise.race([fetchPromise, timeoutPromise]);
+        
+        // If we got here, the fetch succeeded before the timeout
+        return sortSetsByReleaseDate(sets);
+      } catch (apiError) {
+        console.error('Error or timeout fetching from API:', apiError);
+        
+        // If API fails, use static data
+        console.log('Using static set list due to API error or timeout');
+        return sortSetsByReleaseDate(staticSetList);
+      }
+    } catch (error) {
+      console.error('Error in getSetList:', error);
+      
+      // Final fallback to static data
+      console.log('Using static set list as final fallback');
+      const { setList } = await import('../data/setList');
+      return sortSetsByReleaseDate(ensureSetsHaveIds(setList));
+    }
+  },
+  
+  /**
+   * Refresh the set list in the background without blocking the UI
+   * @returns {Promise<void>}
+   */
+  async refreshSetListInBackground() {
+    try {
+      console.log('Refreshing set list in background...');
+      
+      // Use setTimeout to push this to the next event loop cycle
+      setTimeout(async () => {
+        try {
+          await this.fetchSetListFromApi();
+          console.log('Background set list refresh completed');
+        } catch (error) {
+          console.error('Background set list refresh failed:', error);
+        }
+      }, 100);
+    } catch (error) {
+      console.error('Error setting up background refresh:', error);
+    }
+  },
+  
+  /**
+   * Fetch the set list from the API
+   * @returns {Promise<Array>} Array of set objects
+   */
+  async fetchSetListFromApi() {
+    try {
       const url = API_CONFIG.buildSetsUrl();
       console.log(`Fetching sets from API: ${url}`);
       
@@ -97,9 +189,10 @@ export const pokeDataService = {
       // Save the updated configuration
       await setClassifier.saveToDatabase(dbService);
       
-      // Cache all sets in the general setList store
+      // Cache all sets in the general setList store with timestamp
       if (processedData && Array.isArray(processedData)) {
         await dbService.saveSetList(processedData);
+        await dbService.saveSetListTimestamp(Date.now());
       }
       
       // Separately cache current sets in the currentSets store
@@ -109,21 +202,10 @@ export const pokeDataService = {
         }
       }
       
-      return sortSetsByReleaseDate(processedData);
+      return processedData;
     } catch (error) {
-      console.error('Error fetching sets:', error);
-      
-      // Try to get sets from cache
-      const cachedSets = await dbService.getSetList();
-      if (cachedSets && cachedSets.length > 0) {
-        console.log(`Using cached sets data - ${cachedSets.length} sets`);
-        return sortSetsByReleaseDate(ensureSetsHaveIds(cachedSets));
-      }
-      
-      // If no cache, use the fallback list which already has IDs
-      console.log('Using hard-coded fallback set list due to API error');
-      const { setList } = await import('../data/setList');
-      return sortSetsByReleaseDate(setList);
+      console.error('Error fetching sets from API:', error);
+      throw error;
     }
   },
   

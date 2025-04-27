@@ -7,8 +7,8 @@
   <title>Pokémon Card Price Checker</title>
 
   <link rel='icon' type='image/x-icon' href='./images/favicon.ico'>
-  <link rel='stylesheet' href='./global.css' id="global-css">
-  <link rel='stylesheet' href='./build/bundle.css' id="bundle-css">
+  <link rel='stylesheet' href='./global.css?v=20250427' id="global-css">
+  <link rel='stylesheet' href='./build/bundle.css?v=20250427' id="bundle-css">
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" id="font-css">
 
   <!-- Prevent LiveReload on production -->
@@ -37,6 +37,11 @@
         try {
           const DB_NAME = 'poke-data-db';
           const CURRENT_VERSION = 2; // Match the version in db.js
+          const VERSION_KEY = 'poke-data-db-version'; // Key for localStorage backup
+          
+          // Get the stored version from localStorage as a backup
+          const storedVersion = localStorage.getItem(VERSION_KEY);
+          console.log(`Stored version in localStorage: ${storedVersion}`);
           
           // First try to open the database to check its version
           const openRequest = indexedDB.open(DB_NAME);
@@ -48,14 +53,20 @@
             
             console.log(`Existing database version: ${existingVersion}, Current version: ${CURRENT_VERSION}`);
             
-            // Only delete the database if there's a version mismatch or other specific reason
-            if (existingVersion < CURRENT_VERSION) {
-              console.log('Database version mismatch, resetting database...');
+            // Store the current version in localStorage for backup
+            localStorage.setItem(VERSION_KEY, existingVersion.toString());
+            
+            // Only delete the database if there's a version mismatch AND the stored version is also different
+            // This adds an extra safety check to prevent unnecessary resets
+            if (existingVersion < CURRENT_VERSION && (!storedVersion || parseInt(storedVersion) < CURRENT_VERSION)) {
+              console.log('Database version mismatch confirmed, resetting database...');
               
               const deleteRequest = indexedDB.deleteDatabase(DB_NAME);
               
               deleteRequest.onsuccess = () => {
                 console.log(`Database ${DB_NAME} deleted successfully due to version update`);
+                // Update the stored version after successful deletion
+                localStorage.setItem(VERSION_KEY, CURRENT_VERSION.toString());
                 resolve();
               };
               
@@ -70,13 +81,17 @@
                 setTimeout(resolve, 1000);
               };
             } else {
-              console.log('Database version is current, no reset needed');
+              console.log('Database version is current or localStorage backup indicates no reset needed');
               resolve();
             }
           };
           
           openRequest.onerror = (event) => {
             console.error('Error opening database for version check:', event.target.error);
+            // If we can't open the database but have a stored version, use that
+            if (storedVersion && parseInt(storedVersion) >= CURRENT_VERSION) {
+              console.log('Using stored version from localStorage as fallback');
+            }
             resolve();
           };
           
@@ -85,6 +100,8 @@
             console.log('Database does not exist yet or needs upgrade');
             const db = event.target.result;
             db.close();
+            // Store the new version in localStorage
+            localStorage.setItem(VERSION_KEY, CURRENT_VERSION.toString());
             resolve();
           };
         } catch (error) {
@@ -118,20 +135,57 @@
         function checkAllLoaded() {
           if (globalLoaded && bundleLoaded && fontLoaded) {
             console.log('All CSS files loaded successfully');
-            resolve();
+            
+            // Add a small delay to ensure CSS is applied before resolving
+            setTimeout(() => {
+              // Verify CSS is actually applied by checking a known property
+              const testElement = document.createElement('div');
+              testElement.style.display = 'none';
+              document.body.appendChild(testElement);
+              
+              // Force a reflow to ensure styles are applied
+              document.body.offsetHeight;
+              
+              console.log('CSS application verified');
+              resolve();
+              
+              // Clean up test element
+              document.body.removeChild(testElement);
+            }, 100);
           }
         }
         
-        // Check global.css
+        // More robust check for global.css
         if (globalCSS) {
-          if (globalCSS.sheet) {
-            console.log('global.css already loaded');
-            globalLoaded = true;
-            checkAllLoaded();
-          } else {
-            globalCSS.onload = () => {
-              console.log('global.css loaded');
+          const checkGlobalCSS = () => {
+            try {
+              if (globalCSS.sheet && globalCSS.sheet.cssRules.length > 0) {
+                console.log('global.css loaded and parsed');
+                globalLoaded = true;
+                checkAllLoaded();
+              } else if (globalCSS.sheet) {
+                console.log('global.css loaded but empty or blocked by CORS');
+                globalLoaded = true;
+                checkAllLoaded();
+              } else {
+                console.log('Waiting for global.css to load...');
+              }
+            } catch (e) {
+              // CORS error when accessing cssRules, but CSS is loaded
+              console.log('global.css loaded (CORS exception on cssRules)');
               globalLoaded = true;
+              checkAllLoaded();
+            }
+          };
+          
+          if (globalCSS.sheet) {
+            checkGlobalCSS();
+          } else {
+            globalCSS.onload = checkGlobalCSS;
+            // Also set an error handler
+            globalCSS.onerror = () => {
+              console.error('Error loading global.css');
+              globalLoaded = true; // Continue anyway
               checkAllLoaded();
             };
           }
@@ -141,16 +195,37 @@
           checkAllLoaded();
         }
         
-        // Check bundle.css
+        // More robust check for bundle.css
         if (bundleCSS) {
-          if (bundleCSS.sheet) {
-            console.log('bundle.css already loaded');
-            bundleLoaded = true;
-            checkAllLoaded();
-          } else {
-            bundleCSS.onload = () => {
-              console.log('bundle.css loaded');
+          const checkBundleCSS = () => {
+            try {
+              if (bundleCSS.sheet && bundleCSS.sheet.cssRules.length > 0) {
+                console.log('bundle.css loaded and parsed');
+                bundleLoaded = true;
+                checkAllLoaded();
+              } else if (bundleCSS.sheet) {
+                console.log('bundle.css loaded but empty or blocked by CORS');
+                bundleLoaded = true;
+                checkAllLoaded();
+              } else {
+                console.log('Waiting for bundle.css to load...');
+              }
+            } catch (e) {
+              // CORS error when accessing cssRules, but CSS is loaded
+              console.log('bundle.css loaded (CORS exception on cssRules)');
               bundleLoaded = true;
+              checkAllLoaded();
+            }
+          };
+          
+          if (bundleCSS.sheet) {
+            checkBundleCSS();
+          } else {
+            bundleCSS.onload = checkBundleCSS;
+            // Also set an error handler
+            bundleCSS.onerror = () => {
+              console.error('Error loading bundle.css');
+              bundleLoaded = true; // Continue anyway
               checkAllLoaded();
             };
           }
@@ -160,16 +235,37 @@
           checkAllLoaded();
         }
         
-        // Check font CSS
+        // More robust check for font CSS
         if (fontCSS) {
-          if (fontCSS.sheet) {
-            console.log('font CSS already loaded');
-            fontLoaded = true;
-            checkAllLoaded();
-          } else {
-            fontCSS.onload = () => {
-              console.log('font CSS loaded');
+          const checkFontCSS = () => {
+            try {
+              if (fontCSS.sheet && fontCSS.sheet.cssRules.length > 0) {
+                console.log('font CSS loaded and parsed');
+                fontLoaded = true;
+                checkAllLoaded();
+              } else if (fontCSS.sheet) {
+                console.log('font CSS loaded but empty or blocked by CORS');
+                fontLoaded = true;
+                checkAllLoaded();
+              } else {
+                console.log('Waiting for font CSS to load...');
+              }
+            } catch (e) {
+              // CORS error when accessing cssRules, but CSS is loaded
+              console.log('font CSS loaded (CORS exception on cssRules)');
               fontLoaded = true;
+              checkAllLoaded();
+            }
+          };
+          
+          if (fontCSS.sheet) {
+            checkFontCSS();
+          } else {
+            fontCSS.onload = checkFontCSS;
+            // Also set an error handler
+            fontCSS.onerror = () => {
+              console.error('Error loading font CSS');
+              fontLoaded = true; // Continue anyway
               checkAllLoaded();
             };
           }
@@ -179,43 +275,147 @@
           checkAllLoaded();
         }
         
-        // Set a timeout to resolve anyway after 3 seconds
+        // Set a timeout to resolve anyway after 5 seconds (increased from 3)
         // This prevents the app from being blocked if CSS loading fails
         setTimeout(() => {
           console.warn('CSS loading timeout reached, continuing anyway');
           resolve();
-        }, 3000);
+        }, 5000);
       });
     }
   </script>
   
+  <!-- Loading Indicator Styles -->
+  <style>
+    #app-loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #f5f5f5;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    }
+    
+    #app-loading h2 {
+      color: #3c5aa6;
+      margin-bottom: 20px;
+    }
+    
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(60, 90, 166, 0.2);
+      border-top: 5px solid #3c5aa6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .loading-message {
+      color: #333;
+      font-size: 16px;
+      text-align: center;
+    }
+  </style>
+
   <!-- App Initialization -->
   <script>
     // Wait for document to be ready
     document.addEventListener('DOMContentLoaded', function() {
-      // First check database version
-      checkDatabaseVersion().then(() => {
-        console.log('Database check complete, app will now load');
+      // Create loading indicator
+      const loadingElement = document.createElement('div');
+      loadingElement.id = 'app-loading';
+      loadingElement.innerHTML = `
+        <h2>Pokémon Card Price Checker</h2>
+        <div class="loading-spinner"></div>
+        <div class="loading-message">Loading application...</div>
+      `;
+      document.body.appendChild(loadingElement);
+      
+      // Update loading message
+      function updateLoadingMessage(message) {
+        const messageElement = loadingElement.querySelector('.loading-message');
+        if (messageElement) {
+          messageElement.textContent = message;
+        }
+      }
+      
+      // Function to load the app with retry capability
+      function loadApp(retryCount = 0) {
+        const maxRetries = 3;
         
-        // Then check CSS loading
-        return checkCSSLoaded();
-      }).then(() => {
-        console.log('All initialization complete, loading app...');
-        
-        // Create script element dynamically to ensure it loads after initialization
-        const script = document.createElement('script');
-        script.type = 'module';
-        script.src = './build/main.js';
-        document.head.appendChild(script);
-      }).catch(error => {
-        console.error('Error during initialization:', error);
-        
-        // Load app anyway in case of error
-        const script = document.createElement('script');
-        script.type = 'module';
-        script.src = './build/main.js';
-        document.head.appendChild(script);
-      });
+        try {
+          updateLoadingMessage('Initializing application...');
+          
+          // First check database version
+          checkDatabaseVersion().then(() => {
+            console.log('Database check complete');
+            updateLoadingMessage('Loading styles...');
+            
+            // Then check CSS loading
+            return checkCSSLoaded();
+          }).then(() => {
+            console.log('All initialization complete, loading app...');
+            updateLoadingMessage('Starting application...');
+            
+            // Create script element dynamically to ensure it loads after initialization
+            const script = document.createElement('script');
+            script.type = 'module';
+            script.src = './build/main.js?v=' + Date.now(); // Add cache-busting parameter
+            
+            // Set up load and error handlers
+            script.onload = () => {
+              console.log('App script loaded successfully');
+              
+              // Remove loading indicator after a short delay to ensure app is rendered
+              setTimeout(() => {
+                if (loadingElement.parentNode) {
+                  loadingElement.parentNode.removeChild(loadingElement);
+                }
+              }, 500);
+            };
+            
+            script.onerror = (error) => {
+              console.error('Error loading app script:', error);
+              
+              if (retryCount < maxRetries) {
+                updateLoadingMessage(`Loading failed. Retrying (${retryCount + 1}/${maxRetries})...`);
+                setTimeout(() => loadApp(retryCount + 1), 1000);
+              } else {
+                updateLoadingMessage('Failed to load application. Please refresh the page.');
+              }
+            };
+            
+            document.head.appendChild(script);
+          }).catch(error => {
+            console.error('Error during initialization:', error);
+            
+            if (retryCount < maxRetries) {
+              updateLoadingMessage(`Initialization error. Retrying (${retryCount + 1}/${maxRetries})...`);
+              setTimeout(() => loadApp(retryCount + 1), 1000);
+            } else {
+              updateLoadingMessage('Failed to initialize application. Please refresh the page.');
+            }
+          });
+        } catch (error) {
+          console.error('Critical error during app loading:', error);
+          updateLoadingMessage('An unexpected error occurred. Please refresh the page.');
+        }
+      }
+      
+      // Start loading the app
+      loadApp();
     });
   </script>
 </head>

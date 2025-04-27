@@ -369,39 +369,93 @@ export const API_CONFIG = {
 
 This approach uses a hardcoded subscription key instead of environment variables, simplifying the development workflow while maintaining security through API Management restrictions (origin limitations, rate limits). Authentication is handled by the API Management service, which adds the actual API key on the server side.
 
-### CORS Proxy
-The application uses a CORS proxy to handle cross-origin requests:
+### Enhanced CORS Proxy
+The application uses an enhanced CORS proxy to handle cross-origin requests and ensure proper header handling:
 
 ```javascript
-// src/corsProxy.js
+// Enhanced CORS proxy with better header handling
 export async function fetchWithProxy(url, options = {}) {
-  // Use a CORS proxy if needed
-  const proxyUrl = 'https://corsproxy.io/?';
-  
   try {
-    // Try direct fetch first
-    const directResponse = await fetch(url, options);
-    if (directResponse.ok) {
-      return directResponse;
+    console.log(`Fetching from: ${url}`);
+    
+    // Ensure headers object exists
+    if (!options.headers) {
+      options.headers = {};
     }
     
-    // If direct fetch fails with CORS error, try proxy
-    console.log(`Direct fetch failed, trying proxy for: ${url}`);
-    return fetch(`${proxyUrl}${encodeURIComponent(url)}`, options);
+    // Log the headers we're trying to send
+    console.log('Attempting to send headers:', JSON.stringify(options.headers, null, 2));
+    
+    // Create a new Headers object to ensure proper header formatting
+    const headers = new Headers();
+    
+    // Add all headers from options
+    Object.entries(options.headers).forEach(([key, value]) => {
+      headers.append(key, value);
+    });
+    
+    // Ensure content-type is set
+    if (!headers.has('Content-Type')) {
+      headers.append('Content-Type', 'application/json');
+    }
+    
+    // Create a new options object with the properly formatted headers
+    const enhancedOptions = {
+      ...options,
+      headers: headers,
+      mode: 'cors', // Use CORS mode to allow cross-origin requests
+      credentials: 'same-origin' // Don't send cookies for cross-origin requests
+    };
+    
+    // Log the actual headers being sent
+    console.log('Sending headers:', Array.from(headers.entries()));
+    
+    // Make the fetch request with enhanced options
+    const response = await fetch(url, enhancedOptions);
+    
+    // Handle non-OK responses
+    if (!response.ok) {
+      let errorDetails = 'Unable to get error details';
+      try {
+        // Try to get error details as text
+        errorDetails = await response.text();
+      } catch (e) {
+        console.warn('Could not read error response text:', e);
+      }
+      
+      console.error(`HTTP Error: ${response.status} - ${response.statusText}\nURL: ${url}\nDetails: ${errorDetails}`);
+      
+      // Special handling for 401 errors
+      if (response.status === 401) {
+        console.error('Authentication error: Check if subscription key is being sent correctly');
+        console.error('Response headers:', Array.from(response.headers.entries()));
+      }
+      
+      throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}`);
+    }
+    
+    return response;
   } catch (error) {
-    console.error('Error in fetchWithProxy:', error);
+    console.error(`Fetch error for URL [${url}]:`, error);
     
-    // If the error is likely CORS-related, try the proxy
-    if (error.message.includes('CORS') || error.message.includes('network')) {
-      console.log(`Trying proxy after error for: ${url}`);
-      return fetch(`${proxyUrl}${encodeURIComponent(url)}`, options);
+    // Provide more helpful error messages for common issues
+    if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
+      console.error('Network error: Check your internet connection or if CORS is properly configured');
+    } else if (error.message.includes('401')) {
+      console.error('Authentication error: Check if your API key is valid and being sent correctly');
     }
     
-    // Otherwise, rethrow the error
     throw error;
   }
 }
 ```
+
+This enhanced implementation ensures that:
+1. Headers are properly formatted and sent with each request
+2. Detailed logging is provided for debugging header issues
+3. Special handling is added for authentication errors
+4. More helpful error messages are provided for common issues
+5. The Headers API is used to ensure proper header formatting
 
 ### Mock Data
 The application includes mock data for development and fallback purposes:
@@ -1082,4 +1136,4 @@ The application displays user-friendly error messages in the UI:
    - Enhance screen reader support
 
 ---
-*This document was updated on 4/25/2025 as part of the Memory Bank update for the PokeData project.*
+*This document was updated on 4/27/2025 as part of the Memory Bank update for the PokeData project.*

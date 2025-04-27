@@ -26,7 +26,8 @@ function serve() {
     return {
         writeBundle() {
             if (server) return;
-            server = require('child_process').spawn('pnpm', ['start', '--', '--dev'], {
+            // Explicitly set port to 3000 and add --port flag
+            server = require('child_process').spawn('pnpm', ['run', 'sirv', '--', '--dev', '--single', '--port', '3000'], {
                 stdio: ['ignore', 'inherit', 'inherit'],
                 shell: true
             });
@@ -61,7 +62,13 @@ replace({
                 dev: !production
             }
         }),
-        css({ output: 'bundle.css' }),
+        css({ 
+            output: 'bundle.css',
+            // Ensure styles are properly extracted and minified
+            minimize: production,
+            // Add source maps in development mode
+            sourceMap: !production
+        }),
         nodeResolve({
             browser: true,
             dedupe: ['svelte']

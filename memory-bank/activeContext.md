@@ -49,14 +49,40 @@ While the primary focus is on the enhancements above, we're also addressing:
 
 ## Recent Changes
 
-1. **Fixed Error When Clearing Set Selection** (2025-04-26):
+1. **Fixed Logger Formatting Issues** (2025-04-27):
+   - Identified issue where CSS styling information was appearing directly in console log output
+   - Refactored the formatLogArgs function in loggerService.js to properly handle styling parameters
+   - Updated all logging methods to use the new formatting approach
+   - Added test function in main.js to verify the logger formatting changes
+   - Maintained caller information in logs for debugging context
+   - Result: Console logs now display properly formatted without showing CSS styling code
+
+2. **Fixed Debug System Issues** (2025-04-27):
+   - Fixed context loggers in loggerService.js to include specialized methods like logDbOperation
+   - Corrected debug configuration exports in debug-config.js to avoid duplicate exports
+   - Updated window.pokeDataDebug object in main.js to use directly imported functions
+   - Simplified the help function to use a single console.log with a multi-line string
+   - Fixed debug panel button functionality for enabling/disabling debug mode
+   - Ensured log level buttons work correctly in the debug panel
+   - Result: Debug panel now works correctly, and all debug functions operate as expected
+
+2. **Fixed CSS Loading and API Authentication Issues** (2025-04-27):
+   - Enhanced CORS proxy implementation to properly handle authentication headers
+   - Improved CSS loading sequence to ensure styles are fully loaded before app initialization
+   - Added localStorage backup for database version to prevent unnecessary resets
+   - Implemented a more robust caching strategy with proper timestamps and TTL
+   - Created rebuild scripts to ensure proper application rebuilding
+   - Added detailed logging for API requests and CSS loading
+   - Result: Application now loads properly with correct styling even when API calls fail
+
+2. **Fixed Error When Clearing Set Selection** (2025-04-26):
    - Modified the handleSetSelect function to properly handle null selections
    - Added specific logic to clear card-related state when set selection is cleared
    - Prevented error message from showing when clearing a selection
    - Improved user experience by allowing users to clear selections without errors
    - Result: Users can now clear the set selection without seeing an error message
 
-2. **Improved Clear Button Design in Search Components** (2025-04-26):
+3. **Improved Clear Button Design in Search Components** (2025-04-26):
    - Replaced custom SVG X with Material Design close icon for better quality and centering
    - Increased spacing between clear button and dropdown arrow for improved visual separation
    - Updated both SearchableSelect and CardSearchSelect components for consistency
@@ -407,5 +433,14 @@ We've gained several insights during the implementation:
 
 14. **Component Flexibility**: Designing components to handle both flat and hierarchical data structures (like SearchableSelect) provides greater reusability across the application.
 
+15. **Development Server Workflow**: The development server has specific behavior patterns that affect the workflow:
+    - The server is configured to run on port 3000, which is whitelisted in the APIM configuration
+    - If port 3000 is already in use (by a previous instance of the dev server), it will choose a different port
+    - Using a different port causes issues because it's not whitelisted in the APIM configuration
+    - When developing, it's important to check if the server is already running on port 3000 before starting a new one
+    - If it's already running, use the existing server instead of starting a new one
+    - If a restart is needed, ensure the previous server is fully stopped before starting a new one
+    - Livereload functionality works correctly when using the proper development workflow (`pnpm dev`)
+
 ---
-*This document was updated on 4/26/2025 as part of the Memory Bank update for the PokeData project.*
+*This document was updated on 4/27/2025 as part of the Memory Bank update for the PokeData project.*

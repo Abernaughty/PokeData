@@ -1,97 +1,117 @@
-# Quick API Credentials Debugging Guide
+# PokeData Quick Debugging Guide
 
-This guide provides immediate steps to diagnose API credential issues without waiting for a GitHub workflow run.
+This is a quick reference guide for the PokeData debugging system. For more detailed information, see the [full debugging guide](./debugging-guide.md).
 
-## Immediate Debugging Steps
+## Debug Panel
 
-### 1. Run the Local Development Server
+- **Toggle Debug Panel**: Press `Alt+D`
+- **Change Log Level**: Click on DEBUG, INFO, WARN, ERROR, or NONE buttons
+- **Visual Options**: Toggle timestamps, colors, caller info, etc.
+- **Debug Tools**: Log memory usage, monitor network, monitor performance
+- **Actions**: Clear console, enable/disable debug mode
 
-```bash
-npm run dev
-```
+## Console Commands
 
-### 2. Access the Browser Debug Tool
-
-Once the app is running, open it in your browser and:
-
-1. Open the browser's developer tools (F12 or right-click → Inspect)
-2. Go to the "Console" tab
-3. Run the following commands:
+Access all debugging features via `window.pokeDataDebug` in the browser console:
 
 ```javascript
-// Load the debug script and run the diagnostic function in one step
-fetch('/debug-api.js')
-  .then(r => r.text())
-  .then(t => {
-    eval(t);
-    return debugApiCredentials();
-  })
-  .then(result => {
-    console.log('Debug results summary:', result);
-  })
-  .catch(err => {
-    console.error('Debug error:', err);
-  });
+// Get help
+pokeDataDebug.help();
+
+// Logger configuration
+pokeDataDebug.enableDebugMode();
+pokeDataDebug.disableDebugMode();
+pokeDataDebug.setLogLevel('DEBUG'); // 'DEBUG', 'INFO', 'WARN', 'ERROR', 'NONE'
+
+// Debug tools
+pokeDataDebug.inspect(someObject);
+pokeDataDebug.measure(someFunction);
+pokeDataDebug.memory();
+
+// Monitoring
+pokeDataDebug.monitor.performance();
+pokeDataDebug.monitor.network();
+pokeDataDebug.monitor.object(someObject);
+
+// Debug panel
+pokeDataDebug.panel.show();
+pokeDataDebug.panel.hide();
+pokeDataDebug.panel.toggle();
 ```
 
-### 3. Interpret the Results
+## Code Integration
 
-The debug tool will show:
+### Basic Logging
 
-- ✅ If API_CONFIG is properly defined
-- API key and subscription key existence and lengths
-- Generated headers for API calls
-- ❌ Error indicators for empty or malformed headers
+```javascript
+import { loggerService } from './services/loggerService';
 
-### 4. Common Issues and Solutions
+loggerService.debug('Debug message', { detail: 'Additional information' });
+loggerService.info('Info message');
+loggerService.warn('Warning message');
+loggerService.error('Error message', new Error('Something went wrong'));
+loggerService.success('Success message');
+```
 
-#### Empty API Key or Subscription Key
+### Specialized Loggers
 
-**Symptoms**:
-- Console shows: `❌ API Key is empty`
-- Console shows: `❌ Subscription Key header is empty`
+```javascript
+import { apiLogger, dbLogger, uiLogger, cacheLogger, networkLogger } from './services/loggerService';
 
-**Causes**:
-1. Environment variables not injected during build
-2. Incorrect variable names in GitHub secrets
-3. Rollup not properly replacing environment variables
+apiLogger.info('API request initiated');
+dbLogger.debug('Database query executed');
+uiLogger.warn('UI component rendered with warnings');
+```
 
-**Solutions**:
-1. Check your `.env` file locally to ensure variables are defined
-2. Verify GitHub secrets are correctly named and have values
-3. Check Rollup configuration in `rollup.config.js`
+### Timing Operations
 
-#### Malformed Authorization Header
+```javascript
+import { loggerService } from './services/loggerService';
 
-**Symptoms**:
-- Console shows: `❌ Authorization header is empty or malformed`
-- Header shows as just `Bearer` without a token
+loggerService.time('operation');
+// ... perform operations ...
+loggerService.timeEnd('operation');
+```
 
-**Causes**:
-1. API_KEY environment variable exists but is empty
-2. Incorrect string concatenation in `getHeaders()` method
+### Grouping Logs
 
-**Solutions**:
-1. Check the format of your JWT token in GitHub secrets
-2. Verify the `getHeaders()` method in `apiConfig.js`
+```javascript
+import { loggerService } from './services/loggerService';
 
-## Alternative Debugging Method
+loggerService.groupCollapsed('Operation Details');
+loggerService.debug('Step 1');
+loggerService.debug('Step 2');
+loggerService.groupEnd();
+```
 
-If you prefer to modify the HTML directly:
+### Debug Tools
 
-1. Edit `public/index.html`
-2. Uncomment the debug script tag:
-   ```html
-   <script src='./debug-api.js'></script>
-   ```
-3. Reload the page and run `debugApiCredentials()` in the console
+```javascript
+import { inspectObject, measureExecutionTime, logMemoryUsage } from './debug-tools';
 
-## Next Steps
+// Inspect an object
+inspectObject(someObject);
 
-After identifying the issue:
+// Measure execution time
+measureExecutionTime(someFunction);
 
-1. Fix the environment variables in your GitHub repository
-2. Update your Azure Static Web App configuration if needed
-3. Push the changes and deploy again
+// Log memory usage
+logMemoryUsage();
+```
 
-For more detailed debugging information, see the full [Debugging Guide](./debugging-guide.md).
+## Log Levels
+
+- **DEBUG**: Detailed information for debugging purposes
+- **INFO**: General information about application flow
+- **WARN**: Warnings that might need attention
+- **ERROR**: Errors that need immediate attention
+- **NONE**: Disable all logging
+
+## Best Practices
+
+1. Use appropriate log levels for different types of messages
+2. Group related logs using `groupCollapsed` and `groupEnd`
+3. Use specialized loggers (apiLogger, dbLogger, etc.) for better categorization
+4. Include relevant context in log messages
+5. Use `timeEnd` to measure performance of operations
+6. Disable debug logging in production by setting the log level to ERROR

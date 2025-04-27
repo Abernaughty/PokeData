@@ -7,6 +7,7 @@
     "build": "rollup -c",
     "dev": "rollup -c -w",
     "start": "sirv public --no-clear --port 3000",
+    "sirv": "sirv public --no-clear",
     "prod-install": "pnpm install --prod",
     "clean": "rimraf node_modules .pnpm-store pnpm-lock.yaml",
     "prune": "pnpm prune"

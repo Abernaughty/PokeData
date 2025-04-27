@@ -1,152 +1,385 @@
-# API Credentials Debugging Guide
+# PokeData Debugging Guide
 
-This guide will help you diagnose and fix issues with API credentials in your PokeData application.
+This guide explains the enhanced debugging system implemented in the PokeData application. The system provides comprehensive logging, performance monitoring, and debugging tools to help developers identify and fix issues more efficiently.
 
-## Debugging Tools Added
+## Table of Contents
 
-We've added several debugging tools to help identify where the API credentials are being lost:
+1. [Quick Start](#quick-start)
+2. [Logger Service](#logger-service)
+3. [Debug Tools](#debug-tools)
+4. [Debug Panel](#debug-panel)
+5. [Console API](#console-api)
+6. [Performance Monitoring](#performance-monitoring)
+7. [Best Practices](#best-practices)
 
-1. **Client-Side Debugging**:
-   - Enhanced logging in `apiConfig.js`
-   - Detailed header inspection in `corsProxy.js`
-   - Service initialization validation in `pokeDataService.js`
-   - Standalone debug script in `debug-env.js`
+## Quick Start
 
-2. **Build Process Debugging**:
-   - GitHub Actions workflow debugging steps
-   - Environment variable validation during build
-   - Configuration file inspection
+The debugging system is automatically initialized in development mode. You can access it in several ways:
 
-## How to Use These Tools
+- **Debug Panel**: Press `Alt+D` to toggle the debug panel UI
+- **Console API**: Access debugging functions via `window.pokeDataDebug` in the browser console
+- **Code Integration**: Import and use the logger and tools in your code
 
-### 1. GitHub Actions Build Debugging
+```javascript
+// In your code
+import { loggerService } from './services/loggerService';
+import debugTools from './debug-tools';
 
-After pushing these changes to GitHub, check the GitHub Actions logs:
+// Log messages with different levels
+loggerService.debug('Detailed information for debugging');
+loggerService.info('General information about application flow');
+loggerService.warn('Warning that might need attention');
+loggerService.error('Error that needs immediate attention');
+loggerService.success('Operation completed successfully');
 
-1. Go to your GitHub repository
-2. Click on "Actions" tab
-3. Select the latest workflow run
-4. Look for the output of these steps:
-   - "Debug Environment Variables"
-   - "Execute Environment Debug Script"
-   - "Debug Rollup Config"
+// Use debug tools
+debugTools.inspectObject(someObject);
+debugTools.measureExecutionTime(someFunction);
+```
 
-These steps will show if your GitHub secrets are being properly accessed during the build process.
+## Logger Service
 
-### 2. Browser Console Debugging
+The logger service provides structured, leveled logging with visual enhancements and filtering capabilities.
 
-After deploying to Azure:
+### Log Levels
 
-1. Open your application in a web browser
-2. Open the browser's developer tools (F12 or right-click → Inspect)
-3. Go to the "Console" tab
-4. Look for the following sections:
-   - "=== Environment Variables Debug ==="
-   - "=== PokeDataService Initialization ==="
-   - "Headers summary" (when API calls are made)
+- **DEBUG**: Detailed information for debugging purposes
+- **INFO**: General information about application flow
+- **WARN**: Warnings that might need attention
+- **ERROR**: Errors that need immediate attention
+- **NONE**: Disable all logging
 
-### 3. What to Look For
+### Basic Logging
 
-#### In GitHub Actions Logs:
+```javascript
+import { loggerService } from './services/loggerService';
 
-- **Secrets Existence**: Check if `API_KEY exists: true` and `API_SUBSCRIPTION_KEY exists: true`
-- **Secret Lengths**: Verify that the lengths are greater than 0
-- **Rollup Configuration**: Confirm that the replace plugin is properly configured
+loggerService.debug('Debug message', { detail: 'Additional information' });
+loggerService.info('Info message');
+loggerService.warn('Warning message');
+loggerService.error('Error message', new Error('Something went wrong'));
+loggerService.success('Success message');
+```
 
-#### In Browser Console:
+### Specialized Loggers
 
-- **Environment Variables**: Check if they exist and have proper lengths
-- **API Configuration**: Verify the API_CONFIG object has the correct values
-- **Request Headers**: Look for warnings about missing or malformed headers
+The system provides specialized loggers for different parts of the application:
 
-## Common Issues and Solutions
+```javascript
+import { apiLogger, dbLogger, uiLogger, cacheLogger, networkLogger } from './services/loggerService';
 
-### 1. Node.js Version Compatibility
+apiLogger.info('API request initiated');
+dbLogger.debug('Database query executed');
+uiLogger.warn('UI component rendered with warnings');
+cacheLogger.info('Cache hit for key:', 'some-key');
+networkLogger.error('Network request failed', error);
+```
 
-**Symptoms**:
-- GitHub Actions logs show: `ERROR: This version of pnpm requires at least Node.js v18.12`
-- Workflow fails during the `pnpm install` step
+### Timing Operations
 
-**Solutions**:
-- The workflow has been updated to use Node.js v18 instead of v14
-- If you're still seeing this error, check that the workflow file is using the correct Node.js version
+```javascript
+import { loggerService } from './services/loggerService';
 
-### 2. GitHub Secrets Not Available During Build
+// Start a timer
+loggerService.time('operation');
 
-**Symptoms**:
-- GitHub Actions logs show `API_KEY exists: false`
-- Browser console shows `API_KEY not found in environment variables`
+// ... perform operations ...
 
-**Solutions**:
-- Verify GitHub secrets are correctly set up
-- Check workflow file for correct secret references
-- Ensure secrets are being passed to the build process
+// Log intermediate time
+loggerService.timeLog('operation', 'Intermediate step completed');
 
-### 2. Environment Variables Not Injected into Bundle
+// ... perform more operations ...
 
-**Symptoms**:
-- GitHub Actions logs show secrets exist
-- Browser console shows `API_KEY not found in environment variables`
+// End the timer and log the total time
+loggerService.timeEnd('operation');
+```
 
-**Solutions**:
-- Check Rollup configuration for proper variable replacement
-- Verify that `process.env.API_KEY` is being replaced during build
-- Ensure the build process is using the correct environment
+### Grouping Logs
 
-### 3. API Configuration Not Using Environment Variables
+```javascript
+import { loggerService } from './services/loggerService';
 
-**Symptoms**:
-- Browser console shows environment variables exist
-- API calls still have empty headers
+// Create an expanded group
+loggerService.group('Operation Details');
+loggerService.debug('Step 1');
+loggerService.debug('Step 2');
+loggerService.debug('Step 3');
+loggerService.groupEnd();
 
-**Solutions**:
-- Check `apiConfig.js` for proper use of environment variables
-- Verify that `getHeaders()` method is using the variables correctly
-- Ensure no code is overriding the headers
+// Create a collapsed group (closed by default)
+loggerService.groupCollapsed('Advanced Details');
+loggerService.debug('Detail 1');
+loggerService.debug('Detail 2');
+loggerService.groupEnd();
+```
 
-### 4. Format Issues with Headers
+### Tabular Data
 
-**Symptoms**:
-- Browser console shows `Authorization header contains "Bearer" but no token`
-- API calls fail with authentication errors
+```javascript
+import { loggerService } from './services/loggerService';
 
-**Solutions**:
-- Check the format of the Authorization header
-- Ensure the token is being properly concatenated
-- Verify the token format is correct for your API
+const users = [
+  { id: 1, name: 'Alice', role: 'Admin' },
+  { id: 2, name: 'Bob', role: 'User' },
+  { id: 3, name: 'Charlie', role: 'User' }
+];
 
-## Next Steps After Diagnosis
+loggerService.table(users);
+```
 
-Once you've identified the issue:
+## Debug Tools
 
-1. **For GitHub Secrets Issues**:
-   - Recreate the secrets in GitHub
-   - Check for any special characters that might need escaping
+The debug tools provide utilities for inspecting objects, measuring performance, and monitoring application behavior.
 
-2. **For Build Process Issues**:
-   - Update the Rollup configuration
-   - Modify how environment variables are accessed
+### Object Inspection
 
-3. **For API Configuration Issues**:
-   - Update the `apiConfig.js` file
-   - Fix any formatting issues with headers
+```javascript
+import { inspectObject } from './debug-tools';
 
-4. **For Azure Configuration Issues**:
-   - Check Azure Static Web App configuration
-   - Verify that runtime settings are correct
+// Basic inspection
+inspectObject(someObject);
 
-## Cleanup After Debugging
+// Advanced inspection with options
+inspectObject(someObject, {
+  depth: 3,                // Maximum depth to inspect (default: 2)
+  showMethods: true,       // Show methods (default: false)
+  showPrototype: true,     // Show prototype properties (default: false)
+  label: 'Custom Label'    // Custom label for the inspection (default: 'Object Inspection')
+});
+```
 
-Once the issue is resolved:
+### Performance Measurement
 
-1. Remove or comment out the debug script import in `main.js`
-2. Consider removing the `debug-env.js` file
-3. Reduce the verbose logging in production builds
+```javascript
+import { measureExecutionTime } from './debug-tools';
 
-## Need More Help?
+// Measure synchronous function
+const result = measureExecutionTime(() => {
+  // Expensive operation
+  return someExpensiveCalculation();
+}, [], 'Expensive Calculation');
 
-If you're still experiencing issues after following this guide, consider:
+// Measure asynchronous function
+measureExecutionTime(async () => {
+  // Async operation
+  return await someAsyncOperation();
+}, [], 'Async Operation')
+  .then(result => {
+    // Use result
+  });
+```
 
-1. Checking Azure Static Web Apps documentation for environment variable handling
-2. Reviewing the API documentation for authentication requirements
-3. Implementing a server-side proxy to handle API authentication more securely
+### Function Logging
+
+```javascript
+import { createLoggingFunction } from './debug-tools';
+
+// Create a logging version of a function
+const originalFunction = (a, b) => a + b;
+const loggingFunction = createLoggingFunction(originalFunction, 'add');
+
+// When called, arguments and result will be logged
+const result = loggingFunction(5, 3);
+```
+
+### Property Monitoring
+
+```javascript
+import { monitorObjectProperties } from './debug-tools';
+
+// Monitor all properties
+const monitoredObject = monitorObjectProperties(someObject);
+
+// Monitor specific properties
+const monitoredObject = monitorObjectProperties(someObject, ['prop1', 'prop2']);
+
+// Now, accessing or modifying these properties will be logged
+monitoredObject.prop1 = 'new value';
+console.log(monitoredObject.prop2);
+```
+
+### Memory Usage
+
+```javascript
+import { logMemoryUsage, getMemoryUsage } from './debug-tools';
+
+// Log current memory usage
+logMemoryUsage();
+
+// Get memory usage data
+const memoryData = getMemoryUsage();
+console.log(`Used: ${memoryData.formattedUsed} / ${memoryData.formattedLimit}`);
+```
+
+### Event Listeners
+
+```javascript
+import { logEventListeners } from './debug-tools';
+
+// Log event listeners on an element
+const button = document.getElementById('my-button');
+logEventListeners(button);
+```
+
+### Performance Monitoring
+
+```javascript
+import { createPerformanceMonitor } from './debug-tools';
+
+// Create and start a performance monitor (logs every 5 seconds)
+const monitor = createPerformanceMonitor(5000);
+monitor.start();
+
+// Stop monitoring
+monitor.stop();
+
+// Get a snapshot of current performance
+const snapshot = monitor.getSnapshot();
+```
+
+### Network Monitoring
+
+```javascript
+import { monitorNetworkRequests } from './debug-tools';
+
+// Start monitoring network requests
+const networkMonitor = monitorNetworkRequests();
+
+// Stop monitoring
+networkMonitor.restore();
+```
+
+## Debug Panel
+
+The debug panel provides a visual interface for controlling debug settings and running debug tools.
+
+### Keyboard Shortcut
+
+Press `Alt+D` to toggle the debug panel.
+
+### Features
+
+- **Log Level Control**: Change the current log level
+- **Visual Options**: Toggle timestamps, colors, and other visual enhancements
+- **Debug Tools**: Run memory usage logging, performance monitoring, and network monitoring
+- **Actions**: Clear the console, enable/disable debug mode
+
+## Console API
+
+The debugging system exposes a global object `window.pokeDataDebug` in the browser console for interactive debugging.
+
+### Available Commands
+
+```javascript
+// Get help
+pokeDataDebug.help();
+
+// Logger configuration
+pokeDataDebug.enableDebugMode();
+pokeDataDebug.disableDebugMode();
+pokeDataDebug.setLogLevel('DEBUG'); // 'DEBUG', 'INFO', 'WARN', 'ERROR', 'NONE'
+pokeDataDebug.getLoggerConfig();
+
+// Debug tools
+pokeDataDebug.inspect(document.body);
+pokeDataDebug.measure(() => Array(1000000).fill(0).map((_, i) => i));
+pokeDataDebug.memory();
+
+// Monitoring
+const perfMonitor = pokeDataDebug.monitor.performance();
+perfMonitor.stop(); // Stop performance monitoring
+const networkMonitor = pokeDataDebug.monitor.network();
+networkMonitor.restore(); // Stop network monitoring
+pokeDataDebug.monitor.object(someObject);
+
+// Debug panel
+pokeDataDebug.panel.show();
+pokeDataDebug.panel.hide();
+pokeDataDebug.panel.toggle();
+
+// Direct access to services
+pokeDataDebug.logger.debug('Custom debug message');
+pokeDataDebug.tools.inspectObject(someObject, { depth: 3 });
+```
+
+## Performance Monitoring
+
+The debugging system includes several tools for monitoring application performance:
+
+### Execution Time Measurement
+
+```javascript
+import { loggerService } from './services/loggerService';
+
+loggerService.time('operation');
+// ... perform operations ...
+loggerService.timeEnd('operation');
+```
+
+### FPS and Memory Monitoring
+
+```javascript
+import { createPerformanceMonitor } from './debug-tools';
+
+const monitor = createPerformanceMonitor(5000); // Log every 5 seconds
+monitor.start();
+```
+
+### Network Request Monitoring
+
+```javascript
+import { monitorNetworkRequests } from './debug-tools';
+
+const networkMonitor = monitorNetworkRequests();
+```
+
+## Best Practices
+
+### Log Level Usage
+
+- **DEBUG**: Use for detailed information that is only useful during debugging
+- **INFO**: Use for general information about application flow
+- **WARN**: Use for warnings that might need attention but don't prevent the application from working
+- **ERROR**: Use for errors that need immediate attention
+- **SUCCESS**: Use for important successful operations
+
+### Structured Logging
+
+Structure your logs to make them more readable and searchable:
+
+```javascript
+// Instead of this:
+console.log('User logged in: ' + username);
+
+// Do this:
+loggerService.info('User logged in', { username, timestamp: new Date() });
+```
+
+### Group Related Logs
+
+Use groups to organize related logs:
+
+```javascript
+loggerService.groupCollapsed('API Request');
+loggerService.debug('URL:', url);
+loggerService.debug('Method:', method);
+loggerService.debug('Headers:', headers);
+loggerService.debug('Body:', body);
+loggerService.groupEnd();
+```
+
+### Context Loggers
+
+Use context loggers to categorize logs:
+
+```javascript
+import { apiLogger } from './services/loggerService';
+
+apiLogger.info('API request initiated', { endpoint, method });
+```
+
+### Performance Considerations
+
+- Disable debug logging in production by setting the log level to ERROR
+- Use `loggerService.groupCollapsed()` for verbose logs to keep the console clean
+- Be mindful of the performance impact of debug tools in production

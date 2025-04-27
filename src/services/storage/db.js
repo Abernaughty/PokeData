@@ -1,6 +1,8 @@
+import { dbLogger } from '../loggerService';
+
 /**
  * IndexedDB Storage Service
- * Provides persistent storage for set list and card data
+ * Provides persistent storage for set list and card data with enhanced logging
  */
 
 // Database configuration
@@ -10,9 +12,9 @@ const STORES = {
   setList: 'setList',
   cardsBySet: 'cardsBySet',
   cardPricing: 'cardPricing',
-  currentSets: 'currentSets',      // New store for current sets
-  currentSetCards: 'currentSetCards', // New store for current set cards
-  config: 'config'                 // New store for configuration
+  currentSets: 'currentSets',      // Store for current sets
+  currentSetCards: 'currentSetCards', // Store for current set cards
+  config: 'config'                 // Store for configuration
 };
 
 /**
@@ -20,15 +22,18 @@ const STORES = {
  * @returns {Promise<IDBDatabase>} The database instance
  */
 export const openDatabase = () => {
+  dbLogger.debug('Opening IndexedDB database:', DB_NAME, 'version:', DB_VERSION);
+  
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     
     request.onerror = (event) => {
-      console.error('Error opening database:', event.target.error);
+      dbLogger.error('Error opening database:', event.target.error);
       reject(event.target.error);
     };
     
     request.onsuccess = (event) => {
+      dbLogger.debug('Database opened successfully');
       resolve(event.target.result);
     };
     
@@ -36,41 +41,43 @@ export const openDatabase = () => {
       const db = event.target.result;
       const oldVersion = event.oldVersion;
       
-      console.log(`Upgrading database from version ${oldVersion} to ${DB_VERSION}`);
+      dbLogger.info(`Upgrading database from version ${oldVersion} to ${DB_VERSION}`);
       
       // Create stores if they don't exist
       if (!db.objectStoreNames.contains(STORES.setList)) {
-        console.log('Creating setList store');
+        dbLogger.info('Creating setList store');
         db.createObjectStore(STORES.setList, { keyPath: 'id' });
       }
       
       if (!db.objectStoreNames.contains(STORES.cardsBySet)) {
-        console.log('Creating cardsBySet store');
+        dbLogger.info('Creating cardsBySet store');
         db.createObjectStore(STORES.cardsBySet, { keyPath: 'setCode' });
       }
       
       // Create cardPricing store if it doesn't exist
       if (!db.objectStoreNames.contains(STORES.cardPricing)) {
-        console.log('Creating cardPricing store');
+        dbLogger.info('Creating cardPricing store');
         db.createObjectStore(STORES.cardPricing, { keyPath: 'id' });
       }
       
       // Create new stores for current sets
       if (!db.objectStoreNames.contains(STORES.currentSets)) {
-        console.log('Creating currentSets store');
+        dbLogger.info('Creating currentSets store');
         db.createObjectStore(STORES.currentSets, { keyPath: 'code' });
       }
       
       if (!db.objectStoreNames.contains(STORES.currentSetCards)) {
-        console.log('Creating currentSetCards store');
+        dbLogger.info('Creating currentSetCards store');
         db.createObjectStore(STORES.currentSetCards, { keyPath: 'setCode' });
       }
       
       // Create config store if it doesn't exist
       if (!db.objectStoreNames.contains(STORES.config)) {
-        console.log('Creating config store');
+        dbLogger.info('Creating config store');
         db.createObjectStore(STORES.config, { keyPath: 'id' });
       }
+      
+      dbLogger.success('Database upgrade completed successfully');
     };
   });
 };
@@ -85,25 +92,39 @@ export const dbService = {
    * @returns {Promise<void>}
    */
   async saveSetList(setList) {
+    dbLogger.time('saveSetList');
     try {
+      dbLogger.debug(`Saving set list with ${setList.length} sets`);
+      
       const db = await openDatabase();
       const transaction = db.transaction(STORES.setList, 'readwrite');
       const store = transaction.objectStore(STORES.setList);
       
       // We'll store the entire set list as a single record
+      const timestamp = Date.now();
       await store.put({
         id: 'pokemonSets',
         data: setList,
-        timestamp: Date.now()
+        timestamp: timestamp
       });
       
+      dbLogger.logDbOperation('save', STORES.setList, 'pokemonSets', { count: setList.length, timestamp });
+      
       return new Promise((resolve, reject) => {
-        transaction.oncomplete = () => resolve();
-        transaction.onerror = (event) => reject(event.target.error);
+        transaction.oncomplete = () => {
+          dbLogger.success('Set list saved successfully');
+          resolve();
+        };
+        transaction.onerror = (event) => {
+          dbLogger.error('Transaction error while saving set list:', event.target.error);
+          reject(event.target.error);
+        };
       });
     } catch (error) {
-      console.error('Error saving set list:', error);
+      dbLogger.error('Error saving set list:', error);
       throw error;
+    } finally {
+      dbLogger.timeEnd('saveSetList');
     }
   },
   
@@ -112,7 +133,10 @@ export const dbService = {
    * @returns {Promise<Array>} The array of set objects
    */
   async getSetList() {
+    dbLogger.time('getSetList');
     try {
+      dbLogger.debug('Getting set list from IndexedDB');
+      
       const db = await openDatabase();
       const transaction = db.transaction(STORES.setList, 'readonly');
       const store = transaction.objectStore(STORES.setList);
@@ -123,18 +147,31 @@ export const dbService = {
         request.onsuccess = () => {
           // If we have the data in the cache, return it
           if (request.result && request.result.data) {
+            const setCount = request.result.data.length;
+            const timestamp = request.result.timestamp;
+            const age = timestamp ? Math.round((Date.now() - timestamp) / (60 * 60 * 1000)) : 'unknown';
+            
+            dbLogger.debug(`Found set list in cache with ${setCount} sets, age: ${age} hours`);
+            dbLogger.logDbOperation('get', STORES.setList, 'pokemonSets', { count: setCount, age: `${age} hours` });
+            
             resolve(request.result.data);
           } else {
             // No data found
+            dbLogger.debug('No set list found in cache');
             resolve(null);
           }
         };
         
-        request.onerror = (event) => reject(event.target.error);
+        request.onerror = (event) => {
+          dbLogger.error('Error retrieving set list from IndexedDB:', event.target.error);
+          reject(event.target.error);
+        };
       });
     } catch (error) {
-      console.error('Error getting set list:', error);
+      dbLogger.error('Error getting set list:', error);
       throw error;
+    } finally {
+      dbLogger.timeEnd('getSetList');
     }
   },
   
@@ -145,27 +182,41 @@ export const dbService = {
    * @returns {Promise<void>}
    */
   async saveCardsForSet(setCode, cards) {
+    dbLogger.time(`saveCardsForSet-${setCode}`);
     try {
       // Use a fallback key if setCode is null or undefined
       const storageKey = setCode || 'unknown-set';
+      
+      dbLogger.debug(`Saving ${cards.length} cards for set ${storageKey}`);
       
       const db = await openDatabase();
       const transaction = db.transaction(STORES.cardsBySet, 'readwrite');
       const store = transaction.objectStore(STORES.cardsBySet);
       
+      const timestamp = Date.now();
       await store.put({
         setCode: storageKey,
         cards,
-        timestamp: Date.now()
+        timestamp
       });
       
+      dbLogger.logDbOperation('save', STORES.cardsBySet, storageKey, { count: cards.length, timestamp });
+      
       return new Promise((resolve, reject) => {
-        transaction.oncomplete = () => resolve();
-        transaction.onerror = (event) => reject(event.target.error);
+        transaction.oncomplete = () => {
+          dbLogger.success(`Cards for set ${storageKey} saved successfully`);
+          resolve();
+        };
+        transaction.onerror = (event) => {
+          dbLogger.error(`Transaction error while saving cards for set ${storageKey}:`, event.target.error);
+          reject(event.target.error);
+        };
       });
     } catch (error) {
-      console.error(`Error saving cards for set ${setCode}:`, error);
+      dbLogger.error(`Error saving cards for set ${setCode}:`, error);
       throw error;
+    } finally {
+      dbLogger.timeEnd(`saveCardsForSet-${setCode}`);
     }
   },
   
@@ -175,9 +226,12 @@ export const dbService = {
    * @returns {Promise<Array>} The array of card objects for the set
    */
   async getCardsForSet(setCode) {
+    dbLogger.time(`getCardsForSet-${setCode}`);
     try {
       // Use a fallback key if setCode is null or undefined
       const storageKey = setCode || 'unknown-set';
+      
+      dbLogger.debug(`Getting cards for set ${storageKey} from IndexedDB`);
       
       const db = await openDatabase();
       const transaction = db.transaction(STORES.cardsBySet, 'readonly');
@@ -189,18 +243,31 @@ export const dbService = {
         request.onsuccess = () => {
           // If we have the data in the cache, return it
           if (request.result && request.result.cards) {
+            const cardCount = request.result.cards.length;
+            const timestamp = request.result.timestamp;
+            const age = timestamp ? Math.round((Date.now() - timestamp) / (60 * 60 * 1000)) : 'unknown';
+            
+            dbLogger.debug(`Found ${cardCount} cards for set ${storageKey} in cache, age: ${age} hours`);
+            dbLogger.logDbOperation('get', STORES.cardsBySet, storageKey, { count: cardCount, age: `${age} hours` });
+            
             resolve(request.result.cards);
           } else {
             // No data found
+            dbLogger.debug(`No cards found in cache for set ${storageKey}`);
             resolve(null);
           }
         };
         
-        request.onerror = (event) => reject(event.target.error);
+        request.onerror = (event) => {
+          dbLogger.error(`Error retrieving cards for set ${storageKey} from IndexedDB:`, event.target.error);
+          reject(event.target.error);
+        };
       });
     } catch (error) {
-      console.error(`Error getting cards for set ${setCode}:`, error);
+      dbLogger.error(`Error getting cards for set ${setCode}:`, error);
       throw error;
+    } finally {
+      dbLogger.timeEnd(`getCardsForSet-${setCode}`);
     }
   },
   
@@ -643,6 +710,61 @@ export const dbService = {
   },
   
   /**
+   * Save the set list timestamp to IndexedDB
+   * @param {number} timestamp - The timestamp to save
+   * @returns {Promise<void>}
+   */
+  async saveSetListTimestamp(timestamp) {
+    try {
+      const db = await openDatabase();
+      const transaction = db.transaction(STORES.config, 'readwrite');
+      const store = transaction.objectStore(STORES.config);
+      
+      await store.put({
+        id: 'setListTimestamp',
+        timestamp: timestamp
+      });
+      
+      return new Promise((resolve, reject) => {
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = (event) => reject(event.target.error);
+      });
+    } catch (error) {
+      console.error('Error saving set list timestamp:', error);
+      throw error;
+    }
+  },
+  
+  /**
+   * Get the set list timestamp from IndexedDB
+   * @returns {Promise<number|null>} The timestamp or null if not found
+   */
+  async getSetListTimestamp() {
+    try {
+      const db = await openDatabase();
+      const transaction = db.transaction(STORES.config, 'readonly');
+      const store = transaction.objectStore(STORES.config);
+      
+      const request = store.get('setListTimestamp');
+      
+      return new Promise((resolve, reject) => {
+        request.onsuccess = () => {
+          if (request.result && request.result.timestamp) {
+            resolve(request.result.timestamp);
+          } else {
+            resolve(null);
+          }
+        };
+        
+        request.onerror = (event) => reject(event.target.error);
+      });
+    } catch (error) {
+      console.error('Error getting set list timestamp:', error);
+      throw error;
+    }
+  },
+  
+  /**
    * Get cache statistics
    * @returns {Promise<Object>} Cache statistics
    */
@@ -695,6 +817,22 @@ export const dbService = {
         countRequest.onsuccess = () => resolve(countRequest.result);
       });
       stats.cardPricing = cardPricingCount;
+      
+      // Get set list timestamp
+      const configTx = db.transaction(STORES.config, 'readonly');
+      const configStore = configTx.objectStore(STORES.config);
+      const setListTimestamp = await new Promise(resolve => {
+        const request = configStore.get('setListTimestamp');
+        request.onsuccess = () => {
+          if (request.result && request.result.timestamp) {
+            resolve(new Date(request.result.timestamp).toLocaleString());
+          } else {
+            resolve('Unknown');
+          }
+        };
+        request.onerror = () => resolve('Unknown');
+      });
+      stats.setListTimestamp = setListTimestamp;
       
       return stats;
     } catch (error) {

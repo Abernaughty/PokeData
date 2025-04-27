@@ -397,12 +397,9 @@
       startCleanupInterval();
       startConfigUpdateInterval();
       
-      // Add a small delay before setting loading state to false
-      // This is just for demonstration purposes to make the loading indicator visible
-      setTimeout(() => {
-        isLoadingSets = false;
-        console.log('Set list loading complete');
-      }, 2000); // 2 second delay
+      // Set loading state to false immediately
+      isLoadingSets = false;
+      console.log('Set list loading complete');
       
     } catch (error) {
       console.error('Error loading set list:', error);
@@ -411,12 +408,9 @@
       const { setList } = await import('./data/setList.js');
       availableSets = setList;
       
-      // Add a small delay before setting loading state to false
-      // This is just for demonstration purposes to make the loading indicator visible
-      setTimeout(() => {
-        isLoadingSets = false;
-        console.log('Set list loading complete (after error)');
-      }, 2000); // 2 second delay
+      // Set loading state to false immediately
+      isLoadingSets = false;
+      console.log('Set list loading complete (after error)');
     }
     
     // Add debugging log to verify sets are loaded
