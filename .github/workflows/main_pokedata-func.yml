@@ -7,7 +7,6 @@ on:
 
 env:
   AZURE_FUNCTIONAPP_NAME: pokedata-func
-  AZURE_FUNCTIONAPP_SLOT_NAME: staging
   AZURE_FUNCTIONAPP_PACKAGE_PATH: '.'
   NODE_VERSION: '22.x'
 
@@ -36,5 +35,4 @@ jobs:
       with:
         app-name: pokedata-func
         package: PokeDataFunc  # Point to the PokeDataFunc directory
-        publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_STAGING_PUBLISH_PROFILE }}
-        slot-name: staging
+        publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
