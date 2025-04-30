@@ -36,5 +36,5 @@ jobs:
       with:
         app-name: pokedata-func
         package: PokeDataFunc  # Point to the PokeDataFunc directory
-        publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
+        publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_STAGING_PUBLISH_PROFILE }}
         slot-name: pokedata-func-staging
