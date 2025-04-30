@@ -5,7 +5,7 @@ This document outlines the technologies used, development setup, technical const
 
 ## Technologies Used
 
-### Frontend
+### Current Frontend
 - **Svelte**: Core UI framework for building the application
 - **JavaScript**: Primary programming language
 - **HTML/CSS**: Markup and styling
@@ -13,14 +13,25 @@ This document outlines the technologies used, development setup, technical const
 - **Fetch API**: For making HTTP requests to external APIs
 - **Web Storage API**: For lightweight client-side storage
 
+### Planned Cloud Technologies
+- **Azure Cosmos DB**: Primary database for card metadata and pricing information
+- **Azure Blob Storage**: Storage for card images
+- **Azure CDN**: Fast delivery of card images
+- **Azure Cache for Redis**: Cache for frequently accessed data
+- **Azure Functions**: Serverless API endpoints and background processing
+- **Azure API Management**: API gateway and external API proxy
+
 ### Development Tools
 - **Rollup**: Module bundler for JavaScript
 - **PNPM**: Package manager for Node.js dependencies
 - **SirvCLI**: Static file server for development and testing
 - **Batch Scripts**: Automation for common development tasks
+- **Azure CLI**: Command-line tools for Azure resource management (planned)
+- **Azure Storage Explorer**: Visual tool for managing Azure storage resources (planned)
 
 ### External Services
-- **Pokémon Card Pricing APIs**: External data sources for card pricing information
+- **Pokémon TCG API**: Primary source for card metadata, set information, and high-quality images
+- **PokeData API**: Secondary source for enhanced pricing data and graded card values
 - **CORS Proxy**: For handling cross-origin requests to external APIs
 
 ## Development Setup
@@ -31,6 +42,7 @@ This document outlines the technologies used, development setup, technical const
    - Node.js (v14 or higher)
    - PNPM package manager
    - Internet connection (for initial setup and API calls)
+   - Azure CLI (planned for cloud resource management)
 
 2. **Repository Structure**:
    ```
@@ -72,6 +84,11 @@ This document outlines the technologies used, development setup, technical const
    │   ├── corsProxy.js       # CORS proxy utility
    │   ├── debug-env.js       # Debugging utilities
    │   └── main.js            # Application entry point
+   ├── azure/                 # Azure resource templates and scripts (planned)
+   │   ├── templates/         # ARM templates for Azure resources
+   │   ├── functions/         # Azure Functions code
+   │   ├── scripts/           # Deployment and management scripts
+   │   └── config/            # Configuration files for Azure resources
    ├── .env.example           # Example environment variables
    ├── .gitignore             # Git ignore file
    ├── .npmrc                 # NPM configuration
@@ -143,6 +160,25 @@ This document outlines the technologies used, development setup, technical const
    - Run `pnpm start` or `start.bat` to serve the production build
    - Access the application at http://localhost:5000
 
+### Planned Cloud Development Workflow
+1. **Azure Resource Management**:
+   - Use Azure CLI or Azure Portal to create and manage resources
+   - Deploy Azure Functions using Azure Functions Core Tools
+   - Manage Cosmos DB collections and documents using Azure Portal or SDK
+   - Configure Azure API Management using Azure Portal or ARM templates
+
+2. **Local Development with Cloud Resources**:
+   - Develop and test Azure Functions locally using Azure Functions Core Tools
+   - Connect to development instances of Azure resources
+   - Use local.settings.json for local configuration
+   - Use Azure Storage Emulator for local storage testing
+
+3. **Deployment**:
+   - Deploy frontend to Azure Static Web Apps
+   - Deploy Azure Functions using GitHub Actions or Azure DevOps
+   - Configure API Management using ARM templates
+   - Manage Cosmos DB indexes and partitioning using Azure Portal or SDK
+
 ## Technical Constraints
 
 ### Browser Compatibility
@@ -163,16 +199,29 @@ This document outlines the technologies used, development setup, technical const
 - **API Response Handling**: Graceful loading states for remote data
 - **Offline Functionality**: Core features work without internet connection
 
-### Storage Limitations
+### Current Storage Limitations
 - **IndexedDB**: Limited by browser storage allocation (typically 50-100MB)
 - **Cache Invalidation**: Required for data freshness
 - **Fallback Mechanisms**: Needed for browsers without IndexedDB support
+
+### Planned Cloud Storage Capabilities
+- **Cosmos DB**: Virtually unlimited storage with automatic scaling
+- **Blob Storage**: Cost-effective storage for card images
+- **Redis Cache**: High-performance in-memory cache for frequently accessed data
+- **CDN**: Edge caching for improved image delivery performance
 
 ### API Constraints
 - **Rate Limiting**: External APIs may have request limits
 - **CORS Restrictions**: Cross-origin requests require proxy or proper headers
 - **Data Format Variations**: APIs may return inconsistent data structures
 - **API Availability**: External services may experience downtime
+
+### Cloud Service Constraints
+- **Cosmos DB RU Limits**: Request Units need to be properly provisioned
+- **Azure Functions Execution Time**: Maximum execution time for functions
+- **Redis Cache Size**: Memory limits based on selected tier
+- **API Management Throughput**: Request limits based on selected tier
+- **Cost Management**: Operational costs need to be monitored and optimized
 
 ## Dependencies
 
@@ -191,6 +240,20 @@ The project currently uses fixed dependency versions to ensure stability. As of 
 | rollup-plugin-svelte | 7.0.0 | 7.2.2 | Minor update |
 | rollup-plugin-terser | 7.0.0 | 7.0.2 | Patch update |
 | sirv-cli | 1.0.0 | 3.0.1 | Major version update |
+
+### Planned Cloud Dependencies
+For the cloud-based architecture, additional dependencies will be required:
+
+| Package | Purpose |
+|---------|---------|
+| @azure/cosmos | Cosmos DB client for Node.js |
+| @azure/storage-blob | Azure Blob Storage client for Node.js |
+| @azure/data-tables | Azure Table Storage client for Node.js |
+| @azure/identity | Authentication for Azure services |
+| @azure/functions | Azure Functions runtime |
+| @azure/redis-cache | Azure Cache for Redis client |
+| chart.js | Library for price history visualization |
+| azure-functions-core-tools | Local development tools for Azure Functions |
 
 ### Dependency Update Plan
 1. **Package Manager Update**:
@@ -215,6 +278,12 @@ The project currently uses fixed dependency versions to ensure stability. As of 
    - Identify breaking changes and required code modifications
    - Create a separate branch for Svelte 5 migration
    - Test thoroughly before merging
+
+5. **Cloud Dependencies Addition**:
+   - Add Azure SDK packages as needed for cloud resource integration
+   - Implement proper authentication and security practices
+   - Create abstraction layers for cloud service interactions
+   - Develop local development workflows with cloud emulators where possible
 
 ### Production Dependencies
 ```json
@@ -276,6 +345,14 @@ The project currently uses fixed dependency versions to ensure stability. As of 
 
 ## Tool Usage Patterns
 
+### Code Quality and Review
+- **Comprehensive Code Review**: Using the standardized prompt in `memory-bank/codeReviewPrompt.md`
+- **Review Timing**: Pre-implementation, post-implementation, pre-release, and maintenance reviews
+- **Issue Prioritization**: Critical, High, Medium, and Low severity ratings
+- **Review Focus Areas**: 16 key areas including project structure, code quality, architecture, security, and more
+- **Reporting Format**: Structured format with actionable recommendations and code examples
+- **Cross-Session AI Integration**: Special attention to inconsistencies from AI-assisted development
+
 ### Version Control
 - **Git**: For source code management
 - **GitHub**: For repository hosting
@@ -313,7 +390,7 @@ The project currently uses fixed dependency versions to ensure stability. As of 
   - Bundle splitting for performance
   - Cache optimization
 
-### Deployment
+### Current Deployment
 - **Static Hosting**:
   - Azure Static Web Apps (planned)
   - GitHub Pages (alternative)
@@ -324,9 +401,30 @@ The project currently uses fixed dependency versions to ensure stability. As of 
   - Feature flags
   - API endpoints
 
+### Planned Cloud Deployment
+- **Frontend**:
+  - Azure Static Web Apps for hosting
+  - CDN for static assets and images
+  - Environment-specific configuration
+
+- **Backend**:
+  - Azure Functions for serverless API endpoints
+  - Azure API Management for API gateway
+  - GitHub Actions for CI/CD
+
+- **Data Storage**:
+  - Cosmos DB for card data and pricing
+  - Blob Storage for card images
+  - Redis Cache for frequently accessed data
+
+- **Monitoring**:
+  - Azure Monitor for application insights
+  - Log Analytics for log aggregation
+  - Alerts for critical issues
+
 ## API Integration
 
-### API Configuration
+### Current API Configuration
 The application uses a simplified API client with hardcoded subscription key defined in `src/data/apiConfig.js`:
 
 ```javascript
@@ -369,8 +467,36 @@ export const API_CONFIG = {
 
 This approach uses a hardcoded subscription key instead of environment variables, simplifying the development workflow while maintaining security through API Management restrictions (origin limitations, rate limits). Authentication is handled by the API Management service, which adds the actual API key on the server side.
 
+### Planned Hybrid API Approach
+The planned architecture will use a hybrid API approach leveraging both the Pokémon TCG API and PokeData API:
+
+1. **Pokémon TCG API**:
+   - Primary source for card metadata and set information
+   - Source for high-quality card images
+   - Well-documented and reliable API
+   - Comprehensive coverage of all Pokémon card sets
+
+2. **PokeData API**:
+   - Enhanced pricing data from multiple sources
+   - Graded card values (PSA, CGC)
+   - Market trends and historical pricing
+   - Additional metadata not available in the TCG API
+
+3. **Azure API Management**:
+   - Unified interface for both APIs
+   - Rate limiting and throttling
+   - Caching and response transformation
+   - Authentication and authorization
+   - Monitoring and analytics
+
+4. **Azure Functions**:
+   - Data normalization and transformation
+   - Error handling and fallback mechanisms
+   - Caching and background processing
+   - Custom business logic
+
 ### Enhanced CORS Proxy
-The application uses an enhanced CORS proxy to handle cross-origin requests and ensure proper header handling:
+The application currently uses an enhanced CORS proxy to handle cross-origin requests and ensure proper header handling:
 
 ```javascript
 // Enhanced CORS proxy with better header handling
@@ -450,12 +576,7 @@ export async function fetchWithProxy(url, options = {}) {
 }
 ```
 
-This enhanced implementation ensures that:
-1. Headers are properly formatted and sent with each request
-2. Detailed logging is provided for debugging header issues
-3. Special handling is added for authentication errors
-4. More helpful error messages are provided for common issues
-5. The Headers API is used to ensure proper header formatting
+In the planned architecture, CORS handling will be managed by Azure API Management, eliminating the need for a client-side CORS proxy.
 
 ### Mock Data
 The application includes mock data for development and fallback purposes:
@@ -491,10 +612,12 @@ async loadMockData(setName, cardName) {
 }
 ```
 
+In the planned architecture, mock data will be provided by Azure Functions for development and testing purposes.
+
 ## Storage Implementation
 
-### IndexedDB Structure
-The application uses IndexedDB through a service wrapper in `src/services/storage/db.js`:
+### Current IndexedDB Structure
+The application currently uses IndexedDB through a service wrapper in `src/services/storage/db.js`:
 
 ```javascript
 // Database configuration
@@ -537,8 +660,98 @@ export const dbService = {
 };
 ```
 
-### Caching Strategy
-The application implements a sophisticated hybrid caching strategy:
+### Planned Cloud Storage Structure
+
+#### Cosmos DB Document Structure
+The planned architecture will use Cosmos DB for card data and pricing information:
+
+```json
+{
+  "id": "sv8pt5-161",
+  "setCode": "PRE",
+  "setId": 557,
+  "setName": "Prismatic Evolutions",
+  "cardId": "sv8pt5-161",
+  "cardName": "Umbreon ex",
+  "cardNumber": "161",
+  "rarity": "Secret Rare",
+  "imageUrl": "https://images.pokemontcg.io/sv8pt5/161.png",
+  "imageUrlHiRes": "https://images.pokemontcg.io/sv8pt5/161_hires.png",
+  "tcgPlayerPrice": {
+    "market": 1414.77,
+    "low": 1200.00,
+    "mid": 1400.00,
+    "high": 1800.00
+  },
+  "enhancedPricing": {
+    "psaGrades": {
+      "9": { "value": 1191.66 },
+      "10": { "value": 2868.03 }
+    },
+    "cgcGrades": {
+      "8": { "value": 1200.00 }
+    },
+    "ebayRaw": { "value": 752.58 }
+  },
+  "lastUpdated": "2025-04-29T12:00:00Z"
+}
+```
+
+#### Blob Storage Structure
+Card images will be stored in Azure Blob Storage with the following structure:
+
+```
+container/
+├── sets/
+│   ├── sv8pt5/
+│   │   ├── 161.png
+│   │   ├── 161_hires.png
+│   │   └── ...
+│   ├── sv8/
+│   │   ├── 001.png
+│   │   ├── 001_hires.png
+│   │   └── ...
+│   └── ...
+└── variants/
+    ├── graded/
+    │   ├── psa/
+    │   │   ├── sv8pt5-161-psa10.png
+    │   │   └── ...
+    │   └── cgc/
+    │       ├── sv8pt5-161-cgc9.5.png
+    │       └── ...
+    └── special/
+        ├── first-edition/
+        │   ├── base-4-first-edition.png
+        │   └── ...
+        └── ...
+```
+
+#### Redis Cache Structure
+Frequently accessed data will be cached in Azure Cache for Redis:
+
+1. **Set List Cache**:
+   - Key: `sets:list`
+   - Value: JSON array of set objects
+   - TTL: 7 days
+
+2. **Card List Cache**:
+   - Key: `cards:set:{setCode}`
+   - Value: JSON array of card objects for the set
+   - TTL: 24 hours
+
+3. **Popular Card Cache**:
+   - Key: `cards:popular`
+   - Value: JSON array of popular card objects
+   - TTL: 1 hour
+
+4. **User Session Cache**:
+   - Key: `session:{sessionId}`
+   - Value: JSON object with user session data
+   - TTL: 30 minutes
+
+### Current Caching Strategy
+The application currently implements a sophisticated hybrid caching strategy:
 
 1. **Set List Caching**:
    - Long-lived cache (days to weeks)
@@ -570,6 +783,39 @@ The application implements a sophisticated hybrid caching strategy:
    - Cleanup of expired pricing data (every 12 hours)
    - Configuration updates for current sets list (every 7 days)
    - Network status monitoring for offline handling
+
+### Planned Cloud Caching Strategy
+The planned architecture will implement a multi-tiered caching strategy:
+
+1. **Redis Cache**:
+   - In-memory caching for frequently accessed data
+   - TTL-based cache invalidation
+   - Shared cache across all users
+   - Background refresh for popular items
+
+2. **API Management Cache**:
+   - Response caching for API calls
+   - Cache-Control header management
+   - Conditional requests (ETag, If-Modified-Since)
+   - Cache invalidation on data updates
+
+3. **CDN Cache**:
+   - Edge caching for static assets and images
+   - Geographic distribution for reduced latency
+   - Cache-Control header management
+   - Purge API for cache invalidation
+
+4. **Browser Cache**:
+   - Local caching for static assets
+   - Service worker for offline support
+   - IndexedDB for user-specific data
+   - Local Storage for user preferences
+
+5. **Background Processes**:
+   - Timer-triggered Azure Functions for data updates
+   - Event-driven cache invalidation
+   - Scheduled cache warming for popular items
+   - Monitoring and analytics for cache performance
 
 ## Component Implementation
 
@@ -610,530 +856,3 @@ The SearchableSelect component provides a reusable dropdown with search function
         if (group.type === 'group' && Array.isArray(group.items)) {
           group.items.forEach(item => {
             flattenedItems.push({
-              ...item,
-              _groupLabel: group.label // Store the group label for reference
-            });
-          });
-        }
-      });
-    } else {
-      flattenedItems = [...items];
-    }
-  }
-  
-  // Update filtered items when items or searchText changes
-  $: {
-    if (searchText && searchText.trim() !== '' && (!value || searchText !== getDisplayText(value))) {
-      const searchLower = searchText.toLowerCase();
-      
-      if (isGroupedItems) {
-        // Filter the flattened items first
-        const filteredFlat = flattenedItems.filter(item => {
-          if (!item || !item[labelField]) return false;
-          
-          const primaryMatch = item[labelField].toLowerCase().includes(searchLower);
-          const secondaryMatch = secondaryField && item[secondaryField] && 
-                               item[secondaryField].toLowerCase().includes(searchLower);
-          return primaryMatch || secondaryMatch;
-        });
-        
-        // Group the filtered items back into their expansions
-        const groupedFiltered = {};
-        filteredFlat.forEach(item => {
-          const groupLabel = item._groupLabel || 'Other';
-          if (!groupedFiltered[groupLabel]) {
-            groupedFiltered[groupLabel] = [];
-          }
-          groupedFiltered[groupLabel].push(item);
-        });
-        
-        // Convert back to the group format
-        filteredItems = Object.keys(groupedFiltered).map(label => ({
-          type: 'group',
-          label,
-          items: groupedFiltered[label]
-        }));
-      } else {
-        // Regular filtering for non-grouped items
-        filteredItems = items.filter(item => {
-          if (!item || !item[labelField]) return false;
-          
-          const primaryMatch = item[labelField].toLowerCase().includes(searchLower);
-          const secondaryMatch = secondaryField && item[secondaryField] && 
-                               item[secondaryField].toLowerCase().includes(searchLower);
-          return primaryMatch || secondaryMatch;
-        });
-      }
-    } else {
-      // No search text, show all items
-      filteredItems = [...items];
-    }
-  }
-  
-  // Get all selectable items in a flat array for keyboard navigation
-  $: allSelectableItems = isGroupedItems ? 
-    filteredItems.flatMap(group => group.items || []) : 
-    filteredItems;
-  
-  function handleItemSelect(item) {
-    if (!item) return;
-    
-    // Update the internal value and search text
-    value = item;
-    searchText = getDisplayText(item);
-    
-    // Close dropdown
-    showDropdown = false;
-    
-    // Dispatch the select event
-    dispatch('select', item);
-  }
-  
-  function getDisplayText(item) {
-    if (!item) return '';
-    if (secondaryField && item[secondaryField]) {
-      return `${item[labelField]} (${item[secondaryField]})`;
-    }
-    return item[labelField];
-  }
-</script>
-
-<!-- Component template -->
-<div class="searchable-select">
-  <div class="input-wrapper">
-    <input
-      type="text"
-      bind:this={inputElement}
-      bind:value={searchText}
-      on:input={handleInput}
-      on:focus={handleFocus}
-      on:keydown={handleKeydown}
-      placeholder={placeholder}
-      autocomplete="off"
-    />
-    <span class="dropdown-icon">{showDropdown ? '▲' : '▼'}</span>
-  </div>
-  
-  {#if showDropdown}
-    <div class="dropdown" bind:this={dropdownElement}>
-      {#if isGroupedItems}
-        {#if filteredItems.length === 0}
-          <div class="no-results">No results found</div>
-        {:else}
-          {#each filteredItems as group, groupIndex}
-            {#if group.type === 'group' && group.items && group.items.length > 0}
-              <div class="group-header">{group.label}</div>
-              {#each group.items as item, itemIndex}
-                <div
-                  class="item item-{allSelectableItems.indexOf(item)} indented {highlightedIndex === allSelectableItems.indexOf(item) ? 'highlighted' : ''}"
-                  on:click={() => handleItemSelect(item)}
-                  on:mouseover={() => highlightedIndex = allSelectableItems.indexOf(item)}
-                >
-                  <span class="label">
-                    {item[labelField]}
-                    {#if secondaryField && item[secondaryField]}
-                      <span class="secondary">({item[secondaryField]})</span>
-                    {/if}
-                  </span>
-                </div>
-              {/each}
-            {/if}
-          {/each}
-        {/if}
-      {:else}
-        {#if filteredItems.length === 0}
-          <div class="no-results">No results found</div>
-        {:else}
-          {#each filteredItems as item, index}
-            <div
-              class="item item-{index} {highlightedIndex === index ? 'highlighted' : ''}"
-              on:click={() => handleItemSelect(item)}
-              on:mouseover={() => highlightedIndex = index}
-            >
-              <span class="label">
-                {item[labelField]}
-                {#if secondaryField && item[secondaryField]}
-                  <span class="secondary">({item[secondaryField]})</span>
-                {/if}
-              </span>
-            </div>
-          {/each}
-        {/if}
-      {/if}
-    </div>
-  {/if}
-</div>
-
-<style>
-  .searchable-select {
-    position: relative;
-    width: 100%;
-  }
-  
-  .input-wrapper {
-    position: relative;
-  }
-  
-  input {
-    width: 100%;
-    padding: 0.5rem;
-    padding-right: 2rem;
-    font-size: 1rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-  }
-  
-  .dropdown-icon {
-    position: absolute;
-    right: 0.5rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #666;
-    pointer-events: none;
-  }
-  
-  .dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    width: 100%;
-    max-height: 400px;
-    overflow-y: auto;
-    background-color: white;
-    border: 1px solid #ddd;
-    border-radius: 0 0 4px 4px;
-    z-index: 10;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  }
-  
-  .group-header {
-    padding: 0.5rem;
-    font-weight: bold;
-    background-color: #f0f0f0;
-    color: #3c5aa6; /* Pokemon blue */
-    border-bottom: 1px solid #ddd;
-    position: sticky;
-    top: 0;
-    z-index: 1;
-  }
-  
-  .item {
-    padding: 0.5rem;
-    cursor: pointer;
-    color: #333;
-    border-bottom: 1px solid #f5f5f5;
-  }
-  
-  .indented {
-    padding-left: 1.5rem;
-    position: relative;
-  }
-  
-  .item:hover, .highlighted {
-    background-color: #f5f5f5;
-    color: #3c5aa6; /* Blue color on hover */
-  }
-</style>
-```
-
-### ExpansionMapper Service
-The ExpansionMapper service categorizes sets by their expansion series:
-
-```javascript
-// src/services/expansionMapper.js
-/**
- * Expansion Mapper Service
- * Maps set codes to their respective expansions for grouping in the UI
- */
-
-// Define expansion patterns based on set codes
-const EXPANSION_PATTERNS = [
-  { pattern: /^sv|^JTG|^PRE|^SSP/, expansion: "Scarlet & Violet" },
-  { pattern: /^sm|^SMP/, expansion: "Sun & Moon" },
-  { pattern: /^xy|^XYP/, expansion: "XY" },
-  { pattern: /^bw|^BWP/, expansion: "Black & White" },
-  { pattern: /^hs|^HSP/, expansion: "HeartGold & SoulSilver" },
-  { pattern: /^dp|^DPP/, expansion: "Diamond & Pearl" },
-  { pattern: /^ex/, expansion: "EX" },
-  { pattern: /^PL|^SV|^RR|^SF|^LA|^MD/, expansion: "Platinum" },
-  { pattern: /^CL|^TM|^UD|^UL/, expansion: "Call of Legends" },
-  { pattern: /^N\d/, expansion: "Neo" },
-  { pattern: /^G\d/, expansion: "Gym" },
-  { pattern: /^BS|^B2|^JU|^FO|^RO/, expansion: "Base Set" },
-];
-
-// Special cases for sets that don't follow the pattern
-const SPECIAL_CASES = {
-  "CRZ": "Sword & Shield",
-  "SIT": "Sword & Shield",
-  // ... more special cases
-};
-
-// Fallback expansion for sets that don't match any pattern
-const FALLBACK_EXPANSION = "Other";
-
-/**
- * Determine the expansion for a set based on its code or name
- * @param {Object} set - The set object
- * @returns {string} The expansion name
- */
-function getExpansionForSet(set) {
-  // If the set doesn't have a code, try to determine from the name
-  if (!set.code) {
-    // Check if the name contains an expansion name
-    for (const { expansion } of EXPANSION_PATTERNS) {
-      if (set.name && set.name.includes(expansion)) {
-        return expansion;
-      }
-    }
-    return FALLBACK_EXPANSION;
-  }
-
-  // Check special cases first
-  if (SPECIAL_CASES[set.code]) {
-    return SPECIAL_CASES[set.code];
-  }
-
-  // Check patterns
-  for (const { pattern, expansion } of EXPANSION_PATTERNS) {
-    if (pattern.test(set.code)) {
-      return expansion;
-    }
-  }
-
-  // If no match found, use the fallback
-  return FALLBACK_EXPANSION;
-}
-
-/**
- * Group sets by their expansion
- * @param {Array} sets - Array of set objects
- * @returns {Object} Object with expansion names as keys and arrays of sets as values
- */
-function groupSetsByExpansion(sets) {
-  const groupedSets = {};
-
-  // First pass: group sets by expansion
-  sets.forEach(set => {
-    const expansion = getExpansionForSet(set);
-    if (!groupedSets[expansion]) {
-      groupedSets[expansion] = [];
-    }
-    groupedSets[expansion].push(set);
-  });
-
-  // Second pass: sort sets within each expansion by release date (newest first)
-  Object.keys(groupedSets).forEach(expansion => {
-    groupedSets[expansion].sort((a, b) => {
-      // Compare release dates in descending order (newest first)
-      const dateA = new Date(a.release_date || 0);
-      const dateB = new Date(b.release_date || 0);
-      return dateB - dateA;
-    });
-  });
-
-  return groupedSets;
-}
-
-/**
- * Convert grouped sets to a format suitable for the dropdown
- * @param {Object} groupedSets - Object with expansion names as keys and arrays of sets as values
- * @returns {Array} Array of objects with type, label, and items properties
- */
-function prepareGroupedSetsForDropdown(groupedSets) {
-  // Sort expansions by priority (newest first)
-  const expansionPriority = [
-    "Scarlet & Violet",
-    "Sword & Shield",
-    "Sun & Moon",
-    "XY",
-    "Black & White",
-    "HeartGold & SoulSilver",
-    "Call of Legends",
-    "Platinum",
-    "Diamond & Pearl",
-    "EX",
-    "Neo",
-    "Gym",
-    "Base Set",
-    "Other"
-  ];
-
-  // Create an array of group objects
-  const result = [];
-
-  // Add groups in priority order
-  expansionPriority.forEach(expansion => {
-    if (groupedSets[expansion] && groupedSets[expansion].length > 0) {
-      result.push({
-        type: 'group',
-        label: expansion,
-        items: groupedSets[expansion]
-      });
-    }
-  });
-
-  return result;
-}
-
-export const expansionMapper = {
-  getExpansionForSet,
-  groupSetsByExpansion,
-  prepareGroupedSetsForDropdown
-};
-```
-
-### CardSearchSelect Component
-The CardSearchSelect component extends SearchableSelect for card-specific functionality:
-
-```html
-<!-- src/components/CardSearchSelect.svelte -->
-<script>
-  import SearchableSelect from './SearchableSelect.svelte';
-  
-  export let cards = [];
-  export let selectedCard = null;
-  
-  function handleCardSelect(event) {
-    selectedCard = event.detail;
-    dispatch('select', selectedCard);
-  }
-  
-  import { createEventDispatcher } from 'svelte';
-  const dispatch = createEventDispatcher();
-</script>
-
-<SearchableSelect
-  items={cards}
-  labelField="name"
-  secondaryField="num"
-  placeholder="Search for a card..."
-  bind:value={selectedCard}
-  on:select={handleCardSelect}
-/>
-```
-
-## Error Handling
-
-### API Error Handling
-The application implements comprehensive error handling for API requests:
-
-```javascript
-// Example from pokeDataService.js
-async getCardPricing(cardId) {
-  try {
-    if (!cardId) {
-      throw new Error('Card ID is required to fetch pricing data');
-    }
-
-    console.log(`Getting pricing data for card ID: ${cardId}`);
-    
-    // Try to get from cache first
-    const cachedPricing = await dbService.getCardPricing(cardId);
-    if (cachedPricing) {
-      console.log(`Using cached pricing for card ${cardId}`);
-      return cachedPricing;
-    }
-    
-    // If not in cache, fetch from API
-    const url = API_CONFIG.buildPricingUrl(cardId);
-    console.log(`API URL for pricing: ${url}`);
-    
-    const response = await fetchWithProxy(url, {
-      headers: API_CONFIG.getHeaders()
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unable to get error details');
-      console.error(`API error for pricing ${cardId}: ${response.status} - ${errorText}`);
-      throw new Error(`API error: ${response.status}. Details: ${errorText}`);
-    }
-    
-    const data = await response.json();
-    console.log(`Pricing API response for card ${cardId}:`, data);
-    
-    // Process and cache the data
-    // ...
-    
-    return pricingData;
-  } catch (error) {
-    console.error(`Error fetching pricing for card ${cardId}:`, error);
-    throw error;
-  }
-}
-```
-
-### UI Error Handling
-The application displays user-friendly error messages in the UI:
-
-```html
-<!-- Example from App.svelte -->
-{#if error}
-  <p class="error">{error}</p>
-{/if}
-
-<style>
-  .error {
-    color: #ee1515;
-    font-size: 0.9rem;
-    margin-top: 0.5rem;
-    padding: 0.5rem;
-    background-color: rgba(238, 21, 21, 0.1);
-    border-radius: 4px;
-    text-align: center;
-  }
-</style>
-```
-
-## Future Technical Considerations
-
-### Planned Technical Enhancements
-1. **Dependency Updates**:
-   - Update PNPM to version 10.9.0
-   - Evaluate and implement updates for Rollup and plugins
-   - Research and plan migration to Svelte 5.x
-   - Document breaking changes and migration steps
-
-2. **TypeScript Integration**:
-   - Add type safety to the codebase
-   - Improve developer experience
-   - Enhance code quality and maintainability
-
-3. **Testing Framework**:
-   - Implement Jest or Vitest for unit testing
-   - Add component testing with Testing Library
-   - Create end-to-end tests with Cypress
-
-4. **Build Optimization**:
-   - Implement code splitting for better performance
-   - Add service worker for offline capabilities
-   - Optimize asset loading and caching
-
-5. **State Management**:
-   - Consider adding Svelte stores for global state
-   - Implement more structured state management
-   - Improve state persistence
-
-### Technical Debt
-1. **Error Handling Improvements**:
-   - More specific error messages
-   - Better error recovery mechanisms
-   - Comprehensive error logging
-
-2. **Code Organization**:
-   - Refactor large components
-   - Improve service modularity
-   - Enhance documentation
-
-3. **Performance Optimization**:
-   - Optimize search algorithms
-   - Improve rendering performance
-   - Enhance caching strategies
-
-4. **Accessibility Enhancements**:
-   - Improve keyboard navigation
-   - Add ARIA attributes
-   - Enhance screen reader support
-
----
-*This document was updated on 4/27/2025 as part of the Memory Bank update for the PokeData project.*
