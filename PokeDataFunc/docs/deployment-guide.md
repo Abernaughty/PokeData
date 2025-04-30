@@ -73,12 +73,12 @@ Set the required application settings for the Function App:
 
 ```bash
 az functionapp config appsettings set --name pokedata-func --resource-group pokedata-rg --settings \
-  "COSMOSDB_CONNECTION_STRING=<cosmos-db-connection-string>" \
-  "BLOB_STORAGE_CONNECTION_STRING=<blob-storage-connection-string>" \
-  "REDIS_CONNECTION_STRING=<redis-connection-string>" \
-  "POKEMON_TCG_API_KEY=<pokemon-tcg-api-key>" \
+  "COSMOSDB_CONNECTION_STRING=AccountEndpoint=https://pokemon-card-pricing-db.documents.azure.com:443/;AccountKey=OJI921rQGY7ME44uI8E4KZHCAY0i2yUDT74smvmTi03vyFGdLpMWxOhfBa48y5lazPhCwXMir8xwACDbdTlLAg==;" \
+  "BLOB_STORAGE_CONNECTION_STRING=BlobEndpoint=https://pokemoncardpricingstore.blob.core.windows.net/;QueueEndpoint=https://pokemoncardpricingstore.queue.core.windows.net/;FileEndpoint=https://pokemoncardpricingstore.file.core.windows.net/;TableEndpoint=https://pokemoncardpricingstore.table.core.windows.net/;SharedAccessSignature=sv=2024-11-04&ss=bfqt&srt=sco&sp=rwdlacupiyx&se=2025-05-01T02:42:59Z&st=2025-04-30T18:42:59Z&spr=https&sig=6htOFJVtdoC6rADMspYb3S%2Br6OD55fcl90Rq72LZkZo%3D" \
+  "REDIS_CONNECTION_STRING=pokedata-cache.redis.cache.windows.net:6380,password=pH5bW7oWGwWa9VaqpEQxTD2wWOxIU8OgkAzCaK3ZNIM=,ssl=True,abortConnect=False" \
+  "POKEMON_TCG_API_KEY=6906290c-cc0c-4557-a6ac-500b34d108b0" \
   "POKEMON_TCG_API_BASE_URL=https://api.pokemontcg.io/v2" \
-  "POKEDATA_API_KEY=<pokedata-api-key>" \
+  "POKEDATA_API_KEY=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTczNzMxNzE0MiwianRpIjoiNjJkNWU1ZjktNTI5ZC00NGIyLTlkMTgtOTY3NWQ3ZTU3NWMwIiwidHlwZSI6ImFjY2VzcyIsInN1YiI6IjJlZGY1N2Y2LWU5OTYtNGNhMy1iZDk5LTFlZDY3MDRkMzJhOSIsIm5iZiI6MTczNzMxNzE0MiwidG9rZW5fdHlwZSI6ImFwaSJ9.y4JduoyU_gG1aiBy4w6frD3h3m-AEoxw_7f6vExYay4" \
   "POKEDATA_API_BASE_URL=https://api.pokedata.io/v1" \
   "ENABLE_REDIS_CACHE=true" \
   "CACHE_TTL_SETS=604800" \
