@@ -50,6 +50,16 @@ The current state of the PokeData project includes the following working feature
    - ✅ Console logging for debugging
 
 8. **Recent Improvements**:
+   - ✅ Successfully Tested Azure Functions in Staging Environment (2025-04-30):
+     - Deployed Azure Functions to the staging slot (pokedata-func-staging.azurewebsites.net)
+     - Fixed GitHub Actions workflow to target the staging slot correctly
+     - Resolved CosmosDB connection string issue causing 500 errors
+     - Created test scripts to verify all three API endpoints
+     - Confirmed successful operation of GetSetList, GetCardInfo, and GetCardsBySet endpoints
+     - Documented response structure differences for proper client integration
+     - Verified error handling for invalid card IDs and set codes
+     - Result: All Azure Functions now working correctly in the staging environment
+
    - ✅ Implemented Azure Function Service Classes and CI/CD (2025-04-30):
      - Implemented CosmosDbService with Azure Cosmos DB SDK integration
      - Created BlobStorageService with Azure Storage Blob SDK integration

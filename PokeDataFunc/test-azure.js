@@ -1,13 +1,15 @@
+require('dotenv').config();
 const axios = require('axios');
 
 // Configuration
 const baseUrl = 'https://pokedata-func-staging.azurewebsites.net/api';
+const functionKey = process.env.FUNCTION_KEY;
 
 // Test functions
 async function testGetSetList() {
     try {
         console.log('Testing GetSetList...');
-        const response = await axios.get(`${baseUrl}/sets`);
+        const response = await axios.get(`${baseUrl}/sets?code=${functionKey}`);
         console.log(`Status: ${response.status}`);
         console.log(`Total sets: ${response.data.data.length}`);
         console.log('Sample sets:', response.data.data.slice(0, 3).map(set => set.name));
@@ -18,6 +20,9 @@ async function testGetSetList() {
         if (error.response) {
             console.error('Response status:', error.response.status);
             console.error('Response data:', error.response.data);
+            if (error.response.headers && error.response.headers['x-ms-error-code']) {
+                console.error('Azure Error Code:', error.response.headers['x-ms-error-code']);
+            }
         }
         return false;
     }
@@ -27,7 +32,7 @@ async function testGetCardInfo() {
     try {
         console.log('Testing GetCardInfo...');
         const cardId = 'sv8pt5-161'; // Example card ID (Umbreon ex from Prismatic Evolutions)
-        const response = await axios.get(`${baseUrl}/cards/${cardId}`);
+        const response = await axios.get(`${baseUrl}/cards/${cardId}?code=${functionKey}`);
         console.log(`Status: ${response.status}`);
         console.log(`Card name: ${response.data.data.cardName}`);
         console.log(`Set name: ${response.data.data.setName}`);
@@ -44,6 +49,9 @@ async function testGetCardInfo() {
         if (error.response) {
             console.error('Response status:', error.response.status);
             console.error('Response data:', error.response.data);
+            if (error.response.headers && error.response.headers['x-ms-error-code']) {
+                console.error('Azure Error Code:', error.response.headers['x-ms-error-code']);
+            }
         }
         return false;
     }
@@ -53,10 +61,17 @@ async function testGetCardsBySet() {
     try {
         console.log('Testing GetCardsBySet...');
         const setCode = 'PRE'; // Example set code (Prismatic Evolutions)
-        const response = await axios.get(`${baseUrl}/sets/${setCode}/cards`);
+        const response = await axios.get(`${baseUrl}/sets/${setCode}/cards?code=${functionKey}`);
         console.log(`Status: ${response.status}`);
-        console.log(`Total cards: ${response.data.data.length}`);
-        console.log('Sample cards:', response.data.data.slice(0, 3).map(card => card.cardName));
+        
+        // The cards are in response.data.data.items
+        const cards = response.data.data.items;
+        console.log(`Total cards: ${response.data.data.totalCount}`);
+        console.log(`Cards in response: ${cards.length}`);
+        
+        if (cards.length > 0) {
+            console.log('Sample cards:', cards.slice(0, 3).map(card => card.cardName));
+        }
         if (response.data.cached) {
             console.log(`Cached: Yes (Age: ${response.data.cacheAge} seconds)`);
         } else {
@@ -69,6 +84,9 @@ async function testGetCardsBySet() {
         if (error.response) {
             console.error('Response status:', error.response.status);
             console.error('Response data:', error.response.data);
+            if (error.response.headers && error.response.headers['x-ms-error-code']) {
+                console.error('Azure Error Code:', error.response.headers['x-ms-error-code']);
+            }
         }
         return false;
     }
@@ -79,7 +97,7 @@ async function testInvalidCardId() {
     try {
         console.log('Testing Invalid Card ID...');
         const cardId = 'invalid-card-id';
-        const response = await axios.get(`${baseUrl}/cards/${cardId}`);
+        const response = await axios.get(`${baseUrl}/cards/${cardId}?code=${functionKey}`);
         console.log(`Status: ${response.status}`);
         console.log('Invalid Card ID test failed - should have returned an error!');
         return false;
@@ -93,6 +111,9 @@ async function testInvalidCardId() {
             if (error.response) {
                 console.error('Response status:', error.response.status);
                 console.error('Response data:', error.response.data);
+                if (error.response.headers && error.response.headers['x-ms-error-code']) {
+                    console.error('Azure Error Code:', error.response.headers['x-ms-error-code']);
+                }
             }
             return false;
         }
@@ -103,7 +124,7 @@ async function testInvalidSetCode() {
     try {
         console.log('Testing Invalid Set Code...');
         const setCode = 'INVALID';
-        const response = await axios.get(`${baseUrl}/sets/${setCode}/cards`);
+        const response = await axios.get(`${baseUrl}/sets/${setCode}/cards?code=${functionKey}`);
         console.log(`Status: ${response.status}`);
         console.log('Invalid Set Code test failed - should have returned an error!');
         return false;
@@ -117,6 +138,9 @@ async function testInvalidSetCode() {
             if (error.response) {
                 console.error('Response status:', error.response.status);
                 console.error('Response data:', error.response.data);
+                if (error.response.headers && error.response.headers['x-ms-error-code']) {
+                    console.error('Azure Error Code:', error.response.headers['x-ms-error-code']);
+                }
             }
             return false;
         }
