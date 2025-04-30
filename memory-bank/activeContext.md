@@ -55,7 +55,16 @@ While the primary focus is on the cloud architecture migration, we're also addre
 
 ## Recent Changes
 
-1. **Implemented Azure Functions v4 Programming Model** (2025-04-29):
+1. **Implemented Azure Function Service Classes** (2025-04-30):
+   - Implemented CosmosDbService with Azure Cosmos DB SDK integration
+   - Created BlobStorageService with Azure Storage Blob SDK integration
+   - Developed RedisCacheService with Redis client integration
+   - Updated PokemonTcgApiService with Axios for API calls
+   - Set up GitHub Actions workflow for automated deployment
+   - Created deployment guide for Azure resources
+   - Result: Fully functional service implementations ready for Azure deployment
+
+2. **Implemented Azure Functions v4 Programming Model** (2025-04-29):
    - Refactored Azure Functions to use the correct v4 programming model
    - Created a central entry point (src/index.ts) for function registration
    - Implemented shared service initialization for better performance

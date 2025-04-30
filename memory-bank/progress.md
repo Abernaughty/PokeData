@@ -178,12 +178,13 @@ The current state of the PokeData project includes the following working feature
 
 ### High Priority
 1. **Cloud Architecture Implementation**:
-   - 🔴 Create Azure resource group for PokeData project
-   - 🔴 Provision Cosmos DB instance with appropriate configuration
-   - 🔴 Set up Blob Storage containers for card images
-   - 🔴 Configure Azure Cache for Redis
-   - 🔴 Deploy initial Azure Functions
-   - 🔴 Set up API Management service
+   - ✅ Create Azure resource group for PokeData project
+   - ✅ Provision Cosmos DB instance with appropriate configuration
+   - ✅ Set up Blob Storage account for card images
+   - 🔄 Create Blob Storage container for card images
+   - 🔄 Configure Azure Cache for Redis
+   - 🔄 Deploy initial Azure Functions
+   - ✅ Set up API Management service
 
 2. **Data Migration**:
    - 🔴 Design migration strategy from IndexedDB to Cosmos DB

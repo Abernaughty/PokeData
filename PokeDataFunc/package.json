@@ -7,7 +7,8 @@
     "watch": "tsc -w",
     "prestart": "npm run build",
     "start": "func start",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node test-api.js",
+    "deploy": "func azure functionapp publish pokedata-func"
   },
   "keywords": [],
   "author": "",
