@@ -1,4 +1,4 @@
-git add # Active Context
+# Active Context
 
 ## Overview
 This document captures the current work focus, recent changes, next steps, active decisions and considerations, important patterns and preferences, and learnings and project insights for the PokeData project.
@@ -55,7 +55,44 @@ While the primary focus is on the cloud architecture migration, we're also addre
 
 ## Recent Changes
 
-1. **Successfully Tested Azure Functions in Staging Environment** (2025-04-30):
+1. **Updated Dependencies and Migrated to Svelte 4** (2025-05-02):
+   - Updated Svelte from 3.38.3 to 4.2.19 (latest stable in 4.x series)
+   - Updated key Rollup plugins to their latest compatible versions:
+     - Rollup from 2.30.0 to 2.79.2
+     - @rollup/plugin-commonjs from 17.0.0 to 21.1.0
+     - @rollup/plugin-node-resolve from 11.0.0 to 13.3.0
+   - Fixed accessibility issues in components to comply with Svelte 4's stricter requirements
+   - Enhanced keyboard navigation and screen reader support in SearchableSelect, CardSearchSelect, and CardVariantSelector components
+   - Added proper ARIA roles and attributes throughout the application
+   - Documented the phased approach in dependency-updates.md
+   - Result: Application now uses modern framework with improved accessibility while maintaining all functionality
+
+2. **Removed Programmatic Fallback Data Generation** (2025-05-02):
+   - Removed code in `App.svelte` that generated dummy card data when API calls failed
+   - Added clear error message when no cards are found for a set
+   - Improved user experience by showing accurate error messages instead of misleading dummy data
+   - Result: Users now only see real data from the API, with clear error messages when data is unavailable
+
+2. **Removed Mock Data Directory** (2025-05-02):
+   - Deleted `public/mock/pricing-response.json` and `public/mock/search-response.json` files
+   - Removed the now-empty `public/mock` directory
+   - Verified no references to these files remain in the codebase
+   - Confirmed that the application code had already been updated to not use these files
+   - Result: Reduced bundle size, improved security by eliminating exposure of test data, and cleaner project structure
+
+2. **Refactored Debug Files into Organized Structure** (2025-05-02):
+   - Created dedicated `src/debug` directory with clear organization
+   - Refactored debug-config.js into src/debug/config.js
+   - Split debug-panel.js into src/debug/panel/ui.js and src/debug/panel/styles.js
+   - Split debug-tools.js into inspect.js, monitor.js, and performance.js modules
+   - Moved debug-env.js to src/debug/utils/env.js
+   - Created index.js files for clean exports and public API
+   - Centralized debug initialization in src/debug/index.js
+   - Updated main.js to use the new debug system structure
+   - Removed original debug files after confirming functionality
+   - Result: Improved maintainability, better organization, reduced duplication, and easier future extensions
+
+2. **Successfully Tested Azure Functions in Staging Environment** (2025-04-30):
    - Deployed Azure Functions to the staging slot (pokedata-func-staging.azurewebsites.net)
    - Fixed GitHub Actions workflow to target the staging slot correctly
    - Resolved CosmosDB connection string issue causing 500 errors
@@ -65,7 +102,7 @@ While the primary focus is on the cloud architecture migration, we're also addre
    - Verified error handling for invalid card IDs and set codes
    - Result: All Azure Functions now working correctly in the staging environment
 
-2. **Implemented Azure Function Service Classes and CI/CD** (2025-04-30):
+3. **Implemented Azure Function Service Classes and CI/CD** (2025-04-30):
    - Implemented CosmosDbService with Azure Cosmos DB SDK integration
    - Created BlobStorageService with Azure Storage Blob SDK integration
    - Developed RedisCacheService with Redis client integration
@@ -77,7 +114,7 @@ While the primary focus is on the cloud architecture migration, we're also addre
    - Addressed gitignore issues with package-lock.json for CI/CD
    - Result: Fully functional service implementations ready for Azure deployment with automated CI/CD
 
-2. **Implemented Azure Functions v4 Programming Model** (2025-04-29):
+4. **Implemented Azure Functions v4 Programming Model** (2025-04-29):
    - Refactored Azure Functions to use the correct v4 programming model
    - Created a central entry point (src/index.ts) for function registration
    - Implemented shared service initialization for better performance
@@ -86,7 +123,7 @@ While the primary focus is on the cloud architecture migration, we're also addre
    - Tested all endpoints to verify functionality
    - Result: Working Azure Functions with proper v4 programming model implementation
 
-2. **Defined Cloud Architecture Plan** (2025-04-29):
+5. **Defined Cloud Architecture Plan** (2025-04-29):
    - Designed comprehensive cloud-based architecture using Azure services
    - Selected Cosmos DB for card metadata and pricing information
    - Planned Blob Storage with CDN for card images
@@ -95,21 +132,21 @@ While the primary focus is on the cloud architecture migration, we're also addre
    - Configured API Management as unified gateway
    - Result: Clear roadmap for transitioning from client-side to cloud architecture
 
-2. **Designed Hybrid API Approach** (2025-04-29):
+6. **Designed Hybrid API Approach** (2025-04-29):
    - Planned integration of Pokémon TCG API for metadata and images
    - Specified PokeData API for enhanced pricing data
    - Designed data normalization strategy
    - Created fallback mechanisms for API failures
    - Result: More comprehensive data strategy leveraging multiple sources
 
-3. **Enhanced Data Model Design** (2025-04-29):
+7. **Enhanced Data Model Design** (2025-04-29):
    - Created Cosmos DB document structure for card data
    - Added support for graded card values (PSA, CGC)
    - Included multiple pricing sources in a single document
    - Added timestamp tracking for data freshness
    - Result: More comprehensive data model supporting advanced features
 
-4. **Fixed Logger Formatting Issues** (2025-04-27):
+8. **Fixed Logger Formatting Issues** (2025-04-27):
    - Identified issue where CSS styling information was appearing directly in console log output
    - Refactored the formatLogArgs function in loggerService.js to properly handle styling parameters
    - Updated all logging methods to use the new formatting approach
@@ -117,7 +154,7 @@ While the primary focus is on the cloud architecture migration, we're also addre
    - Maintained caller information in logs for debugging context
    - Result: Console logs now display properly formatted without showing CSS styling code
 
-5. **Fixed Debug System Issues** (2025-04-27):
+9. **Fixed Debug System Issues** (2025-04-27):
    - Fixed context loggers in loggerService.js to include specialized methods like logDbOperation
    - Corrected debug configuration exports in debug-config.js to avoid duplicate exports
    - Updated window.pokeDataDebug object in main.js to use directly imported functions
@@ -126,38 +163,38 @@ While the primary focus is on the cloud architecture migration, we're also addre
    - Ensured log level buttons work correctly in the debug panel
    - Result: Debug panel now works correctly, and all debug functions operate as expected
 
-6. **Fixed CSS Loading and API Authentication Issues** (2025-04-27):
-   - Enhanced CORS proxy implementation to properly handle authentication headers
-   - Improved CSS loading sequence to ensure styles are fully loaded before app initialization
-   - Added localStorage backup for database version to prevent unnecessary resets
-   - Implemented a more robust caching strategy with proper timestamps and TTL
-   - Created rebuild scripts to ensure proper application rebuilding
-   - Added detailed logging for API requests and CSS loading
-   - Result: Application now loads properly with correct styling even when API calls fail
+10. **Fixed CSS Loading and API Authentication Issues** (2025-04-27):
+    - Enhanced CORS proxy implementation to properly handle authentication headers
+    - Improved CSS loading sequence to ensure styles are fully loaded before app initialization
+    - Added localStorage backup for database version to prevent unnecessary resets
+    - Implemented a more robust caching strategy with proper timestamps and TTL
+    - Created rebuild scripts to ensure proper application rebuilding
+    - Added detailed logging for API requests and CSS loading
+    - Result: Application now loads properly with correct styling even when API calls fail
 
-7. **Fixed Error When Clearing Set Selection** (2025-04-26):
-   - Modified the handleSetSelect function to properly handle null selections
-   - Added specific logic to clear card-related state when set selection is cleared
-   - Prevented error message from showing when clearing a selection
-   - Improved user experience by allowing users to clear selections without errors
-   - Result: Users can now clear the set selection without seeing an error message
+11. **Fixed Error When Clearing Set Selection** (2025-04-26):
+    - Modified the handleSetSelect function to properly handle null selections
+    - Added specific logic to clear card-related state when set selection is cleared
+    - Prevented error message from showing when clearing a selection
+    - Improved user experience by allowing users to clear selections without errors
+    - Result: Users can now clear the set selection without seeing an error message
 
-8. **Improved Clear Button Design in Search Components** (2025-04-26):
-   - Replaced custom SVG X with Material Design close icon for better quality and centering
-   - Increased spacing between clear button and dropdown arrow for improved visual separation
-   - Updated both SearchableSelect and CardSearchSelect components for consistency
-   - Improved CSS styling with proper padding and box-sizing
-   - Result: More polished user interface with better visual clarity and professional appearance
+12. **Improved Clear Button Design in Search Components** (2025-04-26):
+    - Replaced custom SVG X with Material Design close icon for better quality and centering
+    - Increased spacing between clear button and dropdown arrow for improved visual separation
+    - Updated both SearchableSelect and CardSearchSelect components for consistency
+    - Improved CSS styling with proper padding and box-sizing
+    - Result: More polished user interface with better visual clarity and professional appearance
 
-9. **Simplified API Authentication Approach** (2025-04-25):
-   - Implemented hardcoded subscription key in apiConfig.js instead of using environment variables
-   - Removed API key since authentication is handled by API Management service
-   - Updated getHeaders() method to only include subscription key header
-   - Modified rollup.config.cjs to remove environment variable replacements for API credentials
-   - Updated debug tools to reflect the simplified approach
-   - Result: Simplified development workflow while maintaining security through API Management restrictions
+13. **Simplified API Authentication Approach** (2025-04-25):
+    - Implemented hardcoded subscription key in apiConfig.js instead of using environment variables
+    - Removed API key since authentication is handled by API Management service
+    - Updated getHeaders() method to only include subscription key header
+    - Modified rollup.config.cjs to remove environment variable replacements for API credentials
+    - Updated debug tools to reflect the simplified approach
+    - Result: Simplified development workflow while maintaining security through API Management restrictions
 
-10. **Created run-app.bat file and updated README.md** (2025-04-25):
+14. **Created run-app.bat file and updated README.md** (2025-04-25):
     - Created run-app.bat script to simplify application startup
     - Updated README.md with PowerShell command equivalents for all bash commands
     - Corrected repository URL to https://github.com/Abernaughty/PokeData
@@ -165,7 +202,7 @@ While the primary focus is on the cloud architecture migration, we're also addre
     - Expanded features and project structure sections in README.md
     - Result: Improved documentation and easier application startup for users
 
-11. **Fixed database reset issue causing problems with multiple tabs** (2025-04-25):
+15. **Fixed database reset issue causing problems with multiple tabs** (2025-04-25):
     - Identified issue where database was being reset on every page load
     - Replaced reset script with version check script that only resets when necessary
     - Implemented proper database version comparison logic
@@ -173,7 +210,7 @@ While the primary focus is on the cloud architecture migration, we're also addre
     - Added logging for database version checks
     - Result: Database now persists properly across page reloads and multiple tabs
 
-12. **Fixed CSS loading and JavaScript syntax issues** (2025-04-25):
+16. **Fixed CSS loading and JavaScript syntax issues** (2025-04-25):
     - Improved CSS loading sequence to ensure proper styling
     - Enhanced error handling in SearchableSelect component
     - Fixed JavaScript syntax error in app initialization
@@ -183,7 +220,7 @@ While the primary focus is on the cloud architecture migration, we're also addre
     - Added fallback for script loading errors
     - Result: Application now loads reliably with proper styling and without JavaScript errors
 
-13. **Implemented set grouping by expansion in dropdown menu** (2025-04-25):
+17. **Implemented set grouping by expansion in dropdown menu** (2025-04-25):
     - Created expansionMapper service to categorize sets by expansion
     - Modified SearchableSelect component to support grouped items
     - Implemented indentation for sets under expansion headers
@@ -193,7 +230,7 @@ While the primary focus is on the cloud architecture migration, we're also addre
     - Enhanced keyboard navigation for grouped items
     - Result: Sets are now organized by expansion series (Scarlet & Violet, Sword & Shield, etc.) for easier navigation
 
-14. **Moved PokeData project to a new repository location** (2025-04-25):
+18. **Moved PokeData project to a new repository location** (2025-04-25):
     - Moved the repository from `C:\Users\maber\Documents\GitHub\git-maber\PokeData-repo` to `C:\Users\maber\Documents\GitHub\PokeData`
     - Renamed the repository from "PokeData-repo" to "PokeData"
     - Created GitHub repository at https://github.com/Abernaughty/PokeData
@@ -205,7 +242,7 @@ While the primary focus is on the cloud architecture migration, we're also addre
     - Note: The directory at `C:\Users\maber\Documents\GitHub\git-maber\PokeData` is a separate static web app workflow directory and should not be modified unless explicitly requested
     - Result: Successfully created a standalone PokeData repository with full functionality in a cleaner location
 
-15. **Converted Card Name field to use SearchableSelect component** (2025-03-16):
+19. **Converted Card Name field to use SearchableSelect component** (2025-03-16):
     - Replaced basic input field with SearchableSelect component
     - Implemented dynamic loading of cards when a set is selected
     - Added filtering and search functionality for card names
@@ -213,43 +250,13 @@ While the primary focus is on the cloud architecture migration, we're also addre
     - Enhanced keyboard navigation and accessibility
     - Result: Users can now more easily find and select cards within a set
 
-16. **Filtered Zero-Value Pricing Results** (2025-03-16):
+20. **Filtered Zero-Value Pricing Results** (2025-03-16):
     - Added logic to filter out pricing sources with $0 or null values
     - Implemented safety checks for null/undefined pricing data
     - Created a dedicated function for filtering valid prices
     - Applied filtering to both API and mock data
     - Added logging for filtered pricing data
     - Result: Pricing results now only show relevant, non-zero values, reducing confusion
-
-17. **Formatted Price Decimal Places** (2025-03-16):
-    - Implemented toFixed(2) formatting for consistent decimal display
-    - Created a formatPrice utility function
-    - Applied formatting to all price displays
-    - Ensured proper handling of null/undefined values
-    - Added safety checks to prevent NaN errors
-    - Result: All prices now display with 2 decimal places for consistency
-
-18. **Enhanced error handling for API failures** (2025-03-10):
-    - Improved error catching in API requests
-    - Added more detailed error logging
-    - Implemented fallback to mock data when API fails
-    - Added user-friendly error messages
-    - Result: Application now gracefully handles API failures with clear user feedback
-
-19. **Optimized set list loading** (2025-03-05):
-    - Improved caching of set list data
-    - Added sorting by release date
-    - Ensured all sets have unique IDs
-    - Fixed issues with missing set codes
-    - Added fallback to imported data when API fails
-    - Result: Set list loads faster and more reliably, with better organization
-
-20. **Improved card variant handling** (2025-02-28):
-    - Enhanced CardVariantSelector component
-    - Added support for multiple variant types
-    - Implemented variant confirmation workflow
-    - Connected variant selection to pricing data
-    - Result: Users can now select specific card variants for more accurate pricing
 
 ## Next Steps
 
@@ -357,6 +364,12 @@ While the primary focus is on the cloud architecture migration, we're also addre
    - Decision: Implement Redis caching for frequently accessed data
    - Implementation: Cache set lists, card lists, and popular card data with appropriate TTL
 
+6. **Debug System Organization**: Refactoring debug files into a dedicated directory with modular organization.
+   - Pros: Better organization, improved maintainability, clearer responsibilities
+   - Cons: More complex directory structure, requires more initial setup
+   - Decision: Implement modular debug system with clear separation of concerns
+   - Implementation: Create dedicated debug directory with subdirectories for different functionality
+
 ### Design Considerations
 1. **UI/UX Approach**:
    - Focus on simplicity and efficiency
@@ -435,8 +448,8 @@ While the primary focus is on the cloud architecture migration, we're also addre
    - Components in src/components/
    - Services in src/services/
    - Data utilities in src/data/
+   - Debug utilities in src/debug/
    - Main application in App.svelte
-   - New expansionMapper service in src/services/
 
 2. **Naming Conventions**:
    - PascalCase for component files (SearchableSelect.svelte)
@@ -456,13 +469,18 @@ While the primary focus is on the cloud architecture migration, we're also addre
    │   ├── apiConfig.js
    │   ├── prismaticEvolutionsCards.js
    │   └── setList.js
+   ├── debug/            # Debug utilities
+   │   ├── config.js     # Debug configuration
+   │   ├── index.js      # Main debug entry point
+   │   ├── panel/        # Debug panel UI
+   │   ├── tools/        # Debug tools
+   │   └── utils/        # Debug utilities
    ├── services/         # Business logic and API services
    │   ├── pokeDataService.js
    │   └── storage/
    │       └── db.js
    ├── App.svelte        # Main application component
    ├── corsProxy.js      # CORS proxy utility
-   ├── debug-env.js      # Debugging utilities
    └── main.js           # Application entry point
    ```
 
@@ -490,6 +508,12 @@ While the primary focus is on the cloud architecture migration, we're also addre
    - TTL (Time To Live) for cache invalidation
    - Prioritized caching for frequently accessed data
    - Background refresh for critical data
+
+5. **Module Organization**:
+   - Clear separation of concerns
+   - Single responsibility principle
+   - Explicit dependencies
+   - Consistent exports
 
 ### Styling Approach
 1. **CSS Organization**:
@@ -546,14 +570,21 @@ We've gained several insights during the implementation and planning:
 
 19. **Development Server Workflow**: The development server has specific behavior patterns that affect the workflow:
     - The server is configured to run on port 3000, which is whitelisted in the APIM configuration
-    - If port 3000 is already in use (by a previous instance of the dev server), it will choose a different port
-    - Using a different port causes issues because it's not whitelisted in the APIM configuration
-    - When developing, it's important to check if the server is already running on port 3000 before starting a new one
-    - If it's already running, use the existing server instead of starting a new one
-    - If a restart is needed, ensure the previous server is fully stopped before starting a new one
-    - Livereload functionality works correctly when using the proper development workflow (`pnpm dev`)
+    - The consolidated batch files (dev-server.bat and prod-server.bat) automatically detect and safely terminate any existing processes on port 3000
+    - This ensures the server always runs on port 3000, which is required for API Management service integration
+    - The robust process termination approach avoids conflicts and ensures clean server starts
+    - When developing, use dev-server.bat which handles port conflicts automatically
+    - Livereload functionality works correctly when using the proper development workflow
 
 20. **Cost Management Importance**: Cloud services require careful cost management strategies, including serverless compute, tiered storage, and optimized caching to control operational expenses.
 
+21. **Debug System Organization**: Organizing debug files into a modular structure with clear separation of concerns significantly improves maintainability and makes it easier to extend the debug system in the future.
+
+22. **Development Session Cleanup**: When updating memory banks or completing development tasks:
+    - Always remove temporary testing files (such as test scripts, temporary batch files)
+    - Stop any running development servers before ending the session
+    - Clean up any processes that might be lingering in the background
+    - This prevents clutter, resource usage issues, and confusion in future sessions
+
 ---
-*This document was updated on 4/29/2025 as part of the Memory Bank update for the PokeData project.*
+*This document was updated on 5/2/2025 as part of the Memory Bank update for the PokeData project.*

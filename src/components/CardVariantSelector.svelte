@@ -34,21 +34,36 @@
 </script>
 
 {#if isVisible && variants.length > 0}
-  <div class="overlay" on:click={close}>
-    <div class="modal" on:click|stopPropagation>
+  <div 
+    class="overlay" 
+    on:click={close}
+    on:keydown={e => e.key === 'Escape' && close()}
+    role="presentation"
+  >
+    <div 
+      class="modal" 
+      role="dialog"
+      aria-labelledby="variant-selector-title"
+      aria-modal="true"
+    >
       <div class="modal-header">
-        <h3>Multiple Variants Found</h3>
+        <h3 id="variant-selector-title">Multiple Variants Found</h3>
         <button class="close-button" on:click={close}>&times;</button>
       </div>
       
       <div class="modal-body">
         <p>Multiple versions of "{variants[0]?.name}" were found in this set. Please select the specific variant:</p>
         
-        <div class="variants-list">
+        <div class="variants-list" role="listbox">
           {#each variants as variant}
             <div 
               class="variant-item {isSelected(variant) ? 'selected' : ''}"
               on:click={() => selectVariant(variant)}
+              on:keydown={e => e.key === 'Enter' && selectVariant(variant)}
+              on:focus={() => {}}
+              role="option"
+              tabindex="0"
+              aria-selected={isSelected(variant)}
             >
               <div class="variant-details">
                 <div class="variant-name">{variant.name}</div>

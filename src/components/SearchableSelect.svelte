@@ -314,7 +314,10 @@
       <span 
         class="clear-icon" 
         on:click|stopPropagation={() => clearSelection()}
+        on:keydown={e => e.key === 'Enter' && clearSelection()}
         title="Clear selection"
+        role="button"
+        tabindex="0"
       >
         <div class="clear-icon-circle">
           <svg viewBox="0 0 24 24" width="14" height="14">
@@ -340,7 +343,12 @@
                 <div
                   class="item item-{allSelectableItems.indexOf(item)} indented {highlightedIndex === allSelectableItems.indexOf(item) ? 'highlighted' : ''}"
                   on:click={() => handleItemSelect(item)}
+                  on:keydown={e => e.key === 'Enter' && handleItemSelect(item)}
                   on:mouseover={() => highlightedIndex = allSelectableItems.indexOf(item)}
+                  on:focus={() => highlightedIndex = allSelectableItems.indexOf(item)}
+                  role="option"
+                  tabindex="0"
+                  aria-selected={highlightedIndex === allSelectableItems.indexOf(item)}
                 >
                   <span class="label">
                     {item[labelField]}
@@ -361,7 +369,12 @@
             <div
               class="item item-{index} {highlightedIndex === index ? 'highlighted' : ''}"
               on:click={() => handleItemSelect(item)}
+              on:keydown={e => e.key === 'Enter' && handleItemSelect(item)}
               on:mouseover={() => highlightedIndex = index}
+              on:focus={() => highlightedIndex = index}
+              role="option"
+              tabindex="0"
+              aria-selected={highlightedIndex === index}
             >
               <span class="label">
                 {item[labelField]}

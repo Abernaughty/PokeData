@@ -6,13 +6,17 @@ A web application for looking up Pokémon card pricing data based on set name an
 
 - Search for cards by set name and card name
 - View detailed pricing information from various sources
-- Support for multiple card variants
-- Offline caching for improved performance
-- Responsive design
 - Set grouping by expansion series (Scarlet & Violet, Sword & Shield, etc.)
 - Filtering of zero-value pricing results
 - Consistent price decimal formatting
 - Enhanced error handling with fallbacks
+
+## Planned Features
+
+- Responsive design for better mobile experience
+- Card images in price results
+- Price history graphs
+- Collection management
 
 ## Quick Start
 
@@ -85,14 +89,23 @@ If you prefer to set up manually, this project uses pnpm for package management.
    pnpm start
    ```
 
-## Setup Scripts
+## Batch Files
 
-The following batch files are available to help with setup and running the application:
+The following batch files are available to run the application:
 
-- `setup.bat` - Checks and installs Node.js, pnpm, and project dependencies
-- `run-app.bat` - Runs the setup script and then starts the application
-- `start.bat` - Starts the application (will run setup if dependencies are missing)
-- `dev.bat` - Starts the development server (will run setup if dependencies are missing)
+- **dev-server.bat**: Starts the development server with hot reloading (http://localhost:3000)
+  - Automatically detects and safely terminates any existing processes on port 3000
+  - Uses a robust process termination approach to avoid conflicts
+- **prod-server.bat**: Starts the production server (http://localhost:3000)
+  - Automatically detects and safely terminates any existing processes on port 3000
+  - Uses a robust process termination approach to avoid conflicts
+- **build-app.bat**: Builds the application for production
+  - Use `build-app.bat` for a full build
+  - Use `build-app.bat css` to rebuild only CSS
+- **tools.bat**: Provides utility tools
+  - Use `tools.bat setup` to install dependencies
+  - Use `tools.bat diagnose` to diagnose environment issues
+  - Use `tools.bat fix-path` to fix Node.js path issues
 
 ## Development
 
@@ -100,27 +113,15 @@ Start the development server:
 
 **Command Prompt:**
 ```bash
-pnpm dev
+dev-server.bat
 ```
 
 **PowerShell:**
 ```powershell
-pnpm dev
+.\dev-server.bat
 ```
 
-Or use the included batch file:
-
-**Command Prompt:**
-```bash
-dev.bat
-```
-
-**PowerShell:**
-```powershell
-.\dev.bat
-```
-
-The app will be available at http://localhost:3000 with hot reloading enabled.
+The app will be available at http://localhost:3000 with hot reloading enabled. The development server is configured to always use port 3000, which is required for API Management service integration.
 
 ## Production Build
 
@@ -128,43 +129,43 @@ Build for production:
 
 **Command Prompt:**
 ```bash
-pnpm build
+build-app.bat
 ```
 
 **PowerShell:**
 ```powershell
-pnpm build
+.\build-app.bat
 ```
 
 Start the production server:
 
 **Command Prompt:**
 ```bash
-pnpm start
+prod-server.bat
 ```
 
 **PowerShell:**
 ```powershell
-pnpm start
+.\prod-server.bat
 ```
 
 ## Available Scripts
 
 ### Command Prompt
-- `pnpm dev` - Start development server
+- `pnpm dev` - Start development server (port 3000)
 - `pnpm build` - Build for production
-- `pnpm start` - Start production server
+- `pnpm start` - Start production server (port 3000)
 - `pnpm clean` - Clean installation files
 - `pnpm prod-install` - Install production dependencies only
 
 ### PowerShell
-- `pnpm dev` - Start development server
+- `pnpm dev` - Start development server (port 3000)
 - `pnpm build` - Build for production
-- `pnpm start` - Start production server
+- `pnpm start` - Start production server (port 3000)
 - `pnpm clean` - Clean installation files
 - `pnpm prod-install` - Install production dependencies only
 
-Note: When running batch files in PowerShell, prefix them with `.\` (e.g., `.\run-app.bat`, `.\dev.bat`)
+Note: When running batch files in PowerShell, prefix them with `.\` (e.g., `.\dev-server.bat`, `.\prod-server.bat`)
 
 ## Project Structure
 

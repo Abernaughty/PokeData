@@ -15,6 +15,8 @@ const production = !process.env.ROLLUP_WATCH;
 
 // Get environment variables with fallbacks
 const API_BASE_URL = process.env.API_BASE_URL || 'https://maber-apim-test.azure-api.net/pokedata-api/v0';
+// Force port 3000 for development server and livereload
+const PORT = process.env.PORT || 3000;
 
 function serve() {
     let server;
@@ -27,9 +29,10 @@ function serve() {
         writeBundle() {
             if (server) return;
             // Explicitly set port to 3000 and add --port flag
-            server = require('child_process').spawn('pnpm', ['run', 'sirv', '--', '--dev', '--single', '--port', '3000'], {
+            server = require('child_process').spawn('pnpm', ['run', 'sirv', '--', '--dev', '--single', '--port', PORT.toString()], {
                 stdio: ['ignore', 'inherit', 'inherit'],
-                shell: true
+                shell: true,
+                env: { ...process.env, PORT: PORT.toString() }
             });
 
             process.on('SIGTERM', toExit);
@@ -75,7 +78,11 @@ replace({
         }),
         commonjs(),
         !production && serve(),
-        !production && livereload('public'),
+        !production && livereload({
+            watch: 'public',
+            port: PORT,
+            verbose: true
+        }),
         production && terser()
     ],
     watch: {
