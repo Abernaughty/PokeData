@@ -61,7 +61,7 @@ This document outlines the technologies used, development setup, technical const
    ├── public/                # Static assets
    │   ├── build/             # Compiled code (generated)
    │   ├── images/            # Images
-   │   ├── mock/              # Mock data for development
+   │   ├── data/              # Static data files
    │   ├── debug-api.js       # API debugging utilities
    │   ├── global.css         # Global styles
    │   ├── index.html         # HTML entry point
@@ -92,19 +92,18 @@ This document outlines the technologies used, development setup, technical const
    ├── .env.example           # Example environment variables
    ├── .gitignore             # Git ignore file
    ├── .npmrc                 # NPM configuration
-   ├── build.bat              # Build script
+   ├── build-app.bat          # Consolidated build tool
    ├── build.js               # Build configuration
-   ├── dev.bat                # Development server script
-   ├── diagnose-env.bat       # Environment diagnostics script
-   ├── fix-node-path.bat      # Node.js path fix utility
+   ├── dev-server.bat         # Development server script
    ├── node-test.js           # Node.js test script
    ├── package.json           # Package configuration
    ├── pnpm-lock.yaml         # PNPM lock file
+   ├── prod-server.bat        # Production server script
    ├── README.md              # Project documentation
    ├── rollup.config.cjs      # Rollup configuration (CommonJS)
    ├── rollup.config.js       # Rollup configuration (ES modules)
-   ├── setup.bat              # Setup script
-   ├── start.bat              # Start script
+   ├── run-app.bat            # Quick start launcher
+   ├── tools.bat              # Consolidated utility tools
    └── TASKS.md               # Development tasks and status
    ```
 
@@ -139,26 +138,34 @@ This document outlines the technologies used, development setup, technical const
    Note: The PokeData repository is located at `C:\Users\maber\Documents\GitHub\PokeData` and is also available on GitHub at https://github.com/Abernaughty/PokeData. There is a separate static web app workflow directory at `C:\Users\maber\Documents\GitHub\git-maber\PokeData` that should not be modified unless explicitly requested.
 
 4. **Automation Scripts**:
-   - `run-app.bat`: Runs the setup script and then starts the application
-   - `setup.bat`: Checks and installs Node.js, pnpm, and project dependencies
-   - `dev.bat`: Starts the development server
-   - `start.bat`: Starts the production server
-   - `build.bat`: Builds the application for production
-   - `diagnose-env.bat`: Diagnoses environment issues
+   - **dev-server.bat**: Starts the development server with hot reloading (http://localhost:3000)
+     - Automatically detects and safely terminates any existing processes on port 3000
+     - Uses a robust process termination approach to avoid conflicts
+   - **prod-server.bat**: Starts the production server (http://localhost:3000)
+     - Automatically detects and safely terminates any existing processes on port 3000
+     - Uses a robust process termination approach to avoid conflicts
+   - **build-app.bat**: Builds the application for production
+     - Use `build-app.bat` for a full build
+     - Use `build-app.bat css` to rebuild only CSS
+   - **tools.bat**: Provides utility tools
+     - Use `tools.bat setup` to install dependencies
+     - Use `tools.bat diagnose` to diagnose environment issues
+     - Use `tools.bat fix-path` to fix Node.js path issues
+   - **run-app.bat**: Quick start launcher that runs setup and starts the production server
 
 ### Development Workflow
 1. **Local Development**:
-   - Run `pnpm dev` or `dev.bat` to start the development server
+   - Run `pnpm dev` or `dev-server.bat` to start the development server
    - Access the application at http://localhost:3000
    - Changes to source files trigger hot reloading
 
 2. **Building for Production**:
-   - Run `pnpm build` or `build.bat` to create a production build
+   - Run `pnpm build` or `build-app.bat` to create a production build
    - Output is generated in the `public/build` directory
 
 3. **Running in Production Mode**:
-   - Run `pnpm start` or `start.bat` to serve the production build
-   - Access the application at http://localhost:5000
+   - Run `pnpm start` or `prod-server.bat` to serve the production build
+   - Access the application at http://localhost:3000
 
 ### Planned Cloud Development Workflow
 1. **Azure Resource Management**:
@@ -226,20 +233,23 @@ This document outlines the technologies used, development setup, technical const
 ## Dependencies
 
 ### Current Dependency Status
-The project currently uses fixed dependency versions to ensure stability. As of April 25, 2025, several dependencies are outdated and require evaluation for updates:
+The project uses fixed dependency versions to ensure stability. As of May 2, 2025, the dependency status is as follows:
 
 | Package | Current Version | Latest Version | Status |
 |---------|----------------|----------------|--------|
-| PNPM | 8.15.4 | 10.9.0 | Update available |
-| Svelte | 3.38.3 | 5.28.2 | Major version update |
-| Rollup | 2.30.0 | 4.40.0 | Major version update |
-| @rollup/plugin-commonjs | 17.0.0 | 28.0.3 | Major version update |
-| @rollup/plugin-node-resolve | 11.0.0 | 16.0.1 | Major version update |
-| rollup-plugin-css-only | 3.1.0 | 4.5.2 | Major version update |
-| rollup-plugin-livereload | 2.0.0 | 2.0.5 | Minor update |
-| rollup-plugin-svelte | 7.0.0 | 7.2.2 | Minor update |
-| rollup-plugin-terser | 7.0.0 | 7.0.2 | Patch update |
-| sirv-cli | 1.0.0 | 3.0.1 | Major version update |
+| PNPM | 10.9.0 | 10.9.0 | ✅ Up to date |
+| Svelte | 4.2.19 | 5.28.2 | Major version update available |
+| Rollup | 2.79.2 | 4.40.0 | Major version update available |
+| @rollup/plugin-commonjs | 21.1.0 | 28.0.3 | Major version update available |
+| @rollup/plugin-node-resolve | 13.3.0 | 16.0.1 | Major version update available |
+| @rollup/plugin-replace | 6.0.2 | 6.0.2 | ✅ Up to date |
+| rollup-plugin-css-only | 3.1.0 | 4.5.2 | Major version update available |
+| rollup-plugin-livereload | 2.0.5 | 2.0.5 | ✅ Up to date |
+| rollup-plugin-svelte | 7.2.2 | 7.2.2 | ✅ Up to date |
+| rollup-plugin-terser | 7.0.2 | 7.0.2 | ✅ Up to date |
+| sirv-cli | 1.0.0 | 3.0.1 | Major version update available |
+| dotenv | 16.5.0 | 16.5.0 | ✅ Up to date |
+| rimraf | 3.0.2 | 6.0.1 | Major version update available |
 
 ### Planned Cloud Dependencies
 For the cloud-based architecture, additional dependencies will be required:
@@ -578,41 +588,20 @@ export async function fetchWithProxy(url, options = {}) {
 
 In the planned architecture, CORS handling will be managed by Azure API Management, eliminating the need for a client-side CORS proxy.
 
-### Mock Data
-The application includes mock data for development and fallback purposes:
+### Error Handling
+The application provides clear error messages when API calls fail, rather than generating misleading fallback data:
 
 ```javascript
-// Example from src/services/pokeDataService.js
-async loadMockData(setName, cardName) {
-  try {
-    const response = await fetch('./mock/pricing-response.json');
-    const mockData = await response.json();
-    
-    // Customize the mock data
-    mockData.name = cardName || 'Charizard';
-    mockData.set_name = setName || 'Base Set';
-    
-    return mockData;
-  } catch (error) {
-    console.error('Error loading mock data:', error);
-    
-    // Return minimal mock data if JSON file fails to load
-    return {
-      id: 'mock-id',
-      name: cardName || 'Charizard',
-      set_name: setName || 'Base Set',
-      num: '4/102',
-      rarity: 'Rare Holo',
-      pricing: {
-        'market': { value: 299.99, currency: 'USD' },
-        'tcgplayer': { value: 305.42, currency: 'USD' }
-      }
-    };
-  }
+// Example from App.svelte - Error handling when no cards are found
+if (!cards || cards.length === 0) {
+  console.log('No cards returned for this set');
+  error = `No cards found for set "${set.name}". Please try another set or check your connection.`;
+  isLoadingCards = false;
+  return;
 }
 ```
 
-In the planned architecture, mock data will be provided by Azure Functions for development and testing purposes.
+This approach ensures users only see real data from the API, with clear error messages when data is unavailable. In the planned architecture, comprehensive error handling will be implemented in Azure Functions with detailed logging and monitoring.
 
 ## Storage Implementation
 

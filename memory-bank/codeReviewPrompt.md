@@ -173,6 +173,17 @@ I need a thorough review of my Svelte-based PokeData project (Pokémon Card Pric
 - Evaluate the clarity of project scripts and their documentation
 - Assess the onboarding experience for new developers
 
+## 17. Documentation-Code Alignment
+- Verify that all features listed in the README and project documentation are actually implemented in the code
+- Confirm that APIs behave as documented, including parameter handling, return values, and error cases
+- Ensure all documented configuration options are supported by the code
+- Check that all listed dependencies are actually used and necessary
+- Verify that all documented scripts (npm/pnpm scripts, batch files) work as described
+- Confirm the actual project structure matches what's documented
+- Ensure documented workflows (build, test, deployment) match the actual implementation
+- Identify any features that are implemented but not documented
+- Check if the code behavior matches what users would expect based on the documentation
+
 ---
 
 Present the review in a structured format with the most critical issues highlighted first. Focus particularly on identifying any leftover development/debugging files, duplicate approaches to functionality, and inconsistencies that may have been introduced while working with AI across multiple sessions.

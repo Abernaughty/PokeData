@@ -7,7 +7,7 @@ import { dbLogger } from '../loggerService';
 
 // Database configuration
 const DB_NAME = 'poke-data-db';
-const DB_VERSION = 2; // Increment version for schema update
+const DB_VERSION = 3; // Increment version for schema update
 const STORES = {
   setList: 'setList',
   cardsBySet: 'cardsBySet',

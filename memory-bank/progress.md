@@ -50,6 +50,28 @@ The current state of the PokeData project includes the following working feature
    - ✅ Console logging for debugging
 
 8. **Recent Improvements**:
+   - ✅ Implemented Store-Based State Management Architecture (2025-05-02):
+     - Created dedicated store modules for different types of state (sets, cards, pricing, UI)
+     - Extracted business logic from App.svelte into appropriate store modules
+     - Implemented reactive state using Svelte stores
+     - Improved separation of concerns for better maintainability
+     - Reduced code size in App.svelte by 60%
+     - Created clear data flow between UI components and state
+     - Enhanced scalability for future feature additions
+     - Result: Significantly improved code organization and maintainability
+
+   - ✅ Refactored Debug Files into Organized Structure (2025-05-02):
+     - Created dedicated `src/debug` directory with clear organization
+     - Refactored debug-config.js into src/debug/config.js
+     - Split debug-panel.js into src/debug/panel/ui.js and src/debug/panel/styles.js
+     - Split debug-tools.js into inspect.js, monitor.js, and performance.js modules
+     - Moved debug-env.js to src/debug/utils/env.js
+     - Created index.js files for clean exports and public API
+     - Centralized debug initialization in src/debug/index.js
+     - Updated main.js to use the new debug system structure
+     - Removed original debug files after confirming functionality
+     - Result: Improved maintainability, better organization, reduced duplication, and easier future extensions
+
    - ✅ Successfully Tested Azure Functions in Staging Environment (2025-04-30):
      - Deployed Azure Functions to the staging slot (pokedata-func-staging.azurewebsites.net)
      - Fixed GitHub Actions workflow to target the staging slot correctly
@@ -113,8 +135,8 @@ The current state of the PokeData project includes the following working feature
 
    - ✅ Improved Development Server Workflow (2025-04-27)
      - Updated rollup.config.cjs to ensure the development server always uses port 3000
-     - Simplified dev.bat script to use the standard `pnpm dev` command
-     - Removed unnecessary dev-port-3000.bat script that was causing port conflicts
+     - Created consolidated batch files (dev-server.bat, prod-server.bat, build-app.bat, tools.bat)
+     - Implemented robust process termination for port 3000 conflicts
      - Documented the development server workflow in the memory bank
      - Result: Cleaner development workflow with consistent port usage and working livereload
 
@@ -132,7 +154,7 @@ The current state of the PokeData project includes the following working feature
      - Updated window.pokeDataDebug object in main.js to use directly imported functions
      - Simplified the help function to use a single console.log with a multi-line string
      - Fixed debug panel button functionality for enabling/disabling debug mode
-     - Ensured log level buttons work correctly in the debug panel
+     - Fixed log level buttons work correctly in the debug panel
      - Result: Debug panel now works correctly, and all debug functions operate as expected
    
    - ✅ Fixed CSS Loading and API Authentication Issues (2025-04-27)
@@ -333,6 +355,8 @@ The current state of the PokeData project includes the following working feature
 - ✅ Cloud architecture plan defined
 - ✅ Hybrid API approach designed
 - ✅ Enhanced data model created
+- ✅ Debug files refactored into organized structure
+- ✅ Store-based state management implemented
 - 🔄 Cloud infrastructure setup in planning
 - 🔄 Data migration strategy in development
 - 🔄 Dependency update evaluation in progress
@@ -428,6 +452,13 @@ The current state of the PokeData project includes the following working feature
     - Workaround (if issue recurs): Check for running servers on port 3000 before starting a new one
     - Status: ✅ Fixed on 2025-04-27
 
+12. **Complex State Management in App.svelte**: ✅ FIXED
+    - Issue: App.svelte managed too much state and logic directly
+    - Cause: Initial design did not use store-based architecture
+    - Impact: Difficult to maintain and scale the application
+    - Solution: Implemented Svelte stores to separate concerns and improve state management
+    - Status: ✅ Fixed on 2025-05-02
+
 ## Evolution of Project Decisions
 
 ### Initial Concept
@@ -493,6 +524,24 @@ As the project progressed, the architecture evolved to address more complex requ
      - Cons: Operational costs, more complex implementation
    - Rationale: Better scalability, performance, and advanced features
 
+6. **Debug System Organization**:
+   - Initial Approach: Flat file structure with separate debug files in the src directory
+     - Pros: Simple initial implementation, easy to find files
+     - Cons: Poor organization, harder to maintain as system grows
+   - Current Approach: Dedicated debug directory with modular organization
+     - Pros: Better organization, improved maintainability, clearer responsibilities
+     - Cons: More files to manage, more complex directory structure
+   - Rationale: Improved maintainability and organization as the debug system grows
+
+7. **State Management**:
+   - Initial Approach: Direct state management in App.svelte
+     - Pros: Simple initial implementation, centralized location
+     - Cons: Component became too large, mixing UI and business logic
+   - Current Approach: Store-based architecture using Svelte stores
+     - Pros: Better separation of concerns, improved maintainability, clearer data flow
+     - Cons: More files to manage, more complex structure initially
+   - Rationale: Improved scalability, maintainability, and clearer responsibilities
+
 ### Feature Prioritization Evolution
 Feature priorities evolved based on user feedback and development insights:
 
@@ -552,145 +601,18 @@ The technical implementation approach has also evolved:
      - Cons: Increased complexity and development effort
    - Rationale: Need for more sophisticated user interface and advanced features
 
-## Next Steps and Focus Areas
+5. **Debug System Architecture**:
+   - Initial Approach: Monolithic debug files with overlapping responsibilities
+     - Pros: Simple initial implementation, fewer files to manage
+     - Cons: Poor separation of concerns, harder to maintain
+   - Current Approach: Modular debug system with clear separation of concerns
+     - Pros: Better maintainability, clearer responsibilities, easier to extend
+     - Cons: More files to manage, more complex directory structure
+   - Rationale: Improved maintainability and organization as the debug system grows
 
-### Immediate Focus (Current Sprint)
-1. **Cloud Infrastructure Setup**:
-   - Create Azure resource group for PokeData project
-   - Provision Cosmos DB instance with appropriate configuration
-   - Set up Blob Storage containers for card images
-   - Configure Azure Cache for Redis
-   - Deploy initial Azure Functions
-   - Set up API Management service
-
-2. **Data Migration Planning**:
-   - Design migration strategy from IndexedDB to Cosmos DB
-   - Create data mapping between current and new schemas
-   - Develop migration scripts and utilities
-   - Plan for data validation and verification
-
-3. **API Development**:
-   - Implement Azure Functions for card queries
-   - Set up APIM policies for external API calls
-   - Configure caching rules and rate limiting
-   - Develop error handling and logging
-
-4. **Frontend Adaptation Planning**:
-   - Design API client for new Azure-based endpoints
-   - Plan updates to data fetching logic
-   - Design image loading strategy with CDN
-   - Plan caching strategy with Redis
-
-### Short-term Focus (Next 1-2 Sprints)
-1. **Data Ingestion Implementation**:
-   - Create Azure Function to fetch initial data from both APIs
-   - Populate Cosmos DB with combined card data
-   - Upload card images to Blob Storage
-   - Implement data validation and cleanup
-
-2. **Frontend Adaptation Implementation**:
-   - Modify frontend to use new Azure-based APIs
-   - Update data fetching logic to work with new endpoints
-   - Implement progressive loading for images via CDN
-   - Adapt caching strategy to work with Redis
-
-3. **Dependency Updates**:
-   - Update PNPM from 8.15.4 to 10.9.0
-   - Update non-breaking dependencies
-   - Test application functionality after updates
-   - Create migration plan for major version updates
-
-### Medium-term Focus (Next 2-3 Months)
-1. **Advanced Feature Implementation**:
-   - Implement price history tracking and visualization
-   - Develop collection management feature
-   - Create advanced search capabilities
-   - Add graded card value tracking
-
-2. **Performance Optimization**:
-   - Optimize Cosmos DB queries
-   - Implement efficient caching strategies
-   - Configure CDN for optimal image delivery
-   - Implement code splitting and lazy loading
-
-3. **User Experience Enhancements**:
-   - Implement dark mode support
-   - Enhance responsive design
-   - Add touch-friendly interactions
-   - Improve accessibility
-
-## Lessons Learned
-
-Throughout the development of the PokeData project, several valuable lessons have been learned:
-
-1. **Architecture Planning**:
-   - Cloud-based architecture provides significant advantages in scalability and feature capabilities
-   - Hybrid API approach allows leveraging strengths of multiple data sources
-   - Well-designed data models are critical for supporting advanced features
-   - Lesson: Invest time in architecture planning for long-term benefits
-
-2. **Repository Management**:
-   - Standalone repositories provide better isolation and focus
-   - Proper setup is crucial for ensuring all dependencies and configurations are transferred
-   - Documentation becomes even more important in separate repositories
-   - Lesson: Invest time in proper repository setup and documentation
-
-3. **Caching Strategy Design**:
-   - Different data types require different caching strategies
-   - TTL-based caching provides a good balance between freshness and performance
-   - Separating current/frequently accessed data improves user experience
-   - Background sync reduces perceived latency
-   - Lesson: Design caching strategies based on data characteristics and usage patterns
-
-4. **Dependency Management**:
-   - Fixed dependency versions ensure stability but can lead to outdated packages
-   - Major version updates require careful planning and testing
-   - Package manager updates should be evaluated separately from application dependencies
-   - Lesson: Create a regular schedule for dependency evaluation and updates
-
-5. **API Integration Complexity**:
-   - Different APIs return data in inconsistent formats
-   - CORS issues require proxy solutions
-   - Rate limiting can impact user experience
-   - Lesson: Implement robust error handling and normalization
-
-6. **Component Design Considerations**:
-   - Reusable components save development time long-term
-   - Clear component APIs improve maintainability
-   - Component composition provides flexibility
-   - Lesson: Invest time in component architecture
-
-7. **User Experience Insights**:
-   - Two-step search process is more efficient for users
-   - Clear error messages improve user confidence
-   - Loading indicators are essential for perceived performance
-   - Lesson: Focus on user experience from the beginning
-
-8. **Development Workflow Efficiency**:
-   - Automation scripts improve development efficiency
-   - Consistent project structure aids navigation
-   - Clear documentation saves time
-   - Lesson: Invest in development tooling and documentation
-
-9. **API Authentication Approaches**:
-   - Hardcoded keys with proper API Management restrictions can be secure for client-side applications
-   - Origin restrictions and rate limiting provide effective security layers
-   - Simplifying development workflow can be balanced with security considerations
-   - Lesson: Consider the specific security needs and development workflow when choosing authentication approaches
-
-10. **Development Server Configuration**:
-    - Consistent port usage is critical when working with API services that have whitelisted endpoints
-    - Simpler development scripts are often more reliable than complex ones
-    - Livereload functionality requires proper configuration to work correctly
-    - Multiple development server instances can cause port conflicts and unexpected behavior
-    - Lesson: Keep development server configuration simple and ensure consistent port usage
-
-11. **Cloud Architecture Benefits**:
-    - Cloud-based architecture provides significant advantages in scalability and feature capabilities
-    - Multi-tiered caching strategy improves performance and user experience
-    - Serverless computing offers cost-effective scaling
-    - Managed services reduce operational overhead
-    - Lesson: Consider cloud architecture for applications with growing complexity and feature requirements
-
----
-*This document was updated on 4/29/2025 as part of the Memory Bank update for the PokeData project.*
+6. **State Management Architecture**:
+   - Initial Approach: Manage state directly in App.svelte
+     - Pros: Simple implementation, no additional files
+     - Cons: Component became large and complex, mixing concerns
+   - Current Approach: Use Svelte stores for state management
+     -

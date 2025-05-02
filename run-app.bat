@@ -8,9 +8,9 @@ cd %~dp0
 
 echo Checking environment and dependencies...
 
-:: Run setup script to ensure all dependencies are installed
-echo Running setup script...
-call setup.bat
+:: Run setup tool to ensure all dependencies are installed
+echo Running setup tool...
+call tools.bat setup
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Setup failed. Cannot start the application.
     pause
@@ -29,5 +29,5 @@ echo Press Ctrl+C to stop the application
 echo ===================================
 echo.
 
-:: Start the application
-pnpm start
+:: Start the application using the production server script
+call prod-server.bat

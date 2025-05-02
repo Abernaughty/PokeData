@@ -216,7 +216,10 @@
       <span 
         class="clear-icon" 
         on:click|stopPropagation={() => clearSelection()}
+        on:keydown={e => e.key === 'Enter' && clearSelection()}
         title="Clear selection"
+        role="button"
+        tabindex="0"
       >
         <div class="clear-icon-circle">
           <svg viewBox="0 0 24 24" width="14" height="14">
@@ -237,7 +240,12 @@
           <div
             class="card-item card-item-{index} {highlightedIndex === index ? 'highlighted' : ''}"
             on:click={() => handleSelect(card)}
+            on:keydown={e => e.key === 'Enter' && handleSelect(card)}
             on:mouseover={() => highlightedIndex = index}
+            on:focus={() => highlightedIndex = index}
+            role="option"
+            tabindex="0"
+            aria-selected={highlightedIndex === index}
           >
             <div class="card-info">
               <span class="card-name">
