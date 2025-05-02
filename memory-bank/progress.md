@@ -50,6 +50,15 @@ The current state of the PokeData project includes the following working feature
    - ✅ Console logging for debugging
 
 8. **Recent Improvements**:
+   - ✅ Confirmed Azure Function and CosmosDB Integration (2025-05-02):
+     - Tested and validated the Azure Function app architecture with CosmosDB
+     - Confirmed proper communication between Azure Functions and CosmosDB
+     - Verified on-demand population strategy for card data in CosmosDB
+     - Clarified the difference between Set ID and Set Code in API endpoints
+     - Tested the retrieval of cards for older sets and confirmed database population
+     - Developed detailed migration strategy for frontend adaptation
+     - Result: Established clear path for client-side to cloud migration with minimal user disruption
+   
    - ✅ Implemented Store-Based State Management Architecture (2025-05-02):
      - Created dedicated store modules for different types of state (sets, cards, pricing, UI)
      - Extracted business logic from App.svelte into appropriate store modules
@@ -227,8 +236,9 @@ The current state of the PokeData project includes the following working feature
    - ✅ Set up Blob Storage account for card images
    - 🔄 Create Blob Storage container for card images
    - 🔄 Configure Azure Cache for Redis
-   - 🔄 Deploy initial Azure Functions
+   - ✅ Deploy initial Azure Functions
    - ✅ Set up API Management service
+   - ✅ Test and verify Cosmos DB data population strategy
 
 2. **Data Migration**:
    - 🔴 Design migration strategy from IndexedDB to Cosmos DB
@@ -237,19 +247,20 @@ The current state of the PokeData project includes the following working feature
    - 🔴 Plan for data validation and verification
 
 3. **API Development**:
-   - 🔴 Implement Azure Functions for card queries
-   - 🔴 Set up APIM policies for external API calls
-   - 🔴 Configure caching rules and rate limiting
-   - 🔴 Develop error handling and logging
+   - ✅ Implement Azure Functions for basic card and set queries
+   - 🔄 Set up APIM policies for external API calls
+   - 🔄 Configure caching rules and rate limiting
+   - 🔄 Enhance error handling and logging
 
 4. **Frontend Adaptation**:
-   - 🔴 Modify frontend to use new Azure-based APIs
-   - 🔴 Update data fetching logic to work with new endpoints
-   - 🔴 Implement progressive loading for images via CDN
-   - 🔴 Adapt caching strategy to work with Redis
+   - 🔄 Create frontend API service for Azure Functions
+   - 🔄 Implement feature flags for gradual migration
+   - 🔄 Update data fetching logic to work with new endpoints
+   - 🔄 Implement progressive loading for images via CDN
+   - 🔄 Adapt caching strategy to work with Redis
 
 5. **Dependency Updates**:
-   - 🔴 Update PNPM from 8.15.4 to 10.9.0
+   - ✅ Update PNPM from 8.15.4 to 10.9.0
    - 🔴 Evaluate and plan updates for major dependencies (Svelte 3.x to 5.x)
    - 🔴 Implement incremental updates with testing
    - 🔴 Document compatibility issues and solutions
@@ -339,9 +350,9 @@ The current state of the PokeData project includes the following working feature
 
 ## Current Status
 
-**Project Phase**: Cloud Architecture Planning and Migration Preparation
+**Project Phase**: Cloud Architecture Implementation and Frontend Migration Planning
 
-**Current Sprint Focus**: Cloud Architecture Design, Data Model Enhancement, and Migration Planning
+**Current Sprint Focus**: Frontend Adaptation Strategy and Migration to Cloud Architecture
 
 **Key Milestones**:
 - ✅ Initial project setup completed
@@ -357,20 +368,30 @@ The current state of the PokeData project includes the following working feature
 - ✅ Enhanced data model created
 - ✅ Debug files refactored into organized structure
 - ✅ Store-based state management implemented
-- 🔄 Cloud infrastructure setup in planning
+- ✅ Azure Functions deployed and tested
+- ✅ CosmosDB integration verified with on-demand population
+- 🔄 Frontend cloud service implementation in progress
+- 🔄 Frontend migration strategy in development
 - 🔄 Data migration strategy in development
 - 🔄 Dependency update evaluation in progress
 - 🔄 Error handling improvements in progress
 - 🔄 Card image integration in planning
 
 **Timeline**:
-- Previous Sprint: Repository location update and dependency evaluation
-- Current Sprint: Cloud architecture planning and data model enhancement
-- Next Sprint: Cloud infrastructure setup and data migration planning
+- Previous Sprint: Cloud architecture planning and data model enhancement
+- Current Sprint: Azure Function implementation and CosmosDB integration
+- Next Sprint: Frontend adaptation and phased migration implementation
 
 ## Known Issues
 
-1. **Database Reset Issue**: ✅ FIXED
+1. **Set ID vs. Set Code API Parameter Issue**: ✅ FIXED
+   - Issue: API endpoints expect Set Code (e.g., "OBF") but were being queried with Set ID (e.g., "sv8")
+   - Cause: Confusion between the two different identifiers used in the Pokémon TCG system
+   - Impact: "No results" errors when querying for sets using the wrong identifier
+   - Solution: Clarified the difference between identifiers and updated API usage documentation
+   - Status: ✅ Fixed on 2025-05-02
+
+2. **Database Reset Issue**: ✅ FIXED
    - Issue: Database was being reset on every page load, causing problems with multiple tabs
    - Cause: Reset script was running unconditionally on page load
    - Impact: Data loss when using multiple tabs, inconsistent state
