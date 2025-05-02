@@ -211,10 +211,15 @@ This document outlines the technologies used, development setup, technical const
 - **Cache Invalidation**: Required for data freshness
 - **Fallback Mechanisms**: Needed for browsers without IndexedDB support
 
-### Planned Cloud Storage Capabilities
-- **Cosmos DB**: Virtually unlimited storage with automatic scaling
+### Cloud Storage Implementation
+- **Cosmos DB**: Configured with card data in Cards container and set data in Sets container
+  - On-demand population strategy for efficient storage usage
+  - Currently populated with data for Scarlet & Violet sets, with older sets loaded on-demand
+  - Cards are stored by Set ID partition key for efficient querying
 - **Blob Storage**: Cost-effective storage for card images
 - **Redis Cache**: High-performance in-memory cache for frequently accessed data
+  - Configured with TTL-based caching (sets: 7 days, cards: 24 hours)
+  - Optimized read path with cache-aside pattern
 - **CDN**: Edge caching for improved image delivery performance
 
 ### API Constraints
@@ -251,19 +256,19 @@ The project uses fixed dependency versions to ensure stability. As of May 2, 202
 | dotenv | 16.5.0 | 16.5.0 | ✅ Up to date |
 | rimraf | 3.0.2 | 6.0.1 | Major version update available |
 
-### Planned Cloud Dependencies
-For the cloud-based architecture, additional dependencies will be required:
+### Cloud Architecture Dependencies
+For the cloud-based architecture, we've implemented the following dependencies:
 
-| Package | Purpose |
-|---------|---------|
-| @azure/cosmos | Cosmos DB client for Node.js |
-| @azure/storage-blob | Azure Blob Storage client for Node.js |
-| @azure/data-tables | Azure Table Storage client for Node.js |
-| @azure/identity | Authentication for Azure services |
-| @azure/functions | Azure Functions runtime |
-| @azure/redis-cache | Azure Cache for Redis client |
-| chart.js | Library for price history visualization |
-| azure-functions-core-tools | Local development tools for Azure Functions |
+| Package | Purpose | Status |
+|---------|---------|--------|
+| @azure/cosmos | Cosmos DB client for Node.js | ✅ Implemented |
+| @azure/storage-blob | Azure Blob Storage client for Node.js | ✅ Implemented |
+| axios | HTTP client for API requests | ✅ Implemented |
+| @azure/identity | Authentication for Azure services | ✅ Implemented |
+| @azure/functions | Azure Functions runtime | ✅ Implemented |
+| redis | Redis client for Node.js | ✅ Implemented |
+| chart.js | Library for price history visualization | 🔄 Planned |
+| azure-functions-core-tools | Local development tools for Azure Functions | ✅ Implemented |
 
 ### Dependency Update Plan
 1. **Package Manager Update**:
@@ -411,31 +416,31 @@ For the cloud-based architecture, additional dependencies will be required:
   - Feature flags
   - API endpoints
 
-### Planned Cloud Deployment
-- **Frontend**:
-  - Azure Static Web Apps for hosting
-  - CDN for static assets and images
-  - Environment-specific configuration
+### Cloud Deployment
+- **Frontend**: 
+  - Azure Static Web Apps for hosting (planned)
+  - CDN for static assets and images (planned)
+  - Environment-specific configuration (planned)
 
 - **Backend**:
-  - Azure Functions for serverless API endpoints
-  - Azure API Management for API gateway
-  - GitHub Actions for CI/CD
+  - Azure Functions for serverless API endpoints (✅ implemented)
+  - Azure API Management for API gateway (✅ implemented)
+  - GitHub Actions for CI/CD (✅ implemented)
 
 - **Data Storage**:
-  - Cosmos DB for card data and pricing
-  - Blob Storage for card images
-  - Redis Cache for frequently accessed data
+  - Cosmos DB for card data and pricing (✅ implemented)
+  - Blob Storage for card images (✅ configured)
+  - Redis Cache for frequently accessed data (✅ implemented)
 
 - **Monitoring**:
-  - Azure Monitor for application insights
-  - Log Analytics for log aggregation
-  - Alerts for critical issues
+  - Azure Monitor for application insights (planned)
+  - Log Analytics for log aggregation (planned)
+  - Alerts for critical issues (planned)
 
 ## API Integration
 
 ### Current API Configuration
-The application uses a simplified API client with hardcoded subscription key defined in `src/data/apiConfig.js`:
+The client-side application uses a simplified API client with hardcoded subscription key defined in `src/data/apiConfig.js`:
 
 ```javascript
 export const API_CONFIG = {
@@ -477,8 +482,8 @@ export const API_CONFIG = {
 
 This approach uses a hardcoded subscription key instead of environment variables, simplifying the development workflow while maintaining security through API Management restrictions (origin limitations, rate limits). Authentication is handled by the API Management service, which adds the actual API key on the server side.
 
-### Planned Hybrid API Approach
-The planned architecture will use a hybrid API approach leveraging both the Pokémon TCG API and PokeData API:
+### Implemented Hybrid API Approach
+The Azure Function implementation uses a hybrid API approach leveraging both the Pokémon TCG API and PokeData API:
 
 1. **Pokémon TCG API**:
    - Primary source for card metadata and set information
@@ -500,10 +505,11 @@ The planned architecture will use a hybrid API approach leveraging both the Pok�
    - Monitoring and analytics
 
 4. **Azure Functions**:
-   - Data normalization and transformation
-   - Error handling and fallback mechanisms
-   - Caching and background processing
-   - Custom business logic
+   - Data normalization and transformation (✅ implemented)
+   - Error handling and fallback mechanisms (✅ implemented)
+   - Caching with Redis and background processing (✅ implemented)
+   - On-demand database population strategy (✅ implemented)
+   - Tiered cache access pattern (Redis → Cosmos DB → External API) (✅ implemented)
 
 ### Enhanced CORS Proxy
 The application currently uses an enhanced CORS proxy to handle cross-origin requests and ensure proper header handling:
@@ -773,26 +779,24 @@ The application currently implements a sophisticated hybrid caching strategy:
    - Configuration updates for current sets list (every 7 days)
    - Network status monitoring for offline handling
 
-### Planned Cloud Caching Strategy
-The planned architecture will implement a multi-tiered caching strategy:
+### Implemented Cloud Caching Strategy
+The Azure Function implementation features a multi-tiered caching strategy:
 
 1. **Redis Cache**:
-   - In-memory caching for frequently accessed data
-   - TTL-based cache invalidation
-   - Shared cache across all users
-   - Background refresh for popular items
+   - In-memory caching for frequently accessed data (✅ implemented)
+   - TTL-based cache invalidation (7 days for sets, 24 hours for cards) (✅ implemented)
+   - Shared cache across all users (✅ implemented)
+   - Cache-aside pattern implementation (✅ implemented)
 
 2. **API Management Cache**:
-   - Response caching for API calls
-   - Cache-Control header management
-   - Conditional requests (ETag, If-Modified-Since)
-   - Cache invalidation on data updates
+   - Response caching for API calls (✅ implemented)
+   - Cache-Control header management (✅ implemented)
+   - Cache invalidation on data updates (🔄 in progress)
 
 3. **CDN Cache**:
-   - Edge caching for static assets and images
-   - Geographic distribution for reduced latency
-   - Cache-Control header management
-   - Purge API for cache invalidation
+   - Edge caching for static assets and images (🔄 in progress)
+   - Geographic distribution for reduced latency (🔄 planned)
+   - Cache-Control header management (🔄 planned)
 
 4. **Browser Cache**:
    - Local caching for static assets

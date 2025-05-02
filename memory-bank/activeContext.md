@@ -8,10 +8,11 @@ This document captures the current work focus, recent changes, next steps, activ
 ### Primary Focus
 The current primary focus is on transitioning the PokeData application from a client-side architecture to a cloud-based architecture using Azure services:
 
-1. **Planning and implementing cloud architecture migration** to enhance scalability, performance, and reliability.
+1. **Implementing cloud architecture migration** to enhance scalability, performance, and reliability.
    - Setting up Azure resources (Cosmos DB, Blob Storage, Redis Cache, Functions, API Management)
-   - Designing data migration strategy from client-side to cloud storage
-   - Implementing serverless API endpoints with Azure Functions
+   - Implementing serverless API endpoints with Azure Functions (completed initial version)
+   - Designing frontend adaptation strategy for cloud APIs
+   - Planning the migration from IndexedDB to Cosmos DB and Redis Cache
    - Configuring CDN for optimized image delivery
 
 2. **Implementing hybrid API approach** to leverage multiple data sources.
@@ -27,10 +28,11 @@ The current primary focus is on transitioning the PokeData application from a cl
    - Creating efficient indexing strategy for query performance
 
 4. **Optimizing caching strategy** with Azure Cache for Redis.
-   - Implementing Redis caching for frequently accessed data
+   - Implementing Redis caching for frequently accessed data (completed for Azure Functions)
    - Designing cache invalidation strategy for data freshness
    - Configuring tiered caching approach for different data types
    - Monitoring cache performance and optimizing as needed
+   - Testing and confirming on-demand population of card data for older sets
 
 ### Secondary Focus
 While the primary focus is on the cloud architecture migration, we're also addressing:
@@ -55,7 +57,16 @@ While the primary focus is on the cloud architecture migration, we're also addre
 
 ## Recent Changes
 
-1. **Updated Dependencies and Migrated to Svelte 4** (2025-05-02):
+1. **Confirmed Azure Function and CosmosDB Integration** (2025-05-02):
+   - Tested and validated the Azure Function app architecture with CosmosDB
+   - Confirmed proper communication between Azure Functions and CosmosDB
+   - Verified on-demand population strategy for card data in CosmosDB
+   - Clarified the difference between Set ID and Set Code in API endpoints
+   - Tested the retrieval of cards for older sets and confirmed database population
+   - Developed detailed migration strategy for frontend adaptation
+   - Result: Established clear path for client-side to cloud migration with minimal user disruption
+
+2. **Updated Dependencies and Migrated to Svelte 4** (2025-05-02):
    - Updated Svelte from 3.38.3 to 4.2.19 (latest stable in 4.x series)
    - Updated key Rollup plugins to their latest compatible versions:
      - Rollup from 2.30.0 to 2.79.2
@@ -261,19 +272,18 @@ While the primary focus is on the cloud architecture migration, we're also addre
 ## Next Steps
 
 ### Immediate Next Steps
-1. **Infrastructure Setup**:
-   - Create Azure resource group for PokeData project
-   - Provision Cosmos DB instance with appropriate configuration
-   - Set up Blob Storage containers for card images
-   - Configure Azure Cache for Redis
-   - Deploy initial Azure Functions
-   - Set up API Management service
+1. **Frontend API Service Implementation**:
+   - Create a new CloudDataService in src/services/ to communicate with Azure Functions
+   - Implement methods mirroring current IndexedDB operations (getSetList, getCardsBySet, getCardPricing)
+   - Add proper error handling and retry logic for network requests
+   - Update store files to support both IndexedDB and cloud backends during migration
 
-2. **Data Migration Planning**:
-   - Design migration strategy from IndexedDB to Cosmos DB
-   - Create data mapping between current and new schemas
-   - Develop migration scripts and utilities
-   - Plan for data validation and verification
+2. **Phased Migration Implementation**:
+   - Implement feature flags to gradually switch components to the cloud backend
+   - Add proper HTTP cache headers handling in the frontend
+   - Create lightweight browser cache for frequently accessed data
+   - Develop UI component modifications to handle longer loading times for network requests
+   - Add skeleton screens or improved loading indicators for network requests
 
 3. **API Development**:
    - Implement Azure Functions for card queries
@@ -288,11 +298,11 @@ While the primary focus is on the cloud architecture migration, we're also addre
    - Adapt caching strategy to work with Redis
 
 ### Short-term Goals (1-2 weeks)
-1. **Data Ingestion**:
-   - Create Azure Function to fetch initial data from both APIs
-   - Populate Cosmos DB with combined card data
-   - Upload card images to Blob Storage
-   - Implement data validation and cleanup
+1. **Testing Environment Setup**:
+   - Create test environment for migration validation
+   - Configure the app to use staging APIs for validation
+   - Develop test scripts to validate data consistency between IndexedDB and CosmosDB
+   - Test edge cases like offline mode and slow connections
 
 2. **Optimize Caching Strategy**:
    - Configure Redis for optimal caching of frequently accessed data
@@ -338,7 +348,8 @@ While the primary focus is on the cloud architecture migration, we're also addre
    - Pros: Better scalability, performance, reliability, and feature capabilities
    - Cons: Increased complexity, operational costs, and deployment considerations
    - Decision: Proceed with cloud migration to enable advanced features and better performance
-   - Implementation: Phased approach starting with core infrastructure and data migration
+   - Implementation: Phased approach with incremental changes and testing at each step
+   - Current Status: Successfully implemented and tested Azure Functions with on-demand data population
 
 2. **Hybrid API Approach**: Using both Pokémon TCG API and PokeData API.
    - Pros: More comprehensive data, better image quality, enhanced pricing information
@@ -351,6 +362,7 @@ While the primary focus is on the cloud architecture migration, we're also addre
    - Cons: Cost considerations, more complex implementation
    - Decision: Proceed with Cosmos DB to enable advanced querying and scaling
    - Implementation: JSON document model with optimized indexing for card queries
+   - Current Status: CosmosDB successfully storing card data with on-demand population strategy
 
 4. **CDN for Image Delivery**: Using Azure CDN connected to Blob Storage.
    - Pros: Faster image loading, reduced latency, improved user experience
@@ -363,6 +375,7 @@ While the primary focus is on the cloud architecture migration, we're also addre
    - Cons: Additional service to manage, cost considerations
    - Decision: Implement Redis caching for frequently accessed data
    - Implementation: Cache set lists, card lists, and popular card data with appropriate TTL
+   - Current Status: Redis Cache integrated with Azure Functions for efficient data access
 
 6. **Debug System Organization**: Refactoring debug files into a dedicated directory with modular organization.
    - Pros: Better organization, improved maintainability, clearer responsibilities
@@ -585,6 +598,30 @@ We've gained several insights during the implementation and planning:
     - Stop any running development servers before ending the session
     - Clean up any processes that might be lingering in the background
     - This prevents clutter, resource usage issues, and confusion in future sessions
+
+23. **Azure Function Data Flow**: The Azure Function implementation follows a tiered data access pattern:
+    - First checks Redis cache (if enabled and not forced to refresh)
+    - If not in cache, checks Cosmos DB
+    - If not in database, fetches from external API and populates both Cosmos DB and Redis
+    - This provides optimal performance while maintaining data freshness
+
+24. **On-Demand Database Population**: The system uses a "lazy loading" approach for card data:
+    - Only stores data that users are actually requesting
+    - Current sets (which are requested more frequently) are readily available
+    - Older sets are fetched and stored when first requested
+    - This optimizes storage resources while still providing good performance
+
+25. **Set ID vs. Set Code Distinction**: There's an important distinction in the naming convention:
+    - Set ID: The internal identifier used by the Pokémon TCG API (e.g., "sv8")
+    - Set Code: The code used in the Pokémon TCG Online game (e.g., "PAL")
+    - The API endpoints expect the Set Code, not the Set ID
+    - This distinction needs to be clearly handled in the frontend migration
+
+26. **Phased Migration Benefits**: The incremental migration approach provides several advantages:
+    - Allows for testing at each step
+    - Reduces risk with smaller, manageable changes
+    - Provides opportunity for rollback if issues arise
+    - Enables validation of each component before moving to the next
 
 ---
 *This document was updated on 5/2/2025 as part of the Memory Bank update for the PokeData project.*
