@@ -1,4 +1,5 @@
 # Active Context
+# Active Context
 
 ## Overview
 This document captures the current work focus, recent changes, next steps, active decisions and considerations, important patterns and preferences, and learnings and project insights for the PokeData project.
@@ -285,13 +286,13 @@ While the primary focus is on the cloud architecture migration, we're also addre
    - Develop UI component modifications to handle longer loading times for network requests
    - Add skeleton screens or improved loading indicators for network requests
 
-3. **API Development**:
+5. **API Development**:
    - Implement Azure Functions for card queries
    - Set up APIM policies for external API calls
    - Configure caching rules and rate limiting
    - Develop error handling and logging
 
-4. **Frontend Adaptation**:
+6. **Frontend Adaptation**:
    - Modify frontend to use new Azure-based APIs
    - Update data fetching logic to work with new endpoints
    - Implement progressive loading for images via CDN

@@ -20,41 +20,23 @@ export class CosmosDbService implements ICosmosDbService {
     private client: CosmosClient;
     private database: Database;
     private cardContainer: Container;
-    private setContainer!: Container; // Using definite assignment assertion
+    private setContainer: Container;
+    
+    // Constants for database and container names
+    private readonly DATABASE_NAME = 'PokemonCards';
+    private readonly CARDS_CONTAINER_NAME = 'Cards';
+    private readonly SETS_CONTAINER_NAME = 'Sets';
     
     constructor(connectionString: string) {
+        console.log('Initializing CosmosDbService...');
         this.client = new CosmosClient(connectionString);
-        this.database = this.client.database('PokemonCards');
-        this.cardContainer = this.database.container('Cards');
         
-        // Create Sets container if it doesn't exist
-        this.initializeSetContainer().catch(error => {
-            console.error('Failed to initialize Sets container:', error);
-        });
-    }
-    
-    private async initializeSetContainer() {
-        try {
-            // Check if Sets container exists, create if not
-            const containersList = await this.database.containers.readAll().fetchAll();
-            const containersArray = containersList.resources;
-            const setsContainerExists = containersArray.some((c: any) => c.id === 'Sets');
-            
-            if (!setsContainerExists) {
-                console.log('Creating Sets container...');
-                const response: ContainerResponse = await this.database.containers.createIfNotExists({
-                    id: 'Sets',
-                    partitionKey: { paths: ['/series'] }
-                });
-                this.setContainer = this.database.container('Sets');
-            } else {
-                this.setContainer = this.database.container('Sets');
-            }
-        } catch (error) {
-            console.error('Error initializing Sets container:', error);
-            // Fallback to using the container even if we couldn't verify/create it
-            this.setContainer = this.database.container('Sets');
-        }
+        // Get database and containers directly
+        this.database = this.client.database(this.DATABASE_NAME);
+        this.cardContainer = this.database.container(this.CARDS_CONTAINER_NAME);
+        this.setContainer = this.database.container(this.SETS_CONTAINER_NAME);
+        
+        console.log('CosmosDbService initialized');
     }
     
     async getCard(cardId: string): Promise<Card | null> {
@@ -74,7 +56,7 @@ export class CosmosDbService implements ICosmosDbService {
         try {
             // Find the setId that corresponds to the setCode
             const setQuerySpec = {
-                query: "SELECT * FROM s WHERE s.code = @setCode",
+                query: "SELECT * FROM c WHERE c.code = @setCode",
                 parameters: [
                     { name: "@setCode", value: setCode }
                 ]
@@ -125,18 +107,46 @@ export class CosmosDbService implements ICosmosDbService {
     
     async getAllSets(): Promise<Set[]> {
         try {
+            console.log('[CosmosDbService] Getting all sets from Cosmos DB');
+            
+            // Use readAll to get all sets
             const { resources } = await this.setContainer.items.readAll().fetchAll();
+            console.log(`[CosmosDbService] Found ${resources.length} sets in Cosmos DB`);
+            
+            // Log the first few sets for debugging
+            if (resources.length > 0) {
+                console.log('Sample sets from Cosmos DB:');
+                resources.slice(0, Math.min(3, resources.length)).forEach((set: any) => {
+                    console.log(`- ${set.name} (${set.code}): ${set.cardCount} cards, Series: ${set.series}, isCurrent: ${set.isCurrent}`);
+                });
+            }
+            
             return resources as Set[];
         } catch (error) {
             console.error(`Error getting all sets:`, error);
-            return [];
+            
+            // Try using a query as a fallback
+            try {
+                console.log('Falling back to query approach...');
+                const querySpec = {
+                    query: "SELECT * FROM c"
+                };
+                
+                const { resources } = await this.setContainer.items.query(querySpec).fetchAll();
+                console.log(`[CosmosDbService] Found ${resources.length} sets using query()`);
+                
+                return resources as Set[];
+            } catch (queryError) {
+                console.error(`Error querying sets:`, queryError);
+                return [];
+            }
         }
     }
     
     async getSet(setCode: string): Promise<Set | null> {
         try {
             const querySpec = {
-                query: "SELECT * FROM s WHERE s.code = @setCode",
+                query: "SELECT * FROM c WHERE c.code = @setCode",
                 parameters: [
                     { name: "@setCode", value: setCode }
                 ]
@@ -152,10 +162,28 @@ export class CosmosDbService implements ICosmosDbService {
     
     async saveSets(sets: Set[]): Promise<void> {
         try {
+            console.log(`[CosmosDbService] Saving ${sets.length} sets`);
+            
+            // Add lastUpdated timestamp to each set
+            const setsWithTimestamp = sets.map(set => ({
+                ...set,
+                lastUpdated: new Date().toISOString()
+            }));
+            
+            // Log the first few sets for debugging
+            if (setsWithTimestamp.length > 0) {
+                console.log('Sample sets being saved:');
+                setsWithTimestamp.slice(0, Math.min(3, setsWithTimestamp.length)).forEach(set => {
+                    console.log(`- ${set.name} (${set.code}): ${set.cardCount} cards, Series: ${set.series}, isCurrent: ${set.isCurrent}`);
+                });
+            }
+            
             // Use individual upsert operations instead of bulk
-            for (const set of sets) {
+            for (const set of setsWithTimestamp) {
                 await this.setContainer.items.upsert(set);
             }
+            
+            console.log(`[CosmosDbService] Successfully saved ${sets.length} sets`);
         } catch (error) {
             console.error(`Error saving sets:`, error);
             throw error;
@@ -164,15 +192,42 @@ export class CosmosDbService implements ICosmosDbService {
     
     async getCurrentSets(): Promise<Set[]> {
         try {
-            const querySpec = {
-                query: "SELECT * FROM s WHERE s.isCurrent = true"
-            };
+            console.log('[CosmosDbService] Getting current sets from Cosmos DB');
             
-            const { resources } = await this.setContainer.items.query(querySpec).fetchAll();
-            return resources as Set[];
+            // Get all sets first
+            const allSets = await this.getAllSets();
+            
+            // Filter for current sets
+            const currentSets = allSets.filter(set => set.isCurrent === true);
+            console.log(`[CosmosDbService] Found ${currentSets.length} current sets out of ${allSets.length} total sets`);
+            
+            // Log the current sets for debugging
+            if (currentSets.length > 0) {
+                console.log('Current sets:');
+                currentSets.forEach(set => {
+                    console.log(`- ${set.name} (${set.code}): isCurrent=${set.isCurrent}, Series: ${set.series}`);
+                });
+            }
+            
+            return currentSets;
         } catch (error) {
             console.error(`Error getting current sets:`, error);
-            return [];
+            
+            // Try using a query as a fallback
+            try {
+                console.log('Falling back to query approach for current sets...');
+                const querySpec = {
+                    query: "SELECT * FROM c WHERE c.isCurrent = true"
+                };
+                
+                const { resources } = await this.setContainer.items.query(querySpec).fetchAll();
+                console.log(`[CosmosDbService] Found ${resources.length} current sets using query()`);
+                
+                return resources as Set[];
+            } catch (queryError) {
+                console.error(`Error querying current sets:`, queryError);
+                return [];
+            }
         }
     }
 }
