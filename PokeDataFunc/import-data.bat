@@ -1,0 +1,3 @@
+@echo off
+echo Running direct import script...
+node import-data-direct.js

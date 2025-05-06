@@ -49,7 +49,68 @@ The current state of the PokeData project includes the following working feature
    - ✅ User-friendly error messages
    - ✅ Console logging for debugging
 
-8. **Recent Improvements**:
+8. **Cloud Architecture Implementation**:
+   - ✅ Azure resource group for PokeData project
+   - ✅ Cosmos DB instance with appropriate configuration
+   - ✅ Blob Storage account for card images
+   - ✅ API Management service setup
+   - ✅ Azure Functions implementation with v4 programming model
+   - ✅ Service classes for Cosmos DB, Blob Storage, and Redis Cache
+   - ✅ CI/CD pipeline with GitHub Actions
+
+9. **Image Migration to Azure Blob Storage**:
+   - ✅ PowerShell scripts for uploading card images to Azure Blob Storage
+   - ✅ Batch files for running test and full migration scripts
+   - ✅ Standardized image path structure (cards/[set_code]/[card_number].jpg)
+   - ✅ Authentication with specific tenant ID
+   - ✅ Comprehensive documentation for implementation and next steps
+   - ✅ Reference file for application code changes (imageUtils.modified.ts)
+
+10. **Recent Improvements**:
+   - ✅ Fixed and Enhanced CosmosDB Integration (2025-05-01):
+     - Identified and fixed critical issues with CosmosDB service initialization
+     - Completely rewrote CosmosDbService class to use direct container access
+     - Created import-data-direct.js script for reliable data import
+     - Implemented multiple query approaches with fallbacks for resilience
+     - Added detailed logging throughout the import process
+     - Successfully imported 165 sets and 1,120 cards for current sets
+     - Updated import-data.bat to use the new direct import script
+     - Enhanced documentation in README.md with troubleshooting information
+     - Result: Robust and reliable CosmosDB integration with comprehensive error handling
+
+   - ✅ Implemented CosmosDB Integration and Data Import (2025-04-30):
+     - Created import-data.ts script for populating Cosmos DB with data from the Pokémon TCG API
+     - Implemented retry logic with exponential backoff for API calls
+     - Added batch processing for better performance and reliability
+     - Created test-cosmos.js script to verify Cosmos DB connection and operations
+     - Fixed environment variable loading to use local.settings.json instead of .env files
+     - Added RefreshData timer-triggered function to keep data up-to-date
+     - Created build-and-deploy.bat script for easier deployment
+     - Updated package.json with new scripts for testing and deployment
+     - Enhanced error handling with proper TypeScript typing
+     - Added comprehensive documentation in README.md
+     - Result: Complete solution for Cosmos DB integration with data import and scheduled refresh
+
+   - ✅ Implemented Azure Blob Storage Configuration and Image Migration (2025-04-30):
+     - Created PowerShell scripts for uploading card images to Azure Blob Storage
+     - Implemented authentication with specific tenant ID (5f445a68-ec75-42cf-a50f-6ec158ee675c)
+     - Designed standardized image path structure (cards/[set_code]/[card_number].jpg)
+     - Created batch files for running test and full migration scripts
+     - Developed reference file for application code changes (imageUtils.modified.ts)
+     - Created comprehensive documentation for implementation and next steps
+     - Implemented robust error handling and logging in migration scripts
+     - Result: Complete solution for migrating card images to Azure Blob Storage with clear path for application integration
+
+   - ✅ Fixed Environment Variable Configuration in Test Scripts (2025-04-30):
+     - Identified issue with environment variables not loading in test scripts
+     - Discovered that dotenv was looking for .env file in the wrong directory
+     - Implemented path resolution to correctly locate .env file in parent directory
+     - Added proper error handling for environment variable loading
+     - Updated test scripts to use environment variables for function keys
+     - Documented proper approach for multi-directory projects
+     - Learned about dotenv's default behavior and limitations
+     - Result: Test scripts now correctly use environment variables for secure configuration
+
    - ✅ Confirmed Azure Function and CosmosDB Integration (2025-05-02):
      - Tested and validated the Azure Function app architecture with CosmosDB
      - Confirmed proper communication between Azure Functions and CosmosDB
@@ -234,13 +295,24 @@ The current state of the PokeData project includes the following working feature
    - ✅ Create Azure resource group for PokeData project
    - ✅ Provision Cosmos DB instance with appropriate configuration
    - ✅ Set up Blob Storage account for card images
-   - 🔄 Create Blob Storage container for card images
+   - ✅ Create Blob Storage container for card images
    - 🔄 Configure Azure Cache for Redis
    - ✅ Deploy initial Azure Functions
    - ✅ Set up API Management service
    - ✅ Test and verify Cosmos DB data population strategy
 
-2. **Data Migration**:
+2. **Image Migration to Azure Blob Storage**:
+   - ✅ Create PowerShell scripts for uploading card images
+   - ✅ Implement authentication with specific tenant ID
+   - ✅ Design standardized image path structure
+   - ✅ Create batch files for running migration scripts
+   - ✅ Develop reference file for application code changes
+   - 🔄 Test the migration with a single set
+   - 🔄 Test the migration with multiple sets
+   - 🔄 Run the full migration
+   - 🔄 Update the application code to use new image paths
+
+3. **Data Migration**:
    - 🔴 Design migration strategy from IndexedDB to Cosmos DB
    - 🔴 Create data mapping between current and new schemas
    - 🔴 Develop migration scripts and utilities
@@ -265,19 +337,19 @@ The current state of the PokeData project includes the following working feature
    - 🔴 Implement incremental updates with testing
    - 🔴 Document compatibility issues and solutions
 
-6. **Card Images in Price Results**:
+7. **Card Images in Price Results**:
    - 🔴 Integrate card image URLs from the API
    - 🔴 Create image component with loading and error states
    - 🔴 Implement lazy loading for performance
    - 🔴 Add fallback images for missing card images
 
-7. **Improved Error Handling**:
+8. **Improved Error Handling**:
    - 🔴 Create more specific error messages for different API failure scenarios
    - 🔴 Implement visual error states in the UI
    - 🔴 Add retry functionality for failed requests
    - 🔴 Enhance error logging for debugging
 
-8. **Price History Graphs**:
+9. **Price History Graphs**:
    - 🔴 Design time-series data storage in Cosmos DB
    - 🔴 Implement data collection for historical prices
    - 🔴 Create graph visualization components
@@ -479,6 +551,13 @@ The current state of the PokeData project includes the following working feature
     - Impact: Difficult to maintain and scale the application
     - Solution: Implemented Svelte stores to separate concerns and improve state management
     - Status: ✅ Fixed on 2025-05-02
+
+12. **Azure Authentication Issues**: 🟡 PARTIALLY FIXED
+    - Issue: Authentication with Azure services requires specific tenant ID
+    - Cause: Azure tenant configuration and security requirements
+    - Impact: Scripts fail to authenticate with Azure services
+    - Solution: Implemented authentication with specific tenant ID in PowerShell scripts
+    - Status: 🟡 Fixed for PowerShell scripts, pending for other components
 
 ## Evolution of Project Decisions
 

@@ -3,7 +3,9 @@ const axios = require('axios');
 
 // Configuration
 const baseUrl = 'https://pokedata-func-staging.azurewebsites.net/api';
-const functionKey = process.env.FUNCTION_KEY;
+const functionKey = process.env.STAGING_FUNCTION_KEY;
+
+console.log('Using function key:', functionKey ? `${functionKey.substring(0, 5)}...${functionKey.substring(functionKey.length - 5)}` : 'undefined');
 
 // Test functions
 async function testGetSetList() {
