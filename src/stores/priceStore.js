@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import { pokeDataService } from '../services/pokeDataService';
+import { hybridDataService } from '../services/hybridDataService';
 import { error, isOnline } from './uiStore';
 
 // Create stores for state
@@ -78,7 +78,7 @@ export async function fetchCardPrice(cardId) {
         console.log(`Fetching price data for card ID: ${cardId}`);
         
         // Load pricing data with metadata using the card ID
-        const result = await pokeDataService.getCardPricingWithMetadata(cardId);
+        const result = await hybridDataService.getCardPricingWithMetadata(cardId);
         const rawPriceData = result.data;
         
         pricingTimestamp.set(result.timestamp);

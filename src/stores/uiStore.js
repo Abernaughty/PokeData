@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import { pokeDataService } from '../services/pokeDataService';
+import { hybridDataService } from '../services/hybridDataService';
 import { dbService } from '../services/storage/db';
 
 // Create stores for state
@@ -46,14 +46,14 @@ function startBackgroundSync() {
     syncInterval = setInterval(async () => {
         if (navigator.onLine) {
             console.log('Running background sync for current sets...');
-            await pokeDataService.preloadCurrentSets();
+            await hybridDataService.preloadCurrentSets();
         }
     }, 24 * 60 * 60 * 1000); // 24 hours
     
     if (navigator.onLine) {
         setTimeout(async () => {
             console.log('Running initial background sync for current sets...');
-            await pokeDataService.preloadCurrentSets();
+            await hybridDataService.preloadCurrentSets();
         }, 5000);
     }
 }
@@ -78,14 +78,14 @@ function startConfigUpdateInterval() {
     configUpdateInterval = setInterval(async () => {
         if (navigator.onLine) {
             console.log('Running scheduled update of current sets configuration...');
-            await pokeDataService.updateCurrentSetsConfiguration();
+            await hybridDataService.updateCurrentSetsConfiguration();
         }
     }, 7 * 24 * 60 * 60 * 1000); // 7 days
     
     if (navigator.onLine) {
         setTimeout(async () => {
             console.log('Running initial update of current sets configuration...');
-            await pokeDataService.updateCurrentSetsConfiguration();
+            await hybridDataService.updateCurrentSetsConfiguration();
         }, 15000);
     }
 }
