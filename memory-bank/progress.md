@@ -67,6 +67,15 @@ The current state of the PokeData project includes the following working feature
    - ✅ Reference file for application code changes (imageUtils.modified.ts)
 
 10. **Recent Improvements**:
+   - ✅ Integrated Feature Flag Controls into Debug Panel (2025-05-14):
+     - Identified issue with standalone FeatureFlagDebugPanel component not displaying properly
+     - Integrated feature flag controls directly into the existing debug panel UI
+     - Modified src/debug/panel/ui.js to add a new "Feature Flags" section with checkboxes
+     - Added "Apply Changes" and "Reset All Flags" buttons that use the featureFlagService
+     - Removed the standalone FeatureFlagDebugPanel component from App.svelte
+     - Fixed several issues with process.env.NODE_ENV references throughout the codebase
+     - Result: Unified debugging interface with all controls in one place, providing better organization and consistent styling
+
    - ✅ Fixed and Enhanced CosmosDB Integration (2025-05-01):
      - Identified and fixed critical issues with CosmosDB service initialization
      - Completely rewrote CosmosDbService class to use direct container access
@@ -456,7 +465,16 @@ The current state of the PokeData project includes the following working feature
 
 ## Known Issues
 
-1. **Set ID vs. Set Code API Parameter Issue**: ✅ FIXED
+1. **Expansion Grouping Format Mismatch**: ✅ FIXED
+   - Issue: Expansion headers in dropdown only showed the expansion name again instead of the actual sets
+   - Cause: Format mismatch between backend and frontend for grouped sets
+     - Backend format: `[{type: 'group', name: 'X', items: [...]}, ...]`
+     - Frontend expected format: `{'X': [...], 'Y': [...], ...}`
+   - Impact: Poor user experience with unusable expansion grouping in dropdown
+   - Solution: Added transformation logic in cloudDataService.getSetList() to convert between formats
+   - Status: ✅ Fixed on 2025-05-14
+
+2. **Set ID vs. Set Code API Parameter Issue**: ✅ FIXED
    - Issue: API endpoints expect Set Code (e.g., "OBF") but were being queried with Set ID (e.g., "sv8")
    - Cause: Confusion between the two different identifiers used in the Pokémon TCG system
    - Impact: "No results" errors when querying for sets using the wrong identifier

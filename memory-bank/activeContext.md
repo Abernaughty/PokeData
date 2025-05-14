@@ -58,7 +58,26 @@ While the primary focus is on the cloud architecture migration, we're also addre
 
 ## Recent Changes
 
-1. **Confirmed Azure Function and CosmosDB Integration** (2025-05-02):
+1. **Fixed Expansion Grouping in Dropdown Menu** (2025-05-14):
+   - Identified issue with expansion grouping in dropdown where each expansion only showed its name again instead of the actual sets
+   - Discovered format mismatch between backend and frontend for grouped sets
+   - Backend format: `[{type: 'group', name: 'X', items: [...]}, ...]`
+   - Frontend expected format: `{'X': [...], 'Y': [...], ...}`
+   - Added transformation logic in cloudDataService.getSetList() to convert between formats
+   - Implemented detection of grouped sets in API response
+   - Added detailed logging to track the transformation process
+   - Result: Expansion headers now correctly show all sets under each expansion in the dropdown
+
+2. **Integrated Feature Flag Controls into Debug Panel** (2025-05-14):
+   - Identified issue with standalone FeatureFlagDebugPanel component not displaying properly
+   - Integrated feature flag controls directly into the existing debug panel UI
+   - Modified src/debug/panel/ui.js to add a new "Feature Flags" section with checkboxes for Cloud API, Cloud Images, and Cloud Caching
+   - Added "Apply Changes" and "Reset All Flags" buttons that use the featureFlagService
+   - Removed the standalone FeatureFlagDebugPanel component from App.svelte
+   - Fixed several issues with process.env.NODE_ENV references throughout the codebase that were causing errors during the build process
+   - Result: Unified debugging interface with all controls in one place, providing better organization and consistent styling
+
+2. **Confirmed Azure Function and CosmosDB Integration** (2025-05-02):
    - Tested and validated the Azure Function app architecture with CosmosDB
    - Confirmed proper communication between Azure Functions and CosmosDB
    - Verified on-demand population strategy for card data in CosmosDB

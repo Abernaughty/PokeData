@@ -8,7 +8,7 @@ export const cloudDataService = {
    * Get the list of all Pokémon card sets
    * @param {boolean} forceRefresh - Whether to force a refresh from the API
    * @param {boolean} groupByExpansion - Whether to group sets by expansion series
-   * @returns {Promise<Array>} Array of set objects or grouped sets
+   * @returns {Promise<Array|Object>} Array of set objects or grouped sets object
    */
   async getSetList(forceRefresh = false, groupByExpansion = true) {
     try {
@@ -38,7 +38,32 @@ export const cloudDataService = {
       const apiResponse = await response.json();
       console.log('API response for sets:', apiResponse);
       
-      // Return the data from the response
+      // Check if the response contains grouped sets (objects with type: 'group')
+      if (groupByExpansion && apiResponse.data && Array.isArray(apiResponse.data) && 
+          apiResponse.data.length > 0 && apiResponse.data[0].type === 'group') {
+        
+        console.log('Transforming grouped sets format from backend to frontend format...');
+        
+        // Transform from backend format to frontend format
+        // Backend: [{type: 'group', name: 'X', items: [...]}, ...]
+        // Frontend: {'X': [...], 'Y': [...], ...}
+        const transformedGroups = {};
+        
+        apiResponse.data.forEach(group => {
+          if (group.type === 'group' && group.name && Array.isArray(group.items)) {
+            transformedGroups[group.name] = group.items;
+            console.log(`Transformed group "${group.name}" with ${group.items.length} sets`);
+          } else {
+            console.warn('Skipping invalid group in API response:', group);
+          }
+        });
+        
+        console.log('Transformation complete. Returning grouped sets object.');
+        return transformedGroups;
+      }
+      
+      // Return the data as-is if not grouped
+      console.log('Returning set list as array (not grouped or grouping handled by backend).');
       return apiResponse.data;
     } catch (error) {
       console.error('Error fetching sets from cloud API:', error);
