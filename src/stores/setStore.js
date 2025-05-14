@@ -1,5 +1,5 @@
 import { writable, derived } from 'svelte/store';
-import { pokeDataService } from '../services/pokeDataService';
+import { hybridDataService } from '../services/hybridDataService';
 import { expansionMapper } from '../services/expansionMapper';
 import { error } from './uiStore';
 
@@ -15,7 +15,7 @@ export async function loadSets() {
     
     try {
         console.log('Loading set list...');
-        const sets = await pokeDataService.getSetList();
+        const sets = await hybridDataService.getSetList();
         console.log(`Loaded ${sets.length} sets`);
         
         // Group sets by expansion

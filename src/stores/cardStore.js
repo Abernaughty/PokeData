@@ -1,5 +1,5 @@
 import { writable, derived } from 'svelte/store';
-import { pokeDataService } from '../services/pokeDataService';
+import { hybridDataService } from '../services/hybridDataService';
 import { selectedSet } from './setStore';
 import { error } from './uiStore';
 
@@ -40,8 +40,8 @@ export async function loadCardsForSet(set) {
         
         console.log(`Loading cards for set ${set.name} (code: ${set.code}, id: ${set.id})...`);
         
-        // Get cards for the selected set using the pokeDataService
-        let cards = await pokeDataService.getCardsForSet(set.code, set.id);
+        // Get cards for the selected set using the hybridDataService
+        let cards = await hybridDataService.getCardsForSet(set.code, set.id);
         
         console.log(`Received ${cards ? cards.length : 0} cards from API/cache`);
         

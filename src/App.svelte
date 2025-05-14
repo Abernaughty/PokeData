@@ -11,6 +11,7 @@
   import SearchableSelect from './components/SearchableSelect.svelte';
   import CardSearchSelect from './components/CardSearchSelect.svelte';
   import CardVariantSelector from './components/CardVariantSelector.svelte';
+  import FeatureFlagDebugPanel from './components/FeatureFlagDebugPanel.svelte';
   
   // Reference to CardSearchSelect component
   let cardSearchComponent;
@@ -183,6 +184,11 @@
     on:close={closeVariantSelector}
   />
 </main>
+
+<!-- Feature Flag Debug Panel (only in development mode) -->
+{#if process.env.NODE_ENV !== 'production'}
+  <FeatureFlagDebugPanel />
+{/if}
 
 <style>
   main {
