@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Endpoint Tests</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .endpoint {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        .summary {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0,0,0,.3);
+            border-radius: 50%;
+            border-top-color: #000;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <h1>API Endpoint Tests</h1>
+    <p>This page tests the API endpoints for the PokeData application.</p>
+    
+    <button id="runAllTests">Run All Tests</button>
+    
+    <div class="endpoint">
+        <h2>Sets Endpoint</h2>
+        <button class="test-button" data-test="sets">Test Sets Endpoint</button>
+        <div id="sets-result"></div>
+        <pre id="sets-output"></pre>
+    </div>
+    
+    <div class="endpoint">
+        <h2>Cards by Set Endpoint</h2>
+        <div>
+            <label for="set-code">Set Code:</label>
+            <input type="text" id="set-code" value="PRE" placeholder="Enter set code">
+        </div>
+        <button class="test-button" data-test="cards">Test Cards by Set Endpoint</button>
+        <div id="cards-result"></div>
+        <pre id="cards-output"></pre>
+    </div>
+    
+    <div class="endpoint">
+        <h2>Card Info Endpoint</h2>
+        <div>
+            <label for="card-id">Card ID:</label>
+            <input type="text" id="card-id" value="sv8pt5-161" placeholder="Enter card ID">
+        </div>
+        <button class="test-button" data-test="card">Test Card Info Endpoint</button>
+        <div id="card-result"></div>
+        <pre id="card-output"></pre>
+    </div>
+    
+    <div class="summary" id="summary" style="display: none;">
+        <h2>Test Summary</h2>
+        <div id="summary-content"></div>
+    </div>
+    
+    <script>
+        // API Configuration
+        const API_CONFIG = {
+            baseUrl: 'https://maber-apim-test.azure-api.net/pokedata-api',
+            
+            // Subscription key for API Management
+            subscriptionKey: '1c3e73f4352b415c98eb89f91541c4e4',
+            
+            getHeaders() {
+                return {
+                    'Content-Type': 'application/json',
+                    'Ocp-Apim-Subscription-Key': this.subscriptionKey
+                };
+            },
+            
+            buildSetsUrl() {
+                return `${this.baseUrl}/sets`;
+            },
+            
+            buildCardsForSetUrl(setCode) {
+                return `${this.baseUrl}/sets/${encodeURIComponent(setCode)}/cards`;
+            },
+            
+            buildCardInfoUrl(cardId) {
+                return `${this.baseUrl}/cards/${encodeURIComponent(cardId)}`;
+            }
+        };
+        
+        // Test function for the sets endpoint
+        async function testSetsEndpoint() {
+            const resultElement = document.getElementById('sets-result');
+            const outputElement = document.getElementById('sets-output');
+            
+            resultElement.innerHTML = '<div class="loading"></div> Testing...';
+            outputElement.textContent = '';
+            
+            try {
+                const url = API_CONFIG.buildSetsUrl();
+                const output = [`Fetching from: ${url}`];
+                
+                const response = await fetch(url, {
+                    headers: API_CONFIG.getHeaders()
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    output.push(`API error: ${response.status} - ${errorText}`);
+                    resultElement.innerHTML = '<span class="error">FAILED</span>';
+                    outputElement.textContent = output.join('\n');
+                    return false;
+                }
+                
+                const data = await response.json();
+                output.push(`Success! Received ${data.data ? data.data.length : 0} sets.`);
+                output.push(`First few sets: ${JSON.stringify(data.data ? data.data.slice(0, 3) : [], null, 2)}`);
+                
+                resultElement.innerHTML = '<span class="success">PASSED</span>';
+                outputElement.textContent = output.join('\n');
+                return true;
+            } catch (error) {
+                resultElement.innerHTML = '<span class="error">FAILED</span>';
+                outputElement.textContent = `Error testing sets endpoint: ${error.message}`;
+                return false;
+            }
+        }
+        
+        // Test function for the cards by set endpoint
+        async function testCardsBySetEndpoint(setCode = 'PRE') {
+            const resultElement = document.getElementById('cards-result');
+            const outputElement = document.getElementById('cards-output');
+            
+            resultElement.innerHTML = '<div class="loading"></div> Testing...';
+            outputElement.textContent = '';
+            
+            try {
+                const url = API_CONFIG.buildCardsForSetUrl(setCode);
+                const output = [`Fetching from: ${url}`];
+                
+                const response = await fetch(url, {
+                    headers: API_CONFIG.getHeaders()
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    output.push(`API error: ${response.status} - ${errorText}`);
+                    resultElement.innerHTML = '<span class="error">FAILED</span>';
+                    outputElement.textContent = output.join('\n');
+                    return false;
+                }
+                
+                const data = await response.json();
+                output.push(`Success! Received ${data.data && data.data.items ? data.data.items.length : 0} cards.`);
+                output.push(`First few cards: ${JSON.stringify(data.data && data.data.items ? data.data.items.slice(0, 3) : [], null, 2)}`);
+                
+                resultElement.innerHTML = '<span class="success">PASSED</span>';
+                outputElement.textContent = output.join('\n');
+                return true;
+            } catch (error) {
+                resultElement.innerHTML = '<span class="error">FAILED</span>';
+                outputElement.textContent = `Error testing cards by set endpoint for set ${setCode}: ${error.message}`;
+                return false;
+            }
+        }
+        
+        // Test function for the card info endpoint
+        async function testCardInfoEndpoint(cardId = 'sv8pt5-161') {
+            const resultElement = document.getElementById('card-result');
+            const outputElement = document.getElementById('card-output');
+            
+            resultElement.innerHTML = '<div class="loading"></div> Testing...';
+            outputElement.textContent = '';
+            
+            try {
+                const url = API_CONFIG.buildCardInfoUrl(cardId);
+                const output = [`Fetching from: ${url}`];
+                
+                const response = await fetch(url, {
+                    headers: API_CONFIG.getHeaders()
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    output.push(`API error: ${response.status} - ${errorText}`);
+                    resultElement.innerHTML = '<span class="error">FAILED</span>';
+                    outputElement.textContent = output.join('\n');
+                    return false;
+                }
+                
+                const data = await response.json();
+                output.push('Success! Received card data:');
+                output.push(JSON.stringify(data, null, 2));
+                
+                resultElement.innerHTML = '<span class="success">PASSED</span>';
+                outputElement.textContent = output.join('\n');
+                return true;
+            } catch (error) {
+                resultElement.innerHTML = '<span class="error">FAILED</span>';
+                outputElement.textContent = `Error testing card info endpoint for card ${cardId}: ${error.message}`;
+                return false;
+            }
+        }
+        
+        // Run all tests
+        async function runAllTests() {
+            document.getElementById('summary').style.display = 'block';
+            document.getElementById('summary-content').innerHTML = '<div class="loading"></div> Running all tests...';
+            
+            // Test sets endpoint
+            const setsResult = await testSetsEndpoint();
+            
+            // Test cards by set endpoint
+            const setCode = document.getElementById('set-code').value || 'PRE';
+            const cardsBySetResult = await testCardsBySetEndpoint(setCode);
+            
+            // Test card info endpoint
+            const cardId = document.getElementById('card-id').value || 'sv8pt5-161';
+            const cardInfoResult = await testCardInfoEndpoint(cardId);
+            
+            // Summary
+            const summaryContent = [
+                `Sets Endpoint: <span class="${setsResult ? 'success' : 'error'}">${setsResult ? 'PASSED' : 'FAILED'}</span>`,
+                `Cards by Set Endpoint: <span class="${cardsBySetResult ? 'success' : 'error'}">${cardsBySetResult ? 'PASSED' : 'FAILED'}</span>`,
+                `Card Info Endpoint: <span class="${cardInfoResult ? 'success' : 'error'}">${cardInfoResult ? 'PASSED' : 'FAILED'}</span>`,
+                '',
+                setsResult && cardsBySetResult && cardInfoResult
+                    ? '<span class="success">All tests PASSED! The API endpoints are working correctly.</span>'
+                    : '<span class="error">Some tests FAILED. Please check the error messages above.</span>'
+            ];
+            
+            document.getElementById('summary-content').innerHTML = summaryContent.join('<br>');
+        }
+        
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            // Individual test buttons
+            document.querySelectorAll('.test-button').forEach(button => {
+                button.addEventListener('click', async () => {
+                    const test = button.getAttribute('data-test');
+                    
+                    if (test === 'sets') {
+                        await testSetsEndpoint();
+                    } else if (test === 'cards') {
+                        const setCode = document.getElementById('set-code').value || 'PRE';
+                        await testCardsBySetEndpoint(setCode);
+                    } else if (test === 'card') {
+                        const cardId = document.getElementById('card-id').value || 'sv8pt5-161';
+                        await testCardInfoEndpoint(cardId);
+                    }
+                });
+            });
+            
+            // Run all tests button
+            document.getElementById('runAllTests').addEventListener('click', runAllTests);
+        });
+    </script>
+</body>
+</html>
