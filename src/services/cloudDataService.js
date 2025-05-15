@@ -38,10 +38,26 @@ export const cloudDataService = {
       const apiResponse = await response.json();
       console.log('API response for sets:', apiResponse);
       
+      // Ensure we extract the array of sets from the response
+      let setsArray = [];
+      
+      if (apiResponse && Array.isArray(apiResponse)) {
+        // Direct array response
+        setsArray = apiResponse;
+      } else if (apiResponse && apiResponse.data && Array.isArray(apiResponse.data)) {
+        // Data wrapper with array
+        setsArray = apiResponse.data;
+      } else if (apiResponse && apiResponse.sets && Array.isArray(apiResponse.sets)) {
+        // Sets wrapper with array
+        setsArray = apiResponse.sets;
+      } else {
+        console.warn('Unexpected API response format:', apiResponse);
+        // Return empty array as fallback
+        return [];
+      }
+      
       // Check if the response contains grouped sets (objects with type: 'group')
-      if (groupByExpansion && apiResponse.data && Array.isArray(apiResponse.data) && 
-          apiResponse.data.length > 0 && apiResponse.data[0].type === 'group') {
-        
+      if (groupByExpansion && setsArray.length > 0 && setsArray[0].type === 'group') {
         console.log('Transforming grouped sets format from backend to frontend format...');
         
         // Transform from backend format to frontend format
@@ -49,7 +65,7 @@ export const cloudDataService = {
         // Frontend: {'X': [...], 'Y': [...], ...}
         const transformedGroups = {};
         
-        apiResponse.data.forEach(group => {
+        setsArray.forEach(group => {
           if (group.type === 'group' && group.name && Array.isArray(group.items)) {
             transformedGroups[group.name] = group.items;
             console.log(`Transformed group "${group.name}" with ${group.items.length} sets`);
@@ -63,8 +79,8 @@ export const cloudDataService = {
       }
       
       // Return the data as-is if not grouped
-      console.log('Returning set list as array (not grouped or grouping handled by backend).');
-      return apiResponse.data;
+      console.log(`Returning set list as array with ${setsArray.length} sets`);
+      return setsArray;
     } catch (error) {
       console.error('Error fetching sets from cloud API:', error);
       throw error;
@@ -117,8 +133,56 @@ export const cloudDataService = {
       const apiResponse = await response.json();
       console.log(`API response for set ${setCode}:`, apiResponse);
       
-      // Return the paginated data from the response
-      return apiResponse.data;
+      // Extract the cards data from the response
+      let cardsData = { items: [], totalCount: 0, pageNumber: 1, pageSize: 100, totalPages: 0 };
+      
+      if (apiResponse && typeof apiResponse === 'object') {
+        if (apiResponse.data && typeof apiResponse.data === 'object') {
+          // Data wrapper with pagination info
+          cardsData = apiResponse.data;
+        } else if (Array.isArray(apiResponse)) {
+          // Direct array of cards
+          cardsData = { 
+            items: apiResponse,
+            totalCount: apiResponse.length,
+            pageNumber: 1,
+            pageSize: apiResponse.length,
+            totalPages: 1
+          };
+        } else if (apiResponse.cards && Array.isArray(apiResponse.cards)) {
+          // Cards wrapper with array
+          cardsData = {
+            items: apiResponse.cards,
+            totalCount: apiResponse.cards.length,
+            pageNumber: 1,
+            pageSize: apiResponse.cards.length,
+            totalPages: 1
+          };
+        }
+      }
+      
+      // Transform card data to match expected format
+      if (cardsData.items && Array.isArray(cardsData.items)) {
+        cardsData.items = cardsData.items.map(card => {
+          // Create a transformed card, mapping properties from API format to frontend format
+          const transformedCard = {
+            ...card, // Keep all original properties
+            // Map cardName to name if it doesn't already exist
+            name: card.name || card.cardName || `${card.setName} ${card.cardNumber || card.id}`,
+            // Map cardNumber to num if it doesn't already exist
+            num: card.num || card.cardNumber || '',
+            // Ensure the image URL is available
+            image_url: card.image_url || card.imageUrl || (card.images ? (card.images.small || card.images.large) : '')
+          };
+          
+          return transformedCard;
+        });
+        
+        console.log(`Transformed ${cardsData.items.length} cards to match frontend format`);
+      }
+      
+      console.log(`Processed ${cardsData.items ? cardsData.items.length : 0} cards for set ${setCode}`);
+      return cardsData;
     } catch (error) {
       console.error(`Error fetching cards for set ${setCode} from cloud API:`, error);
       throw error;
@@ -159,8 +223,73 @@ export const cloudDataService = {
       const apiResponse = await response.json();
       console.log(`Pricing API response for card ${cardId}:`, apiResponse);
       
-      // Return the card data from the response
-      return apiResponse.data;
+      // Extract the card data from the response
+      let cardData = null;
+      
+      if (apiResponse && typeof apiResponse === 'object') {
+        if (apiResponse.data) {
+          // Data wrapper
+          cardData = apiResponse.data;
+        } else if (apiResponse.card) {
+          // Card wrapper
+          cardData = apiResponse.card;
+        } else if (!apiResponse.data && !apiResponse.card && Object.keys(apiResponse).length > 0) {
+          // Direct card object
+          cardData = apiResponse;
+        }
+      }
+      
+      if (!cardData) {
+        console.warn(`No valid card data found in API response for card ${cardId}`);
+        return null;
+      }
+      
+      // Transform the card data to include pricing in the expected format
+      const transformedCard = {
+        ...cardData,
+        pricing: {} // Create the pricing object expected by the frontend
+      };
+      
+      // Process TCG Player pricing if it exists
+      if (cardData.tcgPlayerPrice) {
+        // Map TCG Player pricing values to the expected format
+        if (cardData.tcgPlayerPrice.market) {
+          transformedCard.pricing.market = { value: cardData.tcgPlayerPrice.market, currency: 'USD' };
+        }
+        if (cardData.tcgPlayerPrice.low) {
+          transformedCard.pricing.low = { value: cardData.tcgPlayerPrice.low, currency: 'USD' };
+        }
+        if (cardData.tcgPlayerPrice.mid) {
+          transformedCard.pricing.mid = { value: cardData.tcgPlayerPrice.mid, currency: 'USD' };
+        }
+        if (cardData.tcgPlayerPrice.high) {
+          transformedCard.pricing.high = { value: cardData.tcgPlayerPrice.high, currency: 'USD' };
+        }
+      }
+      
+      // Process enhanced pricing if it exists
+      if (cardData.enhancedPricing) {
+        // Add PSA graded prices if they exist
+        if (cardData.enhancedPricing.psaGrades) {
+          Object.entries(cardData.enhancedPricing.psaGrades).forEach(([grade, priceInfo]) => {
+            transformedCard.pricing[`psa-${grade}`] = priceInfo;
+          });
+        }
+        // Add CGC graded prices if they exist
+        if (cardData.enhancedPricing.cgcGrades) {
+          Object.entries(cardData.enhancedPricing.cgcGrades).forEach(([grade, priceInfo]) => {
+            transformedCard.pricing[`cgc-${grade}`] = priceInfo;
+          });
+        }
+        // Add eBay raw price if it exists
+        if (cardData.enhancedPricing.ebayRaw) {
+          transformedCard.pricing.ebayRaw = cardData.enhancedPricing.ebayRaw;
+        }
+      }
+      
+      console.log(`Successfully processed pricing data for card ${cardId}`);
+      console.log('Transformed pricing format:', transformedCard.pricing);
+      return transformedCard;
     } catch (error) {
       console.error(`Error fetching pricing for card ${cardId} from cloud API:`, error);
       throw error;
@@ -201,12 +330,94 @@ export const cloudDataService = {
       const apiResponse = await response.json();
       console.log(`Pricing API response for card ${cardId}:`, apiResponse);
       
-      // Return the data with metadata
+      // Extract the card data from the response
+      let cardData = null;
+      
+      if (apiResponse && typeof apiResponse === 'object') {
+        if (apiResponse.data) {
+          // Data wrapper
+          cardData = apiResponse.data;
+        } else if (apiResponse.card) {
+          // Card wrapper
+          cardData = apiResponse.card;
+        } else if (!apiResponse.data && !apiResponse.card && Object.keys(apiResponse).length > 0) {
+          // Direct card object
+          cardData = apiResponse;
+        }
+      }
+      
+      if (!cardData) {
+        console.warn(`No valid card data found in API response for card ${cardId}`);
+        return {
+          data: null,
+          timestamp: Date.now(),
+          fromCache: false,
+          cacheAge: 0
+        };
+      }
+      
+      // Get metadata from response or use defaults
+      const timestamp = apiResponse.timestamp ? new Date(apiResponse.timestamp).getTime() : Date.now();
+      const fromCache = apiResponse.cached || false;
+      const cacheAge = apiResponse.cacheAge || 0;
+      
+      console.log(`Successfully processed pricing data for card ${cardId}`);
+      // Add stale indicator logic for consistency with local API
+      const now = Date.now();
+      const dataAge = now - timestamp;
+      const isStale = dataAge > 24 * 60 * 60 * 1000; // 24 hours
+      
+      // Transform the card data to include pricing in the expected format as we do in getCardPricing
+      const transformedCard = {
+        ...cardData,
+        pricing: {} // Create the pricing object expected by the frontend
+      };
+      
+      // Process TCG Player pricing if it exists
+      if (cardData.tcgPlayerPrice) {
+        // Map TCG Player pricing values to the expected format
+        if (cardData.tcgPlayerPrice.market) {
+          transformedCard.pricing.market = { value: cardData.tcgPlayerPrice.market, currency: 'USD' };
+        }
+        if (cardData.tcgPlayerPrice.low) {
+          transformedCard.pricing.low = { value: cardData.tcgPlayerPrice.low, currency: 'USD' };
+        }
+        if (cardData.tcgPlayerPrice.mid) {
+          transformedCard.pricing.mid = { value: cardData.tcgPlayerPrice.mid, currency: 'USD' };
+        }
+        if (cardData.tcgPlayerPrice.high) {
+          transformedCard.pricing.high = { value: cardData.tcgPlayerPrice.high, currency: 'USD' };
+        }
+      }
+      
+      // Process enhanced pricing if it exists
+      if (cardData.enhancedPricing) {
+        // Add PSA graded prices if they exist
+        if (cardData.enhancedPricing.psaGrades) {
+          Object.entries(cardData.enhancedPricing.psaGrades).forEach(([grade, priceInfo]) => {
+            transformedCard.pricing[`psa-${grade}`] = priceInfo;
+          });
+        }
+        // Add CGC graded prices if they exist
+        if (cardData.enhancedPricing.cgcGrades) {
+          Object.entries(cardData.enhancedPricing.cgcGrades).forEach(([grade, priceInfo]) => {
+            transformedCard.pricing[`cgc-${grade}`] = priceInfo;
+          });
+        }
+        // Add eBay raw price if it exists
+        if (cardData.enhancedPricing.ebayRaw) {
+          transformedCard.pricing.ebayRaw = cardData.enhancedPricing.ebayRaw;
+        }
+      }
+      
+      console.log('Transformed pricing data for with-metadata response');
+      
       return {
-        data: apiResponse.data,
-        timestamp: new Date(apiResponse.timestamp).getTime(),
-        fromCache: apiResponse.cached || false,
-        cacheAge: apiResponse.cacheAge || 0
+        data: transformedCard,
+        timestamp: timestamp,
+        fromCache: fromCache,
+        cacheAge: cacheAge,
+        isStale: isStale
       };
     } catch (error) {
       console.error(`Error fetching pricing for card ${cardId} from cloud API:`, error);

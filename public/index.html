@@ -372,7 +372,11 @@
             // Create script element dynamically to ensure it loads after initialization
             const script = document.createElement('script');
             script.type = 'module';
-            script.src = './build/main.js?v=' + Date.now(); // Add cache-busting parameter
+            
+            // Use a more stable version timestamp to avoid multiple concurrent requests
+            // This prevents the content length mismatch errors
+            const ts = Math.floor(Date.now() / 10000) * 10000; // Round to nearest 10 seconds
+            script.src = './build/main.js?v=' + ts;
             
             // Set up load and error handlers
             script.onload = () => {
