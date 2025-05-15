@@ -54,7 +54,8 @@ module.exports = {
 replace({
     preventAssignment: true,
     values: {
-        'process.env.NODE_ENV': JSON.stringify(production ? 'production' : 'development'),
+        // Always use 'development' for now
+        'process.env.NODE_ENV': JSON.stringify('development'),
         'process.env.API_BASE_URL': JSON.stringify(API_BASE_URL),
         // Add a timestamp for cache busting in development
         'process.env.BUILD_TIME': JSON.stringify(new Date().toISOString())

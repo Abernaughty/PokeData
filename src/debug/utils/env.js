@@ -13,17 +13,13 @@ import { loggerService } from '../../services/loggerService';
  * Logs information about the API configuration and environment
  */
 export function debugApiConfig() {
-  // Only run in development mode
-  if (process.env.NODE_ENV === 'production') {
-    loggerService.warn('API configuration debugging should not be run in production');
-    return;
-  }
+  // Always run for now (removed production check)
   
   loggerService.groupCollapsed('API Configuration Debug');
   loggerService.debug('Running debug check at:', new Date().toISOString());
   
   // Check Node environment
-  loggerService.debug('NODE_ENV:', process.env.NODE_ENV || 'not set');
+  loggerService.debug('NODE_ENV: development (hardcoded)');
   
   // Check API configuration
   loggerService.debug('API Base URL:', API_CONFIG.baseUrl);
@@ -45,7 +41,7 @@ export function debugApiConfig() {
   loggerService.groupEnd();
   
   return {
-    environment: process.env.NODE_ENV || 'not set',
+    environment: 'development',
     apiBaseUrl: API_CONFIG.baseUrl,
     hasSubscriptionKey: !!API_CONFIG.subscriptionKey,
     headers: Object.keys(headers),

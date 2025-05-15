@@ -307,10 +307,7 @@ function createDebugPanel() {
  * Initialize the debug panel
  */
 export function initDebugPanel() {
-  // Only initialize in development mode
-  if (process.env.NODE_ENV === 'production') {
-    return;
-  }
+  // Always initialize for now (removed production check)
   
   // Check if panel already exists
   if (document.getElementById('poke-data-debug-panel')) {

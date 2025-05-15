@@ -10,15 +10,16 @@ import panel from './panel';
 import * as tools from './tools';
 import * as utils from './utils';
 import { loggerService } from '../services/loggerService';
+import { featureFlagService } from '../services/featureFlagService';
+
+// Log which panel is being used
+console.log('Debug panel module:', panel);
 
 /**
  * Initialize the debug system and create the global pokeDataDebug object
  */
 export function initializeDebugSystem() {
-  // Only initialize in development mode
-  if (process.env.NODE_ENV === 'production') {
-    return null;
-  }
+  // Always initialize for now (removed production check)
   
   loggerService.info('Initializing PokeData debug system');
   

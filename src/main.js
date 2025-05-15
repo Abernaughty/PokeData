@@ -48,16 +48,14 @@ function initializeApp() {
   // Log successful initialization
   loggerService.success('PokeData application initialized successfully');
   
-  // Initialize debug system in development mode
-  if (process.env.NODE_ENV !== 'production') {
-    // Initialize the debug system
-    window.pokeDataDebug = initializeDebugSystem();
-    
-    // Run logger test in development mode
-    setTimeout(() => {
-      testLogger();
-    }, 1000);
-  }
+  // Initialize debug system (always enabled for now)
+  // Initialize the debug system
+  window.pokeDataDebug = initializeDebugSystem();
+  
+  // Run logger test
+  setTimeout(() => {
+    testLogger();
+  }, 1000);
   
   return app;
 }
