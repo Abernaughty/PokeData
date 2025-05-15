@@ -14,7 +14,7 @@ const LOG_LEVELS = {
 
 // Default configuration
 const DEFAULT_CONFIG = {
-  level: process.env.NODE_ENV === 'production' ? LOG_LEVELS.ERROR : LOG_LEVELS.DEBUG,
+  level: LOG_LEVELS.DEBUG, // Always use DEBUG for now
   enableTimestamps: true,
   enableColors: true,
   groupTimingLogs: true,

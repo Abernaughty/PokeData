@@ -9,7 +9,7 @@ import { API_CONFIG } from './data/apiConfig';
   console.log('Running debug check at:', new Date().toISOString());
   
   // Check Node environment
-  console.log('NODE_ENV:', process.env.NODE_ENV || 'not set');
+  console.log('NODE_ENV: development (hardcoded)');
   
   // Check API configuration
   console.log('API Base URL:', API_CONFIG.baseUrl);

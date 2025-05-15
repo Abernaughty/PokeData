@@ -8,7 +8,7 @@ import { loggerService } from './services/loggerService';
 // Default debug configuration
 const DEFAULT_CONFIG = {
   // Log level: DEBUG, INFO, WARN, ERROR, or NONE
-  logLevel: process.env.NODE_ENV === 'production' ? 'ERROR' : 'DEBUG',
+  logLevel: 'DEBUG', // Always use DEBUG for now
   
   // Enable/disable specific loggers
   enabledLoggers: {

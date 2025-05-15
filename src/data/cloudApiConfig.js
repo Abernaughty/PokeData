@@ -1,16 +1,16 @@
 // Cloud API Configuration
 export const API_CONFIG = {
-  // Base URL for the Azure Functions API
-  baseUrl: 'https://pokedata-func.azurewebsites.net/api',
+  // Base URL for the API Management endpoint
+  baseUrl: 'https://maber-apim-test.azure-api.net/pokedata-api',
   
   // Subscription key for API Management
-  subscriptionKey: '1c3e73f4352b415c98eb89f91541c4e4', // Same key as current API
+  subscriptionKey: '1c3e73f4352b415c98eb89f91541c4e4',
   
   // Headers function to get standard headers
   getHeaders() {
     return {
-      'Ocp-Apim-Subscription-Key': this.subscriptionKey,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'Ocp-Apim-Subscription-Key': this.subscriptionKey
     };
   },
   

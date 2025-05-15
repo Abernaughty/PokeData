@@ -6,6 +6,7 @@
  */
 
 import { loggerService } from '../../services/loggerService';
+import { featureFlagService } from '../../services/featureFlagService';
 import * as config from '../config';
 import * as styles from './styles';
 
@@ -126,6 +127,66 @@ function createDebugPanel() {
   
   toolsSection.appendChild(toolButtons);
   
+  // Add feature flags section
+  const featureFlagsSection = document.createElement('div');
+  featureFlagsSection.style.cssText = styles.SECTION_STYLES;
+  featureFlagsSection.innerHTML = '<h3 style="margin: 0 0 5px 0;">Feature Flags</h3>';
+  content.appendChild(featureFlagsSection);
+  
+  // Add feature flag checkboxes
+  const featureFlags = [
+    { id: 'useCloudApi', label: 'Use Cloud API' },
+    { id: 'useCloudImages', label: 'Use Cloud Images' },
+    { id: 'useCloudCaching', label: 'Use Cloud Caching' }
+  ];
+  
+  // Create checkboxes for each feature flag
+  featureFlags.forEach(flag => {
+    const label = document.createElement('label');
+    label.style.cssText = styles.CHECKBOX_LABEL_STYLES;
+    
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = `feature-flag-${flag.id}`;
+    checkbox.checked = featureFlagService.getFlag(flag.id, false);
+    
+    label.appendChild(checkbox);
+    label.appendChild(document.createTextNode(` ${flag.label}`));
+    featureFlagsSection.appendChild(label);
+  });
+  
+  // Add feature flag buttons
+  const featureFlagButtons = document.createElement('div');
+  featureFlagButtons.style.cssText = 'display: flex; justify-content: space-between; margin-top: 10px;';
+  
+  // Apply changes button
+  const applyButton = document.createElement('button');
+  applyButton.textContent = 'Apply Changes';
+  applyButton.style.cssText = styles.BUTTON_STYLES + 'background-color: #28a745;';
+  applyButton.addEventListener('click', () => {
+    // Get all feature flag values and apply them
+    featureFlags.forEach(flag => {
+      const checkbox = document.getElementById(`feature-flag-${flag.id}`);
+      featureFlagService.setFlag(flag.id, checkbox.checked);
+    });
+    
+    // Reload the page to apply changes
+    window.location.reload();
+  });
+  
+  // Reset button
+  const resetButton = document.createElement('button');
+  resetButton.textContent = 'Reset All Flags';
+  resetButton.style.cssText = styles.BUTTON_STYLES + 'background-color: #dc3545;';
+  resetButton.addEventListener('click', () => {
+    featureFlagService.resetAllFlags();
+    window.location.reload();
+  });
+  
+  featureFlagButtons.appendChild(applyButton);
+  featureFlagButtons.appendChild(resetButton);
+  featureFlagsSection.appendChild(featureFlagButtons);
+  
   // Add actions section
   const actionsSection = document.createElement('div');
   actionsSection.style.cssText = styles.SECTION_STYLES;
@@ -237,10 +298,7 @@ function createDebugPanel() {
  * Initialize the debug panel
  */
 export function initDebugPanel() {
-  // Only initialize in development mode
-  if (process.env.NODE_ENV === 'production') {
-    return;
-  }
+  // Always initialize for now (removed production check)
   
   // Check if panel already exists
   if (document.getElementById('poke-data-debug-panel')) {
