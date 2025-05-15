@@ -45,9 +45,12 @@ function serve() {
 module.exports = {
     input: 'src/main.js',
     output: {
-        sourcemap: true,
+        sourcemap: production, // Only generate source maps in production
         format: 'esm',
-        dir: 'public/build'
+        dir: 'public/build',
+        // Add a timestamp to the filename to prevent caching issues
+        entryFileNames: `[name]${production ? '.min' : ''}.js`,
+        chunkFileNames: `[name]${production ? '.min' : ''}.js`
     },
     plugins: [
 // Replace environment variables in the bundle

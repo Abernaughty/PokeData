@@ -65,8 +65,16 @@ export async function loadCardsForSet(set) {
             image_url: card.image_url || ''
         }));
         
+        // Sort cards by card number
+        transformedCards.sort((a, b) => {
+            // Extract numeric part from card numbers (e.g. "001" → 1)
+            const numA = a.num ? parseInt(a.num.replace(/\D/g, '')) : 0;
+            const numB = b.num ? parseInt(b.num.replace(/\D/g, '')) : 0;
+            return numA - numB;
+        });
+        
         cardsInSet.set(transformedCards);
-        console.log(`Transformed ${transformedCards.length} cards for display`);
+        console.log(`Transformed and sorted ${transformedCards.length} cards for display`);
         
         // Check if any cards lack name property
         const invalidCards = cards.filter(card => !card.name);

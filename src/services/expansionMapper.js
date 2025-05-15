@@ -92,6 +92,12 @@ function getExpansionForSet(set) {
  * @returns {Object} Object with expansion names as keys and arrays of sets as values
  */
 function groupSetsByExpansion(sets) {
+  // Safety check - if sets is not an array, return an empty object
+  if (!Array.isArray(sets)) {
+    console.warn('groupSetsByExpansion was called with non-array input:', sets);
+    return {};
+  }
+  
   const groupedSets = {};
 
   // First pass: group sets by expansion
@@ -122,6 +128,12 @@ function groupSetsByExpansion(sets) {
  * @returns {Array} Array of objects with type, label, and items properties
  */
 function prepareGroupedSetsForDropdown(groupedSets) {
+  // Safety check - if groupedSets is not an object, return an empty array
+  if (!groupedSets || typeof groupedSets !== 'object' || Array.isArray(groupedSets)) {
+    console.warn('prepareGroupedSetsForDropdown was called with invalid input:', groupedSets);
+    return [];
+  }
+  
   // Sort expansions by priority (newest first)
   const expansionPriority = [
     "Scarlet & Violet",
