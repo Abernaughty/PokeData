@@ -52,7 +52,13 @@ export function formatPrice(value) {
 }
 
 // Actions
-export async function fetchCardPrice(cardId) {
+/**
+ * Fetch price data for a card
+ * @param {string} cardId - The card ID
+ * @param {boolean} forceRefresh - Whether to force a refresh from the API
+ * @returns {Promise<void>}
+ */
+export async function fetchCardPrice(cardId, forceRefresh = false) {
     let online;
     isOnline.subscribe(value => { online = value; })();
     
@@ -75,10 +81,10 @@ export async function fetchCardPrice(cardId) {
     priceData.set(null);
     
     try {
-        console.log(`Fetching price data for card ID: ${cardId}`);
+        console.log(`Fetching price data for card ID: ${cardId}${forceRefresh ? ' (force refresh)' : ''}`);
         
         // Load pricing data with metadata using the card ID
-        const result = await hybridDataService.getCardPricingWithMetadata(cardId);
+        const result = await hybridDataService.getCardPricingWithMetadata(cardId, forceRefresh);
         const rawPriceData = result.data;
         
         pricingTimestamp.set(result.timestamp);

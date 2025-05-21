@@ -7,9 +7,30 @@
   <title>Pokémon Card Price Checker</title>
 
   <link rel='icon' type='image/x-icon' href='./images/favicon.ico'>
-  <link rel='stylesheet' href='./global.css?v=20250427' id="global-css">
-  <link rel='stylesheet' href='./build/bundle.css?v=20250427' id="bundle-css">
+  <!-- Static links that will be updated by script -->
+  <link rel='stylesheet' href='./global.css?v=20250520' id="global-css">
+  <link rel='stylesheet' href='./build/bundle.css?v=20250520' id="bundle-css">
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" id="font-css">
+  
+  <!-- Add dynamic cache busting to CSS links -->
+  <script>
+    (function() {
+      // Add timestamp to CSS links to prevent caching
+      const timestamp = new Date().getTime();
+      const globalCSS = document.getElementById('global-css');
+      const bundleCSS = document.getElementById('bundle-css');
+      
+      if (globalCSS) {
+        let href = globalCSS.getAttribute('href').split('?')[0];
+        globalCSS.setAttribute('href', href + '?v=' + timestamp);
+      }
+      
+      if (bundleCSS) {
+        let href = bundleCSS.getAttribute('href').split('?')[0];
+        bundleCSS.setAttribute('href', href + '?v=' + timestamp);
+      }
+    })();
+  </script>
 
   <!-- Prevent LiveReload on production -->
   <script>
@@ -372,7 +393,11 @@
             // Create script element dynamically to ensure it loads after initialization
             const script = document.createElement('script');
             script.type = 'module';
-            script.src = './build/main.js?v=' + Date.now(); // Add cache-busting parameter
+            
+            // Use a more stable version timestamp to avoid multiple concurrent requests
+            // This prevents the content length mismatch errors
+            const ts = Math.floor(Date.now() / 10000) * 10000; // Round to nearest 10 seconds
+            script.src = './build/main.js?v=' + ts;
             
             // Set up load and error handlers
             script.onload = () => {

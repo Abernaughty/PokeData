@@ -52,21 +52,53 @@ export class PokemonTcgApiService implements IPokemonTcgApiService {
         }
     }
     
-    async getCardsBySet(setCode: string): Promise<Card[]> {
+async getCardsBySet(setCode: string): Promise<Card[]> {
         console.log(`[PokemonTcgApiService] Getting cards for set: ${setCode}`);
         
         try {
-            const response = await axios.get(`${this.baseUrl}/cards`, { 
-                headers: this.getHeaders(),
-                params: {
-                    q: `set.ptcgoCode:${setCode}`,
-                    orderBy: 'number',
-                    page: 1,
-                    pageSize: 250
-                }
-            });
+            // Implementation with proper pagination to handle sets with more than 250 cards
+            let allCards: any[] = [];
+            let page = 1;
+            let hasMorePages = true;
+            const pageSize = 250; // Maximum page size supported by the API
             
-            return response.data.data.map((apiCard: any) => this.mapApiCardToCard(apiCard));
+            console.log(`[PokemonTcgApiService] Fetching cards with pagination (pageSize: ${pageSize})`);
+            
+            // Keep fetching pages until no more data is returned
+            while (hasMorePages) {
+                console.log(`[PokemonTcgApiService] Fetching page ${page} for set ${setCode}`);
+                
+                const response = await axios.get(`${this.baseUrl}/cards`, { 
+                    headers: this.getHeaders(),
+                    params: {
+                        q: `set.ptcgoCode:${setCode}`,
+                        orderBy: 'number',
+                        page: page,
+                        pageSize: pageSize
+                    }
+                });
+                
+                const pageData = response.data.data || [];
+                
+                // Add cards from this page to our collection
+                allCards = [...allCards, ...pageData];
+                
+                // Check if we need to fetch more pages
+                // If we got fewer results than pageSize, we've reached the end
+                if (pageData.length < pageSize) {
+                    hasMorePages = false;
+                    console.log(`[PokemonTcgApiService] Reached the end of pages for set ${setCode} (received ${pageData.length} cards)`);
+                } else {
+                    // If we got a full page, there might be more
+                    page++;
+                    console.log(`[PokemonTcgApiService] Retrieved ${pageData.length} cards, proceeding to page ${page}`);
+                }
+            }
+            
+            console.log(`[PokemonTcgApiService] Retrieved a total of ${allCards.length} cards for set ${setCode}`);
+            
+            // Map API response to our Card model
+            return allCards.map((apiCard: any) => this.mapApiCardToCard(apiCard));
         } catch (error: any) {
             console.error(`[PokemonTcgApiService] Error getting cards for set ${setCode}: ${error.message}`);
             return [];

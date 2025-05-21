@@ -1,17 +1,10 @@
 // API Configuration
 export const API_CONFIG = {
   // Base URL for the API
-  baseUrl: 'https://maber-apim-test.azure-api.net/pokedata-api/v0',
+  baseUrl: 'https://maber-apim-test.azure-api.net/pokedata-api',
   
   // Subscription key for API Management
   subscriptionKey: '1c3e73f4352b415c98eb89f91541c4e4',
-  
-  // Endpoints
-  endpoints: {
-    pricing: '/pricing', // Get Info and Pricing for Card or Product
-    sets: '/sets',      // List All Sets 
-    set: '/set'         // List Cards in Set
-  },
   
   // Headers function to get standard headers
   getHeaders() {
@@ -21,16 +14,16 @@ export const API_CONFIG = {
     };
   },
   
-  // URL builder functions
+  // URL builder functions - Updated to match API Management endpoints
   buildPricingUrl(id) {
-    return `${this.baseUrl}${this.endpoints.pricing}?id=${encodeURIComponent(id)}&asset_type=CARD`;
+    return `${this.baseUrl}/cards/${encodeURIComponent(id)}`;
   },
   
   buildSetsUrl() {
-    return `${this.baseUrl}${this.endpoints.sets}`;
+    return `${this.baseUrl}/sets`;
   },
   
-  buildCardsForSetUrl(setId) {
-    return `${this.baseUrl}${this.endpoints.set}?set_id=${encodeURIComponent(setId)}`;
+  buildCardsForSetUrl(setCode) {
+    return `${this.baseUrl}/sets/${encodeURIComponent(setCode)}/cards`;
   }
 };

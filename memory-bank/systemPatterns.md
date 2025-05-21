@@ -624,6 +624,89 @@ App.svelte
 4. Function invalidates relevant Redis cache entries
 5. Next user request gets fresh data
 
+## Pagination Patterns
+
+### Cloud API Pagination Strategy
+1. **Server-Side Pagination**:
+   - Azure Functions use a slicing approach to return paginated results
+   - Default page size set to 500 cards to handle all current sets
+   - Key learning: Always explicitly set pageSize parameter in requests rather than relying on server defaults
+   - Implementation supports both single-page and multi-page retrieval modes
+
+2. **Client-Side Pagination**:
+   - cloudDataService.js implements multiple page fetching when needed
+   - Automatic handling to retrieve all pages for complete data sets
+   - Response structure includes metadata (`totalCount`, `pageSize`, `pageNumber`, `totalPages`)
+   - Aggregation of multiple pages into a single result set
+
+3. **Component-Level Pagination**:
+   - CardSearchSelect component implements a display limit (now 500, previously 100)
+   - Client-side filtering with fallback to showing first 500 items
+   - Avoids UI performance issues with extremely large lists
+   - Maintains full dataset in memory for searching functionality
+
+### Pagination Implementation Details
+1. **Server-Side Implementation**:
+   ```typescript
+   // Apply pagination
+   const totalCount = cards.length;
+   const totalPages = Math.ceil(totalCount / pageSize);
+   const startIndex = (page - 1) * pageSize;
+   const endIndex = Math.min(startIndex + pageSize, totalCount);
+   const paginatedCards = cards.slice(startIndex, endIndex);
+   ```
+
+2. **Client-Side Implementation**:
+   ```javascript
+   // Client-side pagination in cloudDataService.js
+   async getCardsForSet(setCode, options = {}) {
+     // Default options
+     const fetchAllPages = options.fetchAllPages !== false;
+     const pageSize = options.pageSize || 500;
+     
+     if (!fetchAllPages) {
+       return this.fetchCardsPage(setCode, initialPage, pageSize, options.forceRefresh);
+     }
+     
+     // If fetching all pages, start with page 1 and continue until all pages are retrieved
+     let allCards = [];
+     let currentPage = initialPage;
+     let totalPages = 1;
+     
+     // Fetch first page to get total pages
+     const firstPageResult = await this.fetchCardsPage(setCode, currentPage, pageSize, options.forceRefresh);
+     totalPages = firstPageResult.totalPages || 1;
+     allCards = [...allCards, ...firstPageResult.items];
+     
+     // Fetch remaining pages if any
+     while (currentPage < totalPages) {
+       currentPage++;
+       const pageResult = await this.fetchCardsPage(setCode, currentPage, pageSize, options.forceRefresh);
+       allCards = [...allCards, ...pageResult.items];
+     }
+     
+     return {
+       items: allCards,
+       totalCount: totalCount,
+       pageNumber: 1,
+       pageSize: allCards.length,
+       totalPages: 1
+     };
+   }
+   ```
+
+3. **Component-Level Implementation**:
+   ```javascript
+   // CardSearchSelect.svelte display limit
+   if (searchText && searchText.trim() !== '') {
+     // Filter cards based on search text
+     filteredCards = cards.filter(card => { /* filtering logic */ });
+   } else {
+     // When empty, show all cards up to the limit
+     filteredCards = [...cards].slice(0, 500);
+   }
+   ```
+
 ## Performance Considerations
 
 ### Current Performance Considerations

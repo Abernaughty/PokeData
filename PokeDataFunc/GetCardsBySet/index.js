@@ -29,7 +29,7 @@ async function getCardsBySet(request, context) {
         // Parse query parameters
         const forceRefresh = request.query.get("forceRefresh") === "true";
         const page = parseInt(request.query.get("page") || "1");
-        const pageSize = parseInt(request.query.get("pageSize") || "100");
+        const pageSize = parseInt(request.query.get("pageSize") || "500"); // Default of 500 to handle all current sets
         const cardsTtl = parseInt(process.env.CACHE_TTL_CARDS || "86400"); // 24 hours default
         // Validate pagination parameters
         if (page < 1 || pageSize < 1 || pageSize > 500) {
@@ -93,6 +93,7 @@ async function getCardsBySet(request, context) {
         const startIndex = (page - 1) * pageSize;
         const endIndex = Math.min(startIndex + pageSize, totalCount);
         const paginatedCards = cards.slice(startIndex, endIndex);
+        context.log(`Returning ${paginatedCards.length} cards out of ${totalCount} total cards`);
         // Process image URLs for paginated cards
         const processedCards = [];
         for (const card of paginatedCards) {
