@@ -5,7 +5,10 @@ const axios = require('axios');
 
 // Configuration
 const AZURE_URL = 'https://pokedata-func.azurewebsites.net/api';
-const FUNCTION_KEY = "7dq8aHEWt4ngfLOX6p1tL7-c9Dy6B4-ip3up0cNMl07mAzFuKESTuA==";
+// Get function key from environment variables or use empty string for anonymous access
+// You can set this in your .env file or as a system environment variable:
+// AZURE_FUNCTION_KEY=your-key-here
+const FUNCTION_KEY = process.env.AZURE_FUNCTION_KEY || "";
 const CARD_ID = 'sv8pt5-161'; // Umbreon ex from Prismatic Evolutions
 const FORCE_REFRESH = true; // Set to true to bypass cache
 

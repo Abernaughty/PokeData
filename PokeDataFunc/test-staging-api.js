@@ -4,15 +4,13 @@
 const axios = require('axios');
 
 // Staging environment URL
-const STAGING_URL = 'https://pokedata-func.azurewebsites.net/api';
+const STAGING_URL = 'https://pokedata-func-staging.azurewebsites.net/api';
 const SET_CODE = 'PRE'; // Prismatic Evolutions (has more than 100 cards)
 
 // Function key for authentication
 // You need to provide a valid function key from the Azure portal
 // or set it as an environment variable
-const FUNCTION_KEY = "7dq8aHEWt4ngfLOX6p1tL7-c9Dy6B4-ip3up0cNMl07mAzFuKESTuA==";
-// https://pokedata-func.azurewebsites.net/api/sets/{setCode}/cards?code=7dq8aHEWt4ngfLOX6p1tL7-c9Dy6B4-ip3up0cNMl07mAzFuKESTuA==
-// https://pokedata-func-staging.azurewebsites.net/api/sets/PRE/cards
+const FUNCTION_KEY = process.env.AZURE_FUNCTION_KEY || "";
 
 if (!FUNCTION_KEY) {
   console.error('Error: No function key provided. Set the AZURE_FUNCTION_KEY environment variable.');
