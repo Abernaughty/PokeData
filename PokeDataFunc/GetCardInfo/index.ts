@@ -29,6 +29,68 @@ const pokeDataApiService = new PokeDataApiService(
     process.env.POKEDATA_API_BASE_URL
 );
 
+// Helper function to enrich a card with its PokeData ID
+async function enrichCardWithPokeDataId(cardToEnrich: Card, ctx: InvocationContext): Promise<boolean> {
+    try {
+        ctx.log(`[GetCardInfo] Starting enrichment for card ${cardToEnrich.id} with setCode ${cardToEnrich.setCode}`);
+        
+        // Get cards in the set from PokeData API
+        const pokeDataCards = await pokeDataApiService.getCardsInSetByCode(cardToEnrich.setCode);
+        
+        if (pokeDataCards && pokeDataCards.length > 0) {
+            ctx.log(`[GetCardInfo] Retrieved ${pokeDataCards.length} cards from PokeData API for set ${cardToEnrich.setCode}`);
+            
+            // Find the matching card by card number
+            // Note: Must use exact matching as card numbers in PokeData are formatted exactly (no padding)
+            const matchingCard = pokeDataCards.find(
+                pdc => pdc.num === cardToEnrich.cardNumber
+            );
+            
+            // If no exact match found, try with leading zeros removed
+            // This handles cases where our cardNumber might be "076" but PokeData has "76"
+            if (!matchingCard) {
+                const trimmedNumber = cardToEnrich.cardNumber.replace(/^0+/, '');
+                ctx.log(`[GetCardInfo] No exact match found, trying with trimmed number: ${trimmedNumber}`);
+                
+                const altMatch = pokeDataCards.find(
+                    pdc => pdc.num === trimmedNumber
+                );
+                
+                if (altMatch) {
+                    ctx.log(`[GetCardInfo] Found card with trimmed number ${trimmedNumber} instead of ${cardToEnrich.cardNumber}`);
+                    cardToEnrich.pokeDataId = altMatch.id;
+                    return true;
+                }
+            }
+            
+            if (matchingCard) {
+                ctx.log(`[GetCardInfo] Found matching PokeData card: ${matchingCard.name} with ID: ${matchingCard.id}`);
+                cardToEnrich.pokeDataId = matchingCard.id;
+                return true;
+            } else {
+                ctx.log(`[GetCardInfo] No matching card found for number ${cardToEnrich.cardNumber} in set ${cardToEnrich.setCode}`);
+            }
+        } else {
+            ctx.log(`[GetCardInfo] No cards returned from PokeData API for set ${cardToEnrich.setCode}`);
+        }
+    } catch (error: any) {
+        ctx.log(`[GetCardInfo] Error enriching card with PokeData ID: ${error.message}`);
+    }
+    
+    return false;
+}
+
+// Helper function to check if pricing data is stale
+function isPricingStale(timestamp: string): boolean {
+    if (!timestamp) return true;
+    
+    const lastUpdate = new Date(timestamp).getTime();
+    const now = Date.now();
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    
+    return (now - lastUpdate) > oneDayMs;
+}
+
 export async function getCardInfo(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
     try {
         // Get card ID from route parameters
@@ -46,7 +108,14 @@ export async function getCardInfo(request: HttpRequest, context: InvocationConte
         
         // Parse query parameters
         const forceRefresh = request.query.get("forceRefresh") === "true";
-        const cardsTtl = parseInt(process.env.CACHE_TTL_CARDS || "86400"); // 24 hours default
+        // Ensure cardsTtl is a valid number
+        let cardsTtl: number = 86400; // 24 hours default
+        try {
+            const ttlFromEnv = parseInt(process.env.CACHE_TTL_CARDS || "86400");
+            cardsTtl = !isNaN(ttlFromEnv) ? ttlFromEnv : 86400;
+        } catch (e: any) {
+            context.log(`[GetCardInfo] Error parsing CACHE_TTL_CARDS, using default: ${e.message}`);
+        }
         
         // Check Redis cache first (if enabled and not forcing refresh)
         const cacheKey = getCardCacheKey(cardId);
@@ -61,7 +130,10 @@ export async function getCardInfo(request: HttpRequest, context: InvocationConte
             if (card) {
                 context.log(`Cache hit for card: ${cardId}`);
                 cacheHit = true;
-                cacheAge = cachedEntry ? getCacheAge(cachedEntry.timestamp) : 0;
+                // Ensure cachedEntry is not null before calling getCacheAge
+                if (cachedEntry) {
+                    cacheAge = getCacheAge(cachedEntry.timestamp);
+                }
             }
         }
         
@@ -75,19 +147,51 @@ export async function getCardInfo(request: HttpRequest, context: InvocationConte
                 context.log(`Card not found in database, fetching from API: ${cardId}`);
                 card = await pokemonTcgApiService.getCard(cardId);
                 
-                // If card found, try to enhance it with PokeData ID
+                // If card found, save to database
                 if (card) {
-                    // Try to get the PokeData ID for this card
-                    await enrichCardWithPokeDataId(card, context);
-                    
-                    // Save to database even without pricing data
+                    context.log(`[GetCardInfo] Card found in Pokemon TCG API, saving to database`);
                     await cosmosDbService.saveCard(card);
                 }
             }
+        }
+        
+        // Now that we have the card (from cache, DB, or API), check for enrichment
+        if (card) {
+            // Log card state before enrichment
+            context.log(`[GetCardInfo] Card state before enrichment check: id=${card.id}, setCode=${card.setCode}, hasPokeDataId=${!!card.pokeDataId}, hasPricing=${!!card.pricing}`);
             
-            // If card has a pokeDataId but no pricing or stale pricing, fetch fresh pricing
-            if (card && card.pokeDataId && (forceRefresh || !card.pricing || !card.pricingLastUpdated || isPricingStale(card.pricingLastUpdated))) {
-                context.log(`[GetCardInfo] Fetching fresh pricing data using PokeData ID: ${card.pokeDataId}`);
+            let cardUpdated = false;
+            
+            // Check if card needs PokeData ID
+            if (!card.pokeDataId) {
+                context.log(`[GetCardInfo] Card ${cardId} missing PokeData ID, attempting to find it`);
+                const enrichResult = await enrichCardWithPokeDataId(card, context);
+                
+                if (enrichResult) {
+                    context.log(`[GetCardInfo] Successfully added PokeData ID: ${card.pokeDataId} to card ${cardId}`);
+                    cardUpdated = true;
+                    
+                    // If we now have a pokeDataId, we can fetch pricing
+                    // Ensure pokeDataId is not undefined
+                    if (card.pokeDataId) {
+                        const freshPricing = await pokeDataApiService.getCardPricingById(card.pokeDataId);
+                        if (freshPricing) {
+                            context.log(`[GetCardInfo] Retrieved pricing data for PokeData ID: ${card.pokeDataId}`);
+                            card.pricing = freshPricing;
+                            card.pricingLastUpdated = new Date().toISOString();
+                            const enhancedPricing = pokeDataApiService['mapApiPricingToEnhancedPriceData']({ pricing: freshPricing });
+                            card.enhancedPricing = enhancedPricing || undefined;
+                        } else {
+                            context.log(`[GetCardInfo] No pricing data available for PokeData ID: ${card.pokeDataId}`);
+                        }
+                    }
+                } else {
+                    context.log(`[GetCardInfo] Failed to find PokeData ID for card ${cardId}`);
+                }
+            }
+            // Check if card has PokeData ID but needs pricing refresh
+            else if (card.pokeDataId && (forceRefresh || !card.pricing || !card.pricingLastUpdated || isPricingStale(card.pricingLastUpdated))) {
+                context.log(`[GetCardInfo] Card has PokeData ID ${card.pokeDataId} but needs pricing refresh`);
                 
                 // Get pricing directly using the PokeData ID
                 const freshPricing = await pokeDataApiService.getCardPricingById(card.pokeDataId);
@@ -101,91 +205,28 @@ export async function getCardInfo(request: HttpRequest, context: InvocationConte
                     const enhancedPricing = pokeDataApiService['mapApiPricingToEnhancedPriceData']({ pricing: freshPricing });
                     card.enhancedPricing = enhancedPricing || undefined;
                     
-                    // Save to database with updated pricing
-                    await cosmosDbService.updateCard(card);
+                    cardUpdated = true;
                     context.log(`[GetCardInfo] Updated card ${cardId} with fresh pricing data`);
                 } else {
                     context.log(`[GetCardInfo] Failed to fetch pricing data for PokeData ID: ${card.pokeDataId}`);
                 }
-            } else if (card && !card.pokeDataId) {
-                // If we have the card but no pokeDataId, try to find and store it
-                context.log(`[GetCardInfo] Card ${cardId} missing PokeData ID, attempting to find it`);
-                await enrichCardWithPokeDataId(card, context);
-                
-                // If we now have a pokeDataId, we can fetch pricing
-                if (card.pokeDataId) {
-                    const freshPricing = await pokeDataApiService.getCardPricingById(card.pokeDataId);
-                    if (freshPricing) {
-                        card.pricing = freshPricing;
-                        card.pricingLastUpdated = new Date().toISOString();
-                        const enhancedPricing = pokeDataApiService['mapApiPricingToEnhancedPriceData']({ pricing: freshPricing });
-                        card.enhancedPricing = enhancedPricing || undefined;
-                    }
-                }
-                
-                // Save the updated card
+            }
+            
+            // Save the updated card to database if changes were made
+            if (cardUpdated) {
+                context.log(`[GetCardInfo] Saving updated card to database`);
                 await cosmosDbService.updateCard(card);
-            }
-            
-            // Save to cache if found
-            if (card && process.env.ENABLE_REDIS_CACHE === "true") {
-                await redisCacheService.set(cacheKey, formatCacheEntry(card, cardsTtl), cardsTtl);
-            }
-            
-            // Helper function to enrich a card with its PokeData ID
-            async function enrichCardWithPokeDataId(cardToEnrich: Card, ctx: InvocationContext): Promise<boolean> {
-                try {
-                // Get cards in the set from PokeData API
-                const pokeDataCards = await pokeDataApiService.getCardsInSetByCode(cardToEnrich.setCode);
-                    
-                    if (pokeDataCards && pokeDataCards.length > 0) {
-                        // Find the matching card by card number
-                        // Note: Must use exact matching as card numbers in PokeData are formatted exactly (no padding)
-                        const matchingCard = pokeDataCards.find(
-                            pdc => pdc.num === cardToEnrich.cardNumber
-                        );
-                        
-                        // If no exact match found, try with leading zeros removed
-                        // This handles cases where our cardNumber might be "076" but PokeData has "76"
-                        if (!matchingCard) {
-                            const trimmedNumber = cardToEnrich.cardNumber.replace(/^0+/, '');
-                            const altMatch = pokeDataCards.find(
-                                pdc => pdc.num === trimmedNumber
-                            );
-                            
-                            if (altMatch) {
-                                ctx.log(`[GetCardInfo] Found card with trimmed number ${trimmedNumber} instead of ${cardToEnrich.cardNumber}`);
-                                cardToEnrich.pokeDataId = altMatch.id;
-                                return true;
-                            }
-                        }
-                        
-                        if (matchingCard) {
-                            ctx.log(`[GetCardInfo] Found matching PokeData card: ${matchingCard.name} with ID: ${matchingCard.id}`);
-                            cardToEnrich.pokeDataId = matchingCard.id;
-                            return true;
-                        } else {
-                            ctx.log(`[GetCardInfo] No matching card found for number ${cardToEnrich.cardNumber} in set ${cardToEnrich.setCode}`);
-                        }
-                    } else {
-                        ctx.log(`[GetCardInfo] No cards returned from PokeData API for set ${cardToEnrich.setCode}`);
-                    }
-                } catch (error: any) {
-                    ctx.log(`[GetCardInfo] Error enriching card with PokeData ID: ${error.message}`);
+                
+                // Update cache if enabled
+                if (process.env.ENABLE_REDIS_CACHE === "true") {
+                    context.log(`[GetCardInfo] Updating card in cache`);
+                    // Use a hardcoded number for the ttl parameter
+                    await redisCacheService.set(
+                        cacheKey, 
+                        formatCacheEntry(card, 86400), 
+                        86400
+                    );
                 }
-                
-                return false;
-            }
-            
-            // Helper function to check if pricing data is stale
-            function isPricingStale(timestamp: string): boolean {
-                if (!timestamp) return true;
-                
-                const lastUpdate = new Date(timestamp).getTime();
-                const now = Date.now();
-                const oneDayMs = 24 * 60 * 60 * 1000;
-                
-                return (now - lastUpdate) > oneDayMs;
             }
         }
         
@@ -215,14 +256,14 @@ export async function getCardInfo(request: HttpRequest, context: InvocationConte
             data: card,
             timestamp: new Date().toISOString(),
             cached: cacheHit,
-            cacheAge: cacheHit ? cacheAge : undefined
+            cacheAge: cacheHit ? cacheAge : 0
         };
         
         return { 
             jsonBody: response,
             status: response.status,
             headers: {
-                "Cache-Control": `public, max-age=${cardsTtl}`
+                "Cache-Control": `public, max-age=86400`
             }
         };
     } catch (error: any) {
