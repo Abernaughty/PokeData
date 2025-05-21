@@ -75,30 +75,117 @@ export async function getCardInfo(request: HttpRequest, context: InvocationConte
                 context.log(`Card not found in database, fetching from API: ${cardId}`);
                 card = await pokemonTcgApiService.getCard(cardId);
                 
-                // If card found, enhance with pricing data
+                // If card found, try to enhance it with PokeData ID
                 if (card) {
-                    // Get TCG Player pricing if not already included
-                    if (!card.tcgPlayerPrice) {
-                        const tcgPlayerPrice = await pokemonTcgApiService.getCardPricing(cardId);
-                        if (tcgPlayerPrice) {
-                            card.tcgPlayerPrice = tcgPlayerPrice;
-                        }
-                    }
+                    // Try to get the PokeData ID for this card
+                    await enrichCardWithPokeDataId(card, context);
                     
-                    // Get enhanced pricing data
-                    const enhancedPricing = await pokeDataApiService.getCardPricing(cardId);
-                    if (enhancedPricing) {
-                        card.enhancedPricing = enhancedPricing;
-                    }
-                    
-                    // Save to database
+                    // Save to database even without pricing data
                     await cosmosDbService.saveCard(card);
                 }
+            }
+            
+            // If card has a pokeDataId but no pricing or stale pricing, fetch fresh pricing
+            if (card && card.pokeDataId && (forceRefresh || !card.pricing || !card.pricingLastUpdated || isPricingStale(card.pricingLastUpdated))) {
+                context.log(`[GetCardInfo] Fetching fresh pricing data using PokeData ID: ${card.pokeDataId}`);
+                
+                // Get pricing directly using the PokeData ID
+                const freshPricing = await pokeDataApiService.getCardPricingById(card.pokeDataId);
+                
+                if (freshPricing) {
+                    // Update the card's pricing data
+                    card.pricing = freshPricing;
+                    card.pricingLastUpdated = new Date().toISOString();
+                    
+                    // For backward compatibility - convert null to undefined if needed
+                    const enhancedPricing = pokeDataApiService['mapApiPricingToEnhancedPriceData']({ pricing: freshPricing });
+                    card.enhancedPricing = enhancedPricing || undefined;
+                    
+                    // Save to database with updated pricing
+                    await cosmosDbService.updateCard(card);
+                    context.log(`[GetCardInfo] Updated card ${cardId} with fresh pricing data`);
+                } else {
+                    context.log(`[GetCardInfo] Failed to fetch pricing data for PokeData ID: ${card.pokeDataId}`);
+                }
+            } else if (card && !card.pokeDataId) {
+                // If we have the card but no pokeDataId, try to find and store it
+                context.log(`[GetCardInfo] Card ${cardId} missing PokeData ID, attempting to find it`);
+                await enrichCardWithPokeDataId(card, context);
+                
+                // If we now have a pokeDataId, we can fetch pricing
+                if (card.pokeDataId) {
+                    const freshPricing = await pokeDataApiService.getCardPricingById(card.pokeDataId);
+                    if (freshPricing) {
+                        card.pricing = freshPricing;
+                        card.pricingLastUpdated = new Date().toISOString();
+                        const enhancedPricing = pokeDataApiService['mapApiPricingToEnhancedPriceData']({ pricing: freshPricing });
+                        card.enhancedPricing = enhancedPricing || undefined;
+                    }
+                }
+                
+                // Save the updated card
+                await cosmosDbService.updateCard(card);
             }
             
             // Save to cache if found
             if (card && process.env.ENABLE_REDIS_CACHE === "true") {
                 await redisCacheService.set(cacheKey, formatCacheEntry(card, cardsTtl), cardsTtl);
+            }
+            
+            // Helper function to enrich a card with its PokeData ID
+            async function enrichCardWithPokeDataId(cardToEnrich: Card, ctx: InvocationContext): Promise<boolean> {
+                try {
+                // Get cards in the set from PokeData API
+                const pokeDataCards = await pokeDataApiService.getCardsInSetByCode(cardToEnrich.setCode);
+                    
+                    if (pokeDataCards && pokeDataCards.length > 0) {
+                        // Find the matching card by card number
+                        // Note: Must use exact matching as card numbers in PokeData are formatted exactly (no padding)
+                        const matchingCard = pokeDataCards.find(
+                            pdc => pdc.num === cardToEnrich.cardNumber
+                        );
+                        
+                        // If no exact match found, try with leading zeros removed
+                        // This handles cases where our cardNumber might be "076" but PokeData has "76"
+                        if (!matchingCard) {
+                            const trimmedNumber = cardToEnrich.cardNumber.replace(/^0+/, '');
+                            const altMatch = pokeDataCards.find(
+                                pdc => pdc.num === trimmedNumber
+                            );
+                            
+                            if (altMatch) {
+                                ctx.log(`[GetCardInfo] Found card with trimmed number ${trimmedNumber} instead of ${cardToEnrich.cardNumber}`);
+                                cardToEnrich.pokeDataId = altMatch.id;
+                                return true;
+                            }
+                        }
+                        
+                        if (matchingCard) {
+                            ctx.log(`[GetCardInfo] Found matching PokeData card: ${matchingCard.name} with ID: ${matchingCard.id}`);
+                            cardToEnrich.pokeDataId = matchingCard.id;
+                            return true;
+                        } else {
+                            ctx.log(`[GetCardInfo] No matching card found for number ${cardToEnrich.cardNumber} in set ${cardToEnrich.setCode}`);
+                        }
+                    } else {
+                        ctx.log(`[GetCardInfo] No cards returned from PokeData API for set ${cardToEnrich.setCode}`);
+                    }
+                } catch (error: any) {
+                    ctx.log(`[GetCardInfo] Error enriching card with PokeData ID: ${error.message}`);
+                }
+                
+                return false;
+            }
+            
+            // Helper function to check if pricing data is stale
+            function isPricingStale(timestamp: string): boolean {
+                if (!timestamp) return true;
+                
+                const lastUpdate = new Date(timestamp).getTime();
+                const now = Date.now();
+                const oneDayMs = 24 * 60 * 60 * 1000;
+                
+                return (now - lastUpdate) > oneDayMs;
             }
         }
         

@@ -13,6 +13,9 @@ export interface Card {
     tcgPlayerPrice?: PriceData;
     enhancedPricing?: EnhancedPriceData;
     lastUpdated?: string;
+    pokeDataId?: number;           // PokeData's unique numeric ID
+    pricing?: any;                 // Raw pricing data from PokeData API
+    pricingLastUpdated?: string;   // Timestamp of last pricing update
     images?: {
         small: string;
         large: string;

@@ -1,6 +1,10 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PokemonTcgApiService = void 0;
+const axios_1 = __importDefault(require("axios"));
 class PokemonTcgApiService {
     constructor(apiKey, baseUrl = 'https://api.pokemontcg.io/v2') {
         this.apiKey = apiKey;
@@ -15,30 +19,8 @@ class PokemonTcgApiService {
     async getAllSets() {
         console.log(`[PokemonTcgApiService] Getting all sets`);
         try {
-            // In a real implementation, this would call the Pokémon TCG API
-            // const response = await axios.get(`${this.baseUrl}/sets`, { headers: this.getHeaders() });
-            // return response.data.data.map(this.mapApiSetToSet);
-            // Mock implementation for local testing
-            return [
-                {
-                    id: 'sv8pt5',
-                    code: 'PRE',
-                    name: 'Prismatic Evolutions',
-                    series: 'Scarlet & Violet',
-                    releaseDate: '2025-02-14',
-                    cardCount: 200,
-                    isCurrent: true
-                },
-                {
-                    id: 'sv8',
-                    code: 'PAF',
-                    name: 'Paldean Fates',
-                    series: 'Scarlet & Violet',
-                    releaseDate: '2025-01-26',
-                    cardCount: 162,
-                    isCurrent: true
-                }
-            ];
+            const response = await axios_1.default.get(`${this.baseUrl}/sets`, { headers: this.getHeaders() });
+            return response.data.data.map((apiSet) => this.mapApiSetToSet(apiSet));
         }
         catch (error) {
             console.error(`[PokemonTcgApiService] Error getting sets: ${error.message}`);
@@ -48,22 +30,9 @@ class PokemonTcgApiService {
     async getSet(setCode) {
         console.log(`[PokemonTcgApiService] Getting set: ${setCode}`);
         try {
-            // In a real implementation, this would call the Pokémon TCG API
-            // const response = await axios.get(`${this.baseUrl}/sets/${setCode}`, { headers: this.getHeaders() });
-            // return this.mapApiSetToSet(response.data.data);
-            // Mock implementation for local testing
-            if (setCode === 'PRE') {
-                return {
-                    id: 'sv8pt5',
-                    code: 'PRE',
-                    name: 'Prismatic Evolutions',
-                    series: 'Scarlet & Violet',
-                    releaseDate: '2025-02-14',
-                    cardCount: 200,
-                    isCurrent: true
-                };
-            }
-            return null;
+            // The API doesn't support direct lookup by set code, so we need to get all sets and filter
+            const sets = await this.getAllSets();
+            return sets.find(set => set.code === setCode) || null;
         }
         catch (error) {
             console.error(`[PokemonTcgApiService] Error getting set ${setCode}: ${error.message}`);
@@ -73,27 +42,42 @@ class PokemonTcgApiService {
     async getCardsBySet(setCode) {
         console.log(`[PokemonTcgApiService] Getting cards for set: ${setCode}`);
         try {
-            // In a real implementation, this would call the Pokémon TCG API
-            // const response = await axios.get(`${this.baseUrl}/cards?q=set.id:${setCode}`, { headers: this.getHeaders() });
-            // return response.data.data.map(this.mapApiCardToCard);
-            // Mock implementation for local testing
-            if (setCode === 'PRE') {
-                return [
-                    {
-                        id: 'sv8pt5-161',
-                        setCode: 'PRE',
-                        setId: 557,
-                        setName: 'Prismatic Evolutions',
-                        cardId: 'sv8pt5-161',
-                        cardName: 'Umbreon ex',
-                        cardNumber: '161',
-                        rarity: 'Secret Rare',
-                        imageUrl: 'https://images.pokemontcg.io/sv8pt5/161.png',
-                        imageUrlHiRes: 'https://images.pokemontcg.io/sv8pt5/161_hires.png'
+            // Implementation with proper pagination to handle sets with more than 250 cards
+            let allCards = [];
+            let page = 1;
+            let hasMorePages = true;
+            const pageSize = 250; // Maximum page size supported by the API
+            console.log(`[PokemonTcgApiService] Fetching cards with pagination (pageSize: ${pageSize})`);
+            // Keep fetching pages until no more data is returned
+            while (hasMorePages) {
+                console.log(`[PokemonTcgApiService] Fetching page ${page} for set ${setCode}`);
+                const response = await axios_1.default.get(`${this.baseUrl}/cards`, {
+                    headers: this.getHeaders(),
+                    params: {
+                        q: `set.ptcgoCode:${setCode}`,
+                        orderBy: 'number',
+                        page: page,
+                        pageSize: pageSize
                     }
-                ];
+                });
+                const pageData = response.data.data || [];
+                // Add cards from this page to our collection
+                allCards = [...allCards, ...pageData];
+                // Check if we need to fetch more pages
+                // If we got fewer results than pageSize, we've reached the end
+                if (pageData.length < pageSize) {
+                    hasMorePages = false;
+                    console.log(`[PokemonTcgApiService] Reached the end of pages for set ${setCode} (received ${pageData.length} cards)`);
+                }
+                else {
+                    // If we got a full page, there might be more
+                    page++;
+                    console.log(`[PokemonTcgApiService] Retrieved ${pageData.length} cards, proceeding to page ${page}`);
+                }
             }
-            return [];
+            console.log(`[PokemonTcgApiService] Retrieved a total of ${allCards.length} cards for set ${setCode}`);
+            // Map API response to our Card model
+            return allCards.map((apiCard) => this.mapApiCardToCard(apiCard));
         }
         catch (error) {
             console.error(`[PokemonTcgApiService] Error getting cards for set ${setCode}: ${error.message}`);
@@ -103,25 +87,8 @@ class PokemonTcgApiService {
     async getCard(cardId) {
         console.log(`[PokemonTcgApiService] Getting card: ${cardId}`);
         try {
-            // In a real implementation, this would call the Pokémon TCG API
-            // const response = await axios.get(`${this.baseUrl}/cards/${cardId}`, { headers: this.getHeaders() });
-            // return this.mapApiCardToCard(response.data.data);
-            // Mock implementation for local testing
-            if (cardId === 'sv8pt5-161') {
-                return {
-                    id: 'sv8pt5-161',
-                    setCode: 'PRE',
-                    setId: 557,
-                    setName: 'Prismatic Evolutions',
-                    cardId: 'sv8pt5-161',
-                    cardName: 'Umbreon ex',
-                    cardNumber: '161',
-                    rarity: 'Secret Rare',
-                    imageUrl: 'https://images.pokemontcg.io/sv8pt5/161.png',
-                    imageUrlHiRes: 'https://images.pokemontcg.io/sv8pt5/161_hires.png'
-                };
-            }
-            return null;
+            const response = await axios_1.default.get(`${this.baseUrl}/cards/${cardId}`, { headers: this.getHeaders() });
+            return this.mapApiCardToCard(response.data.data);
         }
         catch (error) {
             console.error(`[PokemonTcgApiService] Error getting card ${cardId}: ${error.message}`);
@@ -129,21 +96,11 @@ class PokemonTcgApiService {
         }
     }
     async getCardPricing(cardId) {
+        var _a, _b;
         console.log(`[PokemonTcgApiService] Getting pricing for card: ${cardId}`);
         try {
-            // In a real implementation, this would call the Pokémon TCG API
-            // const response = await axios.get(`${this.baseUrl}/cards/${cardId}`, { headers: this.getHeaders() });
-            // return this.mapApiPricingToPriceData(response.data.data.tcgplayer?.prices?.holofoil);
-            // Mock implementation for local testing
-            if (cardId === 'sv8pt5-161') {
-                return {
-                    market: 1414.77,
-                    low: 1200.00,
-                    mid: 1400.00,
-                    high: 1800.00
-                };
-            }
-            return null;
+            const response = await axios_1.default.get(`${this.baseUrl}/cards/${cardId}`, { headers: this.getHeaders() });
+            return this.mapApiPricingToPriceData((_b = (_a = response.data.data.tcgplayer) === null || _a === void 0 ? void 0 : _a.prices) === null || _b === void 0 ? void 0 : _b.holofoil);
         }
         catch (error) {
             console.error(`[PokemonTcgApiService] Error getting pricing for card ${cardId}: ${error.message}`);
@@ -189,10 +146,24 @@ class PokemonTcgApiService {
         };
     }
     isCurrentSet(releaseDate) {
-        const releaseTimestamp = new Date(releaseDate).getTime();
-        const now = Date.now();
-        const oneYearAgo = now - 365 * 24 * 60 * 60 * 1000;
-        return releaseTimestamp > oneYearAgo;
+        // If no release date is provided, consider it not current
+        if (!releaseDate) {
+            return false;
+        }
+        try {
+            const releaseTimestamp = new Date(releaseDate).getTime();
+            const now = Date.now();
+            const oneYearAgo = now - 365 * 24 * 60 * 60 * 1000;
+            // For testing purposes, consider the two most recent sets as current
+            // This ensures we have some current sets to import cards for
+            const isRecent = releaseTimestamp > oneYearAgo;
+            console.log(`Set with release date ${releaseDate} is ${isRecent ? 'current' : 'not current'}`);
+            return isRecent;
+        }
+        catch (error) {
+            console.error(`Error determining if set is current (release date: ${releaseDate}):`, error);
+            return false;
+        }
     }
 }
 exports.PokemonTcgApiService = PokemonTcgApiService;

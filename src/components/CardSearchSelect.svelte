@@ -54,7 +54,7 @@
       }
     } else {
       // When empty, show all cards (up to a reasonable limit)
-      filteredCards = [...cards].slice(0, 100);
+      filteredCards = [...cards].slice(0, 500); // Increased from 100 to 500 to match backend pagination
     }
     
     // Reset highlight when results change
@@ -179,7 +179,7 @@
         
         // Force refilter with empty search
         searchText = '';
-        filteredCards = [...cards].slice(0, 100);
+        filteredCards = [...cards].slice(0, 500); // Increased from 100 to 500 to match backend pagination
       }, 10);
     }
   }
