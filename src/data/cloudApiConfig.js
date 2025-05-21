@@ -1,6 +1,6 @@
 // Cloud API Configuration
 export const API_CONFIG = {
-  // Base URL for the API Management endpoint
+  // Base URL for the API Management service
   baseUrl: 'https://maber-apim-test.azure-api.net/pokedata-api',
   
   // Subscription key for API Management
@@ -25,5 +25,10 @@ export const API_CONFIG = {
   
   buildCardInfoUrl(cardId) {
     return `${this.baseUrl}/cards/${encodeURIComponent(cardId)}`;
+  },
+  
+  // Added for compatibility with existing code
+  buildPricingUrl(id) {
+    return `${this.baseUrl}/cards/${encodeURIComponent(id)}`;
   }
 };

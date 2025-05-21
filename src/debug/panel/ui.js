@@ -226,6 +226,63 @@ function createDebugPanel() {
   
   actionsSection.appendChild(actionButtons);
   
+  // Add feature flags section
+  const featureFlagsSection = document.createElement('div');
+  featureFlagsSection.style.cssText = styles.SECTION_STYLES;
+  featureFlagsSection.innerHTML = '<h3 style="margin: 0 0 5px 0;">Feature Flags</h3>';
+  content.appendChild(featureFlagsSection);
+  
+  // Create checkboxes for feature flags
+  const features = [
+    { id: 'useCloudApi', label: 'Use Cloud API' },
+    { id: 'useCloudImages', label: 'Use Cloud Images' },
+    { id: 'useCloudCaching', label: 'Use Cloud Caching' }
+  ];
+  
+  features.forEach(feature => {
+    const label = document.createElement('label');
+    label.style.cssText = styles.CHECKBOX_LABEL_STYLES;
+    
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = `feature-flag-${feature.id}`;
+    checkbox.checked = featureFlagService.getFlag(feature.id, false);
+    checkbox.addEventListener('change', () => {
+      featureFlagService.setFlag(feature.id, checkbox.checked);
+      loggerService.debug(`Feature flag ${feature.id} set to ${checkbox.checked}`);
+    });
+    
+    label.appendChild(checkbox);
+    label.appendChild(document.createTextNode(` ${feature.label}`));
+    featureFlagsSection.appendChild(label);
+  });
+  
+  // Add feature flag buttons
+  const featureFlagButtons = document.createElement('div');
+  featureFlagButtons.style.marginTop = '10px';
+  
+  // Apply Changes button
+  const applyButton = document.createElement('button');
+  applyButton.textContent = 'Apply Changes';
+  applyButton.style.cssText = styles.BUTTON_STYLES;
+  applyButton.addEventListener('click', () => {
+    window.location.reload();
+  });
+  
+  // Reset All button
+  const resetButton = document.createElement('button');
+  resetButton.textContent = 'Reset All Flags';
+  resetButton.style.cssText = styles.BUTTON_STYLES;
+  resetButton.addEventListener('click', () => {
+    featureFlagService.resetAllFlags();
+    loggerService.debug('All feature flags reset');
+    window.location.reload();
+  });
+  
+  featureFlagButtons.appendChild(applyButton);
+  featureFlagButtons.appendChild(resetButton);
+  featureFlagsSection.appendChild(featureFlagButtons);
+  
   // Add event listener to toggle panel
   header.addEventListener('click', () => {
     if (panel.classList.contains('expanded')) {
