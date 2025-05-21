@@ -17,6 +17,7 @@ exports.pokeDataApiService = new PokeDataApiService_1.PokeDataApiService(process
 const GetSetList_1 = require("./functions/GetSetList");
 const GetCardInfo_1 = require("./functions/GetCardInfo");
 const GetCardsBySet_1 = require("./functions/GetCardsBySet");
+const RefreshData_1 = require("./functions/RefreshData");
 // Register functions
 functions_1.app.http('getSetList', {
     methods: ['GET'],
@@ -35,5 +36,10 @@ functions_1.app.http('getCardsBySet', {
     authLevel: 'function',
     route: 'sets/{setCode}/cards',
     handler: GetCardsBySet_1.getCardsBySet
+});
+// Register timer-triggered function
+functions_1.app.timer('refreshData', {
+    schedule: '0 0 */12 * * *',
+    handler: RefreshData_1.refreshData
 });
 //# sourceMappingURL=index.js.map

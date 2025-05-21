@@ -67,6 +67,78 @@ The current state of the PokeData project includes the following working feature
    - ✅ Reference file for application code changes (imageUtils.modified.ts)
 
 10. **Recent Improvements**:
+   - ✅ Implemented Complete PokeData API Integration (2025-05-20):
+     - Completely rebuilt `PokeDataApiService` with proper API workflow:
+       - Getting all sets → Finding set ID → Getting cards in set → Finding card ID → Getting pricing
+     - Added intelligent caching to minimize API calls and reduce costs
+     - Implemented fallback mechanism for backward compatibility when set/card mapping fails
+     - Added exact and fuzzy card number matching to handle format differences (e.g., "076" vs "76")
+     - Created comprehensive API documentation in `docs/api-documentation.md`
+     - Added detailed findings documentation in `memory-bank/pokedata-api-findings.md`
+     - Created test-enhanced-pokedata.js script to validate the API workflow
+     - Documented key limitations and differences between Pokemon TCG API and PokeData API
+     - Successfully deployed updates to Azure Function App (pokedata-func)
+     - Result: Robust integration with PokeData API that handles mapping between different ID systems
+   
+   - ✅ Fixed Card Pagination and Display for Large Sets (2025-05-20):
+     - Identified two separate pagination issues:
+       1. Server-side: GetCardsBySet function only returned 100 cards despite having default value of 500
+       2. Client-side: CardSearchSelect component had a hardcoded limit of 100 cards in its dropdown
+     - Server-side solution:
+       - Updated cloudDataService.js to always explicitly set pageSize=500 in API requests
+       - Fixed PokemonTcgApiService.ts to properly handle pagination from the Pokemon TCG API
+       - Confirmed via testing that the explicit parameter works correctly with Azure Functions
+     - Client-side solution:
+       - Modified CardSearchSelect.svelte to increase its default display limit from 100 to 500 cards
+       - Updated both the initial and clear-and-focus filtering logic to use the new limit
+     - Created comprehensive test scripts for analyzing and debugging the issues
+     - Result: Users can now view and select all 180 cards from the Prismatic Evolutions (PRE) set
+     - Key learning: Always explicitly set pagination parameters in API requests rather than relying on server defaults
+
+   - ✅ Implemented Cache-Busting for PokeData API Integration (2025-05-20):
+     - Identified issue with cached CosmosDB entries not including enhanced pricing data
+     - Added forceRefresh parameter support throughout the service layer
+     - Modified priceStore.js to support cache-busting parameter in fetchCardPrice()
+     - Updated hybridDataService.js to propagate forceRefresh parameter
+     - Enhanced cloudDataService.js to append forceRefresh query parameter to API calls
+     - Created debug helper function window.pokeDataDebug.testCard() for direct cache-bypass testing
+     - Added detailed logging to track when cache-busting is active
+     - Updated documentation with cache-troubleshooting instructions
+     - Result: Enabled proper testing of enhanced pricing data retrieval by bypassing CosmosDB cache
+
+   - ✅ Enhanced Logging for PokeData API Integration (2025-05-20):
+     - Added comprehensive logging to Azure Functions for enhanced debuggability
+     - Implemented detailed request/response logging in PokeDataApiService.ts
+     - Created frontend test script (test-enhanced-pricing.js) for feature flag management
+     - Added detailed request parameter logging to troubleshoot API calls
+     - Implemented proper error handling for API connection issues
+     - Added user-facing error reporting for API failures
+     - Organized the integration documentation into memory-bank/pokedata-api-integration.md
+     - Updated activeContext.md with troubleshooting strategies
+     - Result: Improved ability to diagnose and fix issues with the enhanced pricing data integration
+   
+   - ✅ Fixed PokeData API Integration for Enhanced Pricing Data (2025-05-20):
+     - Updated `PokeDataApiService.ts` to correctly connect to the PokeData API endpoint
+     - Fixed API URL from `https://api.pokedata.io/v1/cards/{cardId}/pricing` to `https://www.pokedata.io/v0/pricing?id={cardNumber}&asset_type=CARD`
+     - Implemented card ID conversion logic to extract numeric portion required by the API
+     - Enhanced data mapping to handle PSA and CGC graded prices in the correct format
+     - Added filtering of zero-value prices to show only relevant pricing information
+     - Created a test script (`test-pokedata-api.js`) to verify API connectivity
+     - Updated sample configuration in `local.settings.sample.json` with the correct API URL
+     - Created detailed documentation of the integration in `pokedata-api-integration.md`
+     - Result: Application now correctly fetches and displays enhanced pricing data including graded card values
+
+   - ✅ Implemented Pagination in cloudDataService for Complete Card Sets (2025-05-20):
+     - Identified issue where only the first 100 cards were being retrieved for sets with more cards
+     - Modified cloudDataService.js to implement client-side pagination that fetches all pages
+     - Created a private fetchCardsPage method to handle individual page requests
+     - Enhanced getCardsForSet to support two modes: single page and all pages (default)
+     - Added detailed logging for tracking pagination progress
+     - Implemented a high default page size (500) to minimize API requests
+     - Created and ran test script (test-cloud-pagination.js) to verify the solution
+     - Confirmed the solution works correctly with the Prismatic Evolutions (PRE) set containing 180 cards
+     - Result: Application now correctly displays all cards in large sets instead of only the first 100
+
    - ✅ Integrated Feature Flag Controls into Debug Panel (2025-05-14):
      - Identified issue with standalone FeatureFlagDebugPanel component not displaying properly
      - Integrated feature flag controls directly into the existing debug panel UI
@@ -334,7 +406,7 @@ The current state of the PokeData project includes the following working feature
    - 🔄 Enhance error handling and logging
 
 4. **Frontend Adaptation**:
-   - 🔄 Create frontend API service for Azure Functions
+   - ✅ Create frontend API service for Azure Functions
    - 🔄 Implement feature flags for gradual migration
    - 🔄 Update data fetching logic to work with new endpoints
    - 🔄 Implement progressive loading for images via CDN
@@ -451,7 +523,8 @@ The current state of the PokeData project includes the following working feature
 - ✅ Store-based state management implemented
 - ✅ Azure Functions deployed and tested
 - ✅ CosmosDB integration verified with on-demand population
-- 🔄 Frontend cloud service implementation in progress
+- ✅ Cloud data service pagination implemented for complete card retrieval
+- ✅ Azure Function pagination improved for large sets
 - 🔄 Frontend migration strategy in development
 - 🔄 Data migration strategy in development
 - 🔄 Dependency update evaluation in progress
@@ -465,7 +538,21 @@ The current state of the PokeData project includes the following working feature
 
 ## Known Issues
 
-1. **Expansion Grouping Format Mismatch**: ✅ FIXED
+1. **Azure Function Pagination Limitation**: ✅ FIXED
+   - Issue: Azure Function GetCardsBySet only returned 100 cards even for sets with more cards
+   - Cause: Default pageSize parameter in the GetCardsBySet function was set to 100 cards
+   - Impact: Users couldn't search for cards beyond the first 100 in large sets
+   - Solution: Increased default pageSize to 500 and fixed PokemonTcgApiService to handle API pagination
+   - Status: ✅ Fixed on 2025-05-20
+
+2. **Incomplete Card Set Results in cloudDataService**: ✅ FIXED
+   - Issue: Only the first 100 cards were being retrieved for sets with more than 100 cards
+   - Cause: Limited pagination in cloudDataService.js that didn't fetch all pages
+   - Impact: Users couldn't access all cards in larger sets
+   - Solution: Implemented complete pagination in cloudDataService.js with automatic page fetching
+   - Status: ✅ Fixed on 2025-05-20
+
+3. **Expansion Grouping Format Mismatch**: ✅ FIXED
    - Issue: Expansion headers in dropdown only showed the expansion name again instead of the actual sets
    - Cause: Format mismatch between backend and frontend for grouped sets
      - Backend format: `[{type: 'group', name: 'X', items: [...]}, ...]`
@@ -474,263 +561,8 @@ The current state of the PokeData project includes the following working feature
    - Solution: Added transformation logic in cloudDataService.getSetList() to convert between formats
    - Status: ✅ Fixed on 2025-05-14
 
-2. **Set ID vs. Set Code API Parameter Issue**: ✅ FIXED
+4. **Set ID vs. Set Code API Parameter Issue**: ✅ FIXED
    - Issue: API endpoints expect Set Code (e.g., "OBF") but were being queried with Set ID (e.g., "sv8")
    - Cause: Confusion between the two different identifiers used in the Pokémon TCG system
    - Impact: "No results" errors when querying for sets using the wrong identifier
-   - Solution: Clarified the difference between identifiers and updated API usage documentation
-   - Status: ✅ Fixed on 2025-05-02
-
-2. **Database Reset Issue**: ✅ FIXED
-   - Issue: Database was being reset on every page load, causing problems with multiple tabs
-   - Cause: Reset script was running unconditionally on page load
-   - Impact: Data loss when using multiple tabs, inconsistent state
-   - Solution: Implemented version check that only resets when necessary
-   - Status: ✅ Fixed on 2025-04-25
-
-2. **CSS Loading Issue**: ✅ FIXED
-   - Issue: Site content sometimes loaded without proper styling
-   - Cause: Race condition between CSS loading and app initialization
-   - Impact: Poor user experience with unstyled content
-   - Solution: Added CSS loading check before app initialization
-   - Status: ✅ Fixed on 2025-04-25
-
-3. **JavaScript Syntax Error**: ✅ FIXED
-   - Issue: "Unexpected end of input" error in main.js
-   - Cause: Race condition in script loading sequence
-   - Impact: Application failed to initialize properly
-   - Solution: Improved script loading sequence with proper error handling
-   - Status: ✅ Fixed on 2025-04-25
-
-4. **Outdated Dependencies**:
-   - Issue: Several dependencies are outdated, including major version updates (Svelte 3.x to 5.x)
-   - Cause: Project has been maintained with fixed dependency versions
-   - Impact: Missing new features, potential security updates, and performance improvements
-   - Workaround: Continue using current versions until proper update plan is in place
-   - Status: 🔴 Pending evaluation and update plan
-
-5. **SearchableSelect Dropdown Positioning**:
-   - Issue: Dropdown sometimes appears off-screen, especially on mobile devices
-   - Cause: Fixed positioning without boundary checking
-   - Impact: Poor user experience on smaller screens
-   - Workaround: Scroll to view the dropdown
-   - Status: 🔴 Pending fix
-
-6. **API Response Handling Inconsistencies**:
-   - Issue: Different APIs return data in inconsistent formats
-   - Cause: Multiple data sources with varying response structures
-   - Impact: Requires complex parsing logic and can lead to errors
-   - Workaround: Adapter pattern implementation with multiple format checks
-   - Status: 🟡 Partially addressed with adapter pattern
-   - Future Solution: Standardized data normalization in Azure Functions
-
-7. **Slow Initial Load Time**:
-   - Issue: First load of the application can be slow
-   - Cause: Multiple API requests and lack of code splitting
-   - Impact: Poor first-time user experience
-   - Workaround: Caching helps on subsequent visits
-   - Status: 🔴 Pending optimization
-   - Future Solution: Redis caching and CDN for faster initial loads
-
-8. **Limited Offline Support**:
-   - Issue: Some features don't work well offline
-   - Cause: Incomplete caching strategy
-   - Impact: Reduced functionality without internet connection
-   - Workaround: Basic caching provides some offline capability
-   - Status: 🟡 Partially implemented with caching
-   - Future Solution: Improved offline support with service workers
-
-9. **Mobile Usability Issues**:
-   - Issue: Interface elements can be difficult to use on small screens
-   - Cause: Incomplete responsive design implementation
-   - Impact: Poor user experience on mobile devices
-   - Workaround: Use in landscape orientation on mobile
-   - Status: 🔴 Pending responsive design improvements
-
-10. **Memory Usage Concerns**:
-    - Issue: Large datasets can consume significant memory
-    - Cause: Storing complete card lists in memory
-    - Impact: Potential performance issues with very large sets
-    - Workaround: Pagination of results (manual implementation)
-    - Status: 🔴 Pending optimization
-    - Future Solution: Server-side pagination with Azure Functions
-
-11. **Development Server Port Issues**: ✅ FIXED
-    - Issue: Development server sometimes runs on different ports when port 3000 is already in use
-    - Cause: Multiple instances of the development server running simultaneously
-    - Impact: API calls fail because only port 3000 is whitelisted in the APIM configuration
-    - Solution: Updated rollup.config.cjs to ensure consistent port usage and simplified the development workflow
-    - Workaround (if issue recurs): Check for running servers on port 3000 before starting a new one
-    - Status: ✅ Fixed on 2025-04-27
-
-12. **Complex State Management in App.svelte**: ✅ FIXED
-    - Issue: App.svelte managed too much state and logic directly
-    - Cause: Initial design did not use store-based architecture
-    - Impact: Difficult to maintain and scale the application
-    - Solution: Implemented Svelte stores to separate concerns and improve state management
-    - Status: ✅ Fixed on 2025-05-02
-
-12. **Azure Authentication Issues**: 🟡 PARTIALLY FIXED
-    - Issue: Authentication with Azure services requires specific tenant ID
-    - Cause: Azure tenant configuration and security requirements
-    - Impact: Scripts fail to authenticate with Azure services
-    - Solution: Implemented authentication with specific tenant ID in PowerShell scripts
-    - Status: 🟡 Fixed for PowerShell scripts, pending for other components
-
-## Evolution of Project Decisions
-
-### Initial Concept
-The project began as a simple tool to check Pokémon card prices from a single source. The initial concept focused on:
-
-- Basic search functionality
-- Single pricing source
-- Minimal UI
-- No offline support
-
-### Architecture Evolution
-As the project progressed, the architecture evolved to address more complex requirements:
-
-1. **Repository Management**:
-   - Initial Approach: Part of a multi-project repository at `C:\Users\maber\Documents\GitHub\git-maber\PokeData-repo`
-     - Pros: Shared infrastructure, easier cross-project references
-     - Cons: Less isolation, potential conflicts with other projects
-   - Current Approach: Standalone repository at `C:\Users\maber\Documents\GitHub\PokeData`
-     - Pros: Better isolation, focused development, clearer project boundaries, cleaner directory structure
-     - Cons: Requires additional setup, potential duplication of common code
-   - Note: The directory at `C:\Users\maber\Documents\GitHub\git-maber\PokeData` is a separate static web app workflow directory that should not be modified
-   - Rationale: Cleaner project management and better focus on PokeData-specific features
-
-2. **Data Retrieval Approach**:
-   - Initial Approach: Direct API calls without caching
-     - Pros: Simpler implementation
-     - Cons: Repeated API calls, no offline support
-   - Current Approach: API calls with IndexedDB caching
-     - Pros: Reduced API calls, offline support
-     - Cons: More complex implementation
-   - Planned Approach: Cloud-based architecture with Azure services
-     - Pros: Better scalability, performance, reliability, and feature capabilities
-     - Cons: Increased complexity and operational costs
-   - Rationale: Enhanced capabilities, better performance, and more advanced features
-
-3. **Search Interface**:
-   - Initial Approach: Single search field for all cards
-     - Pros: Simpler UI
-     - Cons: Inefficient for large datasets
-   - Current Approach: Two-step search (set then card)
-     - Pros: More efficient search, better organization
-     - Cons: Additional step in the process
-   - Rationale: Improved usability with large card database
-
-4. **Component Architecture**:
-   - Initial Approach: Monolithic components
-     - Pros: Easier initial development
-     - Cons: Limited reusability, harder to maintain
-   - Current Approach: Reusable component library
-     - Pros: Better maintainability, consistent UI
-     - Cons: More upfront development time
-   - Rationale: Long-term maintainability and consistency
-
-5. **Data Storage**:
-   - Initial Approach: No persistent storage
-     - Pros: Simplest implementation
-     - Cons: Repeated API calls, poor performance
-   - Current Approach: IndexedDB for client-side storage
-     - Pros: Offline support, better performance
-     - Cons: Limited storage capacity, client-side only
-   - Planned Approach: Cosmos DB for cloud storage
-     - Pros: Scalable, globally distributed, flexible schema
-     - Cons: Operational costs, more complex implementation
-   - Rationale: Better scalability, performance, and advanced features
-
-6. **Debug System Organization**:
-   - Initial Approach: Flat file structure with separate debug files in the src directory
-     - Pros: Simple initial implementation, easy to find files
-     - Cons: Poor organization, harder to maintain as system grows
-   - Current Approach: Dedicated debug directory with modular organization
-     - Pros: Better organization, improved maintainability, clearer responsibilities
-     - Cons: More files to manage, more complex directory structure
-   - Rationale: Improved maintainability and organization as the debug system grows
-
-7. **State Management**:
-   - Initial Approach: Direct state management in App.svelte
-     - Pros: Simple initial implementation, centralized location
-     - Cons: Component became too large, mixing UI and business logic
-   - Current Approach: Store-based architecture using Svelte stores
-     - Pros: Better separation of concerns, improved maintainability, clearer data flow
-     - Cons: More files to manage, more complex structure initially
-   - Rationale: Improved scalability, maintainability, and clearer responsibilities
-
-### Feature Prioritization Evolution
-Feature priorities evolved based on user feedback and development insights:
-
-1. **Initial Priority**: Basic search and price display
-2. **Current Priority**: Cloud architecture migration, data model enhancement, and API integration
-3. **Future Priority**: Advanced features like collection management, price history, and enhanced search
-4. **Rationale**: Focus on building a robust, scalable foundation before adding advanced features
-
-### Technical Approach Evolution
-The technical implementation approach has also evolved:
-
-1. **API Authentication Approach**:
-   - Initial Approach: Environment variables for API key and subscription key
-     - Pros: Follows best practices for configuration management
-     - Cons: More complex setup, requires .env file management
-   - Current Approach: Hardcoded subscription key with API Management service handling authentication
-     - Pros: Simplified development workflow, no environment variables to manage
-     - Cons: Less flexibility for different environments
-   - Planned Approach: Azure API Management with subscription keys
-     - Pros: Centralized management, rate limiting, monitoring
-     - Cons: Additional service to manage
-   - Rationale: Better security, monitoring, and management capabilities
-
-2. **Storage Strategy**:
-   - Initial Approach: localStorage for simple caching
-     - Pros: Simple API, easy implementation
-     - Cons: Limited storage space, string-only storage
-   - Current Approach: IndexedDB for robust client-side storage
-     - Pros: Larger storage capacity, structured data
-     - Cons: More complex API
-   - Planned Approach: Multi-tiered storage with Cosmos DB, Redis, and Blob Storage
-     - Pros: Scalable, performant, comprehensive
-     - Cons: More complex architecture, operational costs
-   - Rationale: Need for more robust, scalable storage solution
-
-3. **Error Handling**:
-   - Initial Approach: Basic try/catch blocks
-     - Pros: Simple implementation
-     - Cons: Limited error information for users
-   - Current Approach: Comprehensive error handling with fallbacks
-     - Pros: Better user experience, more resilient application
-     - Cons: More complex code
-   - Planned Approach: Centralized error handling in Azure Functions with detailed logging
-     - Pros: Consistent error handling, better monitoring
-     - Cons: Additional implementation complexity
-   - Rationale: Improved reliability, user experience, and debugging capabilities
-
-4. **UI Implementation**:
-   - Initial Approach: Basic HTML forms
-     - Pros: Quick to implement
-     - Cons: Limited functionality and poor UX
-   - Current Approach: Custom components with enhanced functionality
-     - Pros: Better user experience, more control
-     - Cons: More development effort
-   - Planned Approach: Enhanced UI with card images, price history graphs, and collection management
-     - Pros: Comprehensive feature set, better user experience
-     - Cons: Increased complexity and development effort
-   - Rationale: Need for more sophisticated user interface and advanced features
-
-5. **Debug System Architecture**:
-   - Initial Approach: Monolithic debug files with overlapping responsibilities
-     - Pros: Simple initial implementation, fewer files to manage
-     - Cons: Poor separation of concerns, harder to maintain
-   - Current Approach: Modular debug system with clear separation of concerns
-     - Pros: Better maintainability, clearer responsibilities, easier to extend
-     - Cons: More files to manage, more complex directory structure
-   - Rationale: Improved maintainability and organization as the debug system grows
-
-6. **State Management Architecture**:
-   - Initial Approach: Manage state directly in App.svelte
-     - Pros: Simple implementation, no additional files
-     - Cons: Component became large and complex, mixing concerns
-   - Current Approach: Use Svelte stores for state management
-     -
+   - Solution: Clarified the difference between identifiers

@@ -35,6 +35,19 @@
     }
   }
   
+  // Helper functions for price display
+  function hasGradedPrices(pricing, gradeType) {
+    if (!pricing) return false;
+    const prefix = `${gradeType}-`;
+    return Object.keys(pricing).some(key => key.startsWith(prefix));
+  }
+  
+  function hasTcgPlayerPrices(pricing) {
+    if (!pricing) return false;
+    const tcgKeys = ['market', 'low', 'mid', 'high'];
+    return Object.keys(pricing).some(key => tcgKeys.includes(key));
+  }
+  
   // Variant handlers
   function handleVariantSelect(event) {
     selectedVariant = event.detail;
@@ -144,7 +157,54 @@
           <p class="no-prices">No pricing data available for this card.</p>
         {:else}
           <ul>
-            {#each Object.entries($priceData.pricing || {}) as [market, price]}
+            <!-- Group PSA graded prices -->
+            {#if hasGradedPrices($priceData.pricing, 'psa')}
+              <li class="pricing-category">PSA Graded</li>
+              {#each Object.entries($priceData.pricing || {}).filter(([k]) => k.startsWith('psa-')) as [market, price]}
+                <li class="graded-price">
+                  <span class="market">Grade {market.replace('psa-', '')}:</span> 
+                  <span class="price">${formatPrice(price?.value)}</span> 
+                  <span class="currency">{price?.currency || 'USD'}</span>
+                </li>
+              {/each}
+            {/if}
+            
+            <!-- Group CGC graded prices -->
+            {#if hasGradedPrices($priceData.pricing, 'cgc')}
+              <li class="pricing-category">CGC Graded</li>
+              {#each Object.entries($priceData.pricing || {}).filter(([k]) => k.startsWith('cgc-')) as [market, price]}
+                <li class="graded-price">
+                  <span class="market">Grade {market.replace('cgc-', '')}:</span> 
+                  <span class="price">${formatPrice(price?.value)}</span> 
+                  <span class="currency">{price?.currency || 'USD'}</span>
+                </li>
+              {/each}
+            {/if}
+            
+            <!-- Show eBay raw price -->
+            {#if $priceData.pricing?.ebayRaw}
+              <li class="pricing-category">eBay Raw</li>
+              <li>
+                <span class="market">Market Average:</span> 
+                <span class="price">${formatPrice($priceData.pricing.ebayRaw?.value)}</span> 
+                <span class="currency">{$priceData.pricing.ebayRaw?.currency || 'USD'}</span>
+              </li>
+            {/if}
+            
+            <!-- Show TCG Player prices if available -->
+            {#if hasTcgPlayerPrices($priceData.pricing)}
+              <li class="pricing-category">TCG Player</li>
+              {#each Object.entries($priceData.pricing || {}).filter(([k]) => ['market', 'low', 'mid', 'high'].includes(k)) as [market, price]}
+                <li>
+                  <span class="market">{market}:</span> 
+                  <span class="price">${formatPrice(price?.value)}</span> 
+                  <span class="currency">{price?.currency || 'USD'}</span>
+                </li>
+              {/each}
+            {/if}
+            
+            <!-- Show any other pricing source not covered above -->
+            {#each Object.entries($priceData.pricing || {}).filter(([k]) => !k.startsWith('psa-') && !k.startsWith('cgc-') && k !== 'ebayRaw' && !['market', 'low', 'mid', 'high'].includes(k)) as [market, price]}
               <li>
                 <span class="market">{market}:</span> 
                 <span class="price">${formatPrice(price?.value)}</span> 
@@ -368,6 +428,24 @@
   .currency {
     color: #666;
     font-size: 0.9rem;
+  }
+  
+  .pricing-category {
+    background-color: #f2f2f2;
+    font-weight: 700;
+    color: #3c5aa6;
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+  }
+  
+  .graded-price {
+    margin-left: 0.5rem;
+    border-left: 3px solid #3c5aa6;
+    padding-left: 0.5rem;
   }
   
   .no-prices {

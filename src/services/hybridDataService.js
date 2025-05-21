@@ -57,15 +57,16 @@ export const hybridDataService = {
   /**
    * Get pricing data for a specific card with metadata
    * @param {string} cardId - The card ID
+   * @param {boolean} forceRefresh - Whether to force a refresh from the API
    * @returns {Promise<Object>} Card pricing data with metadata
    */
-  async getCardPricingWithMetadata(cardId) {
+  async getCardPricingWithMetadata(cardId, forceRefresh = false) {
     if (featureFlagService.useCloudApi()) {
-      console.log(`Using cloud API for pricing with metadata of card ${cardId}`);
-      return cloudDataService.getCardPricingWithMetadata(cardId);
+      console.log(`Using cloud API for pricing with metadata of card ${cardId}${forceRefresh ? ' (force refresh)' : ''}`);
+      return cloudDataService.getCardPricingWithMetadata(cardId, forceRefresh);
     } else {
-      console.log(`Using local API for pricing with metadata of card ${cardId}`);
-      return pokeDataService.getCardPricingWithMetadata(cardId);
+      console.log(`Using local API for pricing with metadata of card ${cardId}${forceRefresh ? ' (force refresh)' : ''}`);
+      return pokeDataService.getCardPricingWithMetadata(cardId, forceRefresh);
     }
   },
   

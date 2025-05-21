@@ -437,6 +437,87 @@ For the cloud-based architecture, we've implemented the following dependencies:
   - Log Analytics for log aggregation (planned)
   - Alerts for critical issues (planned)
 
+## Pagination Pattern Implementation
+
+### Client-Side Pagination
+The cloudDataService.js implements client-side pagination to handle sets with many cards:
+
+```javascript
+async getCardsForSet(setCode, options = {}) {
+  // Default options
+  const fetchAllPages = options.fetchAllPages !== false; // Default to true
+  const pageSize = options.pageSize || 500; // Increased page size to reduce requests
+  
+  // If we're not fetching all pages, just get the requested page
+  if (!fetchAllPages) {
+    return this.fetchCardsPage(setCode, initialPage, pageSize, options.forceRefresh);
+  }
+  
+  // If we are fetching all pages, start with page 1
+  let allCards = [];
+  let currentPage = initialPage;
+  let totalPages = 1; // Will be updated after first request
+  
+  // Fetch first page to get total pages
+  const firstPageResult = await this.fetchCardsPage(setCode, currentPage, pageSize, options.forceRefresh);
+  
+  // Extract pagination info
+  totalPages = firstPageResult.totalPages || 1;
+  
+  // Add cards from first page
+  allCards = [...allCards, ...firstPageResult.items];
+  
+  // Fetch remaining pages if any
+  while (currentPage < totalPages) {
+    currentPage++;
+    const pageResult = await this.fetchCardsPage(setCode, currentPage, pageSize, options.forceRefresh);
+    allCards = [...allCards, ...pageResult.items];
+  }
+  
+  // Return all cards with pagination metadata
+  const result = {
+    items: allCards,
+    totalCount: allCards.length,
+    pageNumber: 1,
+    pageSize: allCards.length,
+    totalPages: 1
+  };
+  
+  return result;
+}
+```
+
+### Server-Side Pagination
+The Azure Function implements server-side pagination for delivering card lists in manageable chunks:
+
+```typescript
+// Apply pagination
+const totalCount = cards.length;
+const totalPages = Math.ceil(totalCount / pageSize);
+const startIndex = (page - 1) * pageSize;
+const endIndex = Math.min(startIndex + pageSize, totalCount);
+const paginatedCards = cards.slice(startIndex, endIndex);
+```
+
+### Component-Level Display Limits
+The CardSearchSelect component implements a display limit for performance when showing large card lists:
+
+```javascript
+// When empty, show all cards (up to a reasonable limit)
+filteredCards = [...cards].slice(0, 500); // Increased from 100 to 500 to match backend pagination
+```
+
+### Key Pagination Lessons
+Through troubleshooting pagination issues, we've learned:
+
+1. **Always Explicitly Set Pagination Parameters**: Don't rely on server-side defaults, as they may not be applied consistently
+2. **Consistent Page Sizes**: Use the same page size limit (500) on both client and server
+3. **Multi-Level Implementation**: Pagination must be properly handled at all levels:
+   - Server-side API responses
+   - Client-side data retrieval
+   - Component-level display
+4. **Performance vs. Completeness**: Balance between showing all items and maintaining UI performance
+
 ## API Integration
 
 ### Current API Configuration
