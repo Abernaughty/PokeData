@@ -511,4 +511,3 @@ app.http('getCardInfo', {
     route: 'cards/{cardId}',
     handler: getCardInfo
 });
-
