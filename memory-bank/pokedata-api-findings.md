@@ -53,9 +53,36 @@ We've also created comprehensive API documentation in `/docs/api-documentation.m
 * Response structures
 * Credit usage considerations
 
+## API Credit System
+
+During our implementation and testing, we discovered that the PokeData API uses a credit-based system:
+
+1. **Credit Consumption**:
+   * Each API call consumes credits from your account's quota
+   * Different endpoints may consume different amounts of credits
+   * The `/sets` endpoint consumes 5 credits per call
+   * The `/set` endpoint consumes credits per card returned
+   * The `/pricing` endpoint consumes credits per lookup
+
+2. **Credit Limitations**:
+   * Credit quota appears to reset on a periodic basis (likely monthly)
+   * Heavy testing and development can quickly exhaust available credits
+   * When credits are exhausted, API calls return errors rather than data
+   * There is no apparent method to check remaining credits via the API
+
+3. **Credit Optimization Strategies**:
+   * Implement intelligent caching to minimize repeat API calls
+   * Batch operations where possible to reduce total calls
+   * Implement rate limiting for batch operations
+   * Consider implementing mock/stub API responses for testing
+   * Prioritize high-value API calls when credits are limited
+
 ## Future Improvements
 
 Potential future improvements to address these limitations:
 1. Create a custom mapping table between Pokemon TCG API set codes and PokeData API set codes
 2. Implement fuzzy matching for set codes
 3. Consider adding feedback mechanism when pricing data might be for wrong card
+4. Add rate limiting to batch operations to conserve API credits
+5. Implement a fallback to TCG Player pricing when PokeData API credits are exhausted
+6. Create a monitoring system to track API credit usage

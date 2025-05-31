@@ -3,14 +3,36 @@
 
 const axios = require('axios');
 
+// Dependencies
+const fs = require('fs');
+const path = require('path');
+
+// Load settings from local.settings.json
+const localSettingsPath = path.join(__dirname, 'local.settings.json');
+let localSettings;
+try {
+    localSettings = JSON.parse(fs.readFileSync(localSettingsPath, 'utf8'));
+    console.log('Successfully loaded local.settings.json');
+} catch (error) {
+    console.error('Error loading local.settings.json:', error.message);
+    process.exit(1);
+}
+
 // Configuration
 const AZURE_URL = 'https://pokedata-func.azurewebsites.net/api';
-// Get function key from environment variables or use empty string for anonymous access
-// You can set this in your .env file or as a system environment variable:
-// AZURE_FUNCTION_KEY=your-key-here
-const FUNCTION_KEY = process.env.AZURE_FUNCTION_KEY || "";
-const CARD_ID = 'sv8pt5-161'; // Umbreon ex from Prismatic Evolutions
+const CARD_ID = 'sv9-72'; // Morgrem from Journey Together - Missing enhancedPricing property
 const FORCE_REFRESH = true; // Set to true to bypass cache
+
+// Test locally by default since we're debugging
+const LOCAL_URL = 'http://localhost:7071/api';
+const USE_LOCAL = true; // Set to true to test locally
+const API_URL = USE_LOCAL ? LOCAL_URL : AZURE_URL;
+
+// Function key - use from env var if set, otherwise try to use master key from local.settings.json
+const FUNCTION_KEY = process.env.AZURE_FUNCTION_KEY || "";
+
+console.log(`Using API URL: ${API_URL}`);
+console.log(`Testing with card ID: ${CARD_ID}`);
 
 async function testGetCardInfo() {
   console.log(`Testing GetCardInfo for card ID: ${CARD_ID}...`);
@@ -19,7 +41,7 @@ async function testGetCardInfo() {
     console.time('Request time');
     
     // Construct the URL with force refresh parameter if needed
-    let url = `${AZURE_URL}/cards/${CARD_ID}`;
+    let url = `${API_URL}/cards/${CARD_ID}`;
     if (FORCE_REFRESH) {
       url += '?forceRefresh=true';
     }
