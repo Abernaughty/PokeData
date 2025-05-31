@@ -5,6 +5,7 @@
 - Added comprehensive API documentation for both Pokemon TCG API and PokeData API 
 - Resolved set code and card ID mapping issues between different API systems
 - Deployed updates to Azure Functions app
+- Investigating and fixing issues with enhanced pricing data retrieval
 
 ## Recent Changes
 - Completely rebuilt PokeDataApiService with proper API workflow:
@@ -16,9 +17,16 @@
 - Added findings documentation in memory-bank/pokedata-api-findings.md
 - Created test-enhanced-pokedata.js script to validate the API workflow
 - Deployed all updates to Azure Function App (pokedata-func)
+- Fixed issue in GetCardInfo function to handle cases where card has PokeDataId but is missing enhanced pricing data
+- Created diagnostic scripts for enhanced pricing issues (test-debug-card-info.js, test-cosmosdb-fix.js)
+- Addressed Blob Storage SAS token expiration issues
+- Discovered API credit limitations affecting the PokeData API integration
 
 ## Next Steps
 1. **PokeData API Integration**:
+   - Acquire additional PokeData API credits to continue development and testing
+   - Implement rate limiting in batch operations to avoid quickly depleting API credits
+   - Add a "credits remaining" check before making API calls when possible
    - Monitor logs in Azure portal to verify proper API calls
    - Implement set code mapping table to improve matching between different API systems
    - Consider adding additional fallback strategies for card identification
@@ -64,6 +72,8 @@
    - Card lookups require a multi-step process through sets, cards, and IDs
    - Each card has both a display number (like "076") and a unique numeric ID (like 70473)
    - Fallback mechanisms are essential for handling mismatches between systems
+   - PokeData API has credit limits that can be exhausted during heavy testing/development
+   - Each API call (sets, cards in set, pricing) consumes credits from the available quota
 
 2. **Integration Complexity**:
    - Multiple API systems with different identification schemes require careful mapping

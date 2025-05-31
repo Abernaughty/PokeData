@@ -67,6 +67,18 @@ The current state of the PokeData project includes the following working feature
    - ✅ Reference file for application code changes (imageUtils.modified.ts)
 
 10. **Recent Improvements**:
+   - ✅ Identified and Documented PokeData API Credit Limitations (2025-05-21):
+     - Discovered that PokeData API uses a credit-based system with monthly limits
+     - Found that API calls fail when credits are exhausted rather than returning partial data
+     - Implemented comprehensive debugging scripts to diagnose API integration issues
+     - Updated enhanced pricing data retrieval to handle cases with missing pokeDataId
+     - Created test-debug-pokedata.js script for direct API testing
+     - Fixed Blob Storage SAS token expiration issues by reverting to original token
+     - Modified local.settings.json to disable CDN images for local testing
+     - Updated documentation in memory-bank/pokedata-api-findings.md with credit system details
+     - Identified specific optimization strategies for credit conservation
+     - Result: Better understanding of API limitations with clear path for mitigation strategies
+
    - ✅ Implemented Complete PokeData API Integration (2025-05-20):
      - Completely rebuilt `PokeDataApiService` with proper API workflow:
        - Getting all sets → Finding set ID → Getting cards in set → Finding card ID → Getting pricing
@@ -538,7 +550,18 @@ The current state of the PokeData project includes the following working feature
 
 ## Known Issues
 
-1. **Azure Function Pagination Limitation**: ✅ FIXED
+1. **PokeData API Credit Limitation**: 🔴 ACTIVE
+   - Issue: PokeData API has credit limits that can be exhausted during heavy testing/development
+   - Cause: API uses a credit-based system where each call consumes credits from a monthly quota
+   - Impact: Enhanced pricing data cannot be retrieved when credits are exhausted
+   - Workarounds:
+     1. Rate limit batch operations to avoid quickly depleting credits
+     2. Implement more aggressive caching to minimize API calls
+     3. Create a monitoring system for API credit usage
+     4. Add a "credits remaining" check before making API calls (if API supports this)
+   - Status: 🔴 Active issue as of 2025-05-21, requires acquiring additional API credits
+
+2. **Azure Function Pagination Limitation**: ✅ FIXED
    - Issue: Azure Function GetCardsBySet only returned 100 cards even for sets with more cards
    - Cause: Default pageSize parameter in the GetCardsBySet function was set to 100 cards
    - Impact: Users couldn't search for cards beyond the first 100 in large sets
