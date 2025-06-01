@@ -63,7 +63,7 @@ export const featureFlagService = {
    * @returns {boolean} True if cloud API should be used
    */
   useCloudApi() {
-    return this.getFlag(FEATURE_FLAGS.USE_CLOUD_API, false);
+    return this.getFlag(FEATURE_FLAGS.USE_CLOUD_API, true);
   },
   
   /**
@@ -71,7 +71,7 @@ export const featureFlagService = {
    * @returns {boolean} True if cloud images should be used
    */
   useCloudImages() {
-    return this.getFlag(FEATURE_FLAGS.USE_CLOUD_IMAGES, false);
+    return this.getFlag(FEATURE_FLAGS.USE_CLOUD_IMAGES, true);
   },
   
   /**
@@ -79,7 +79,7 @@ export const featureFlagService = {
    * @returns {boolean} True if cloud caching should be used
    */
   useCloudCaching() {
-    return this.getFlag(FEATURE_FLAGS.USE_CLOUD_CACHING, false);
+    return this.getFlag(FEATURE_FLAGS.USE_CLOUD_CACHING, true);
   },
   
   /**
