@@ -255,7 +255,7 @@ export async function getCardInfo(request: HttpRequest, context: InvocationConte
                     // Use timeOperation for database save operation
                     await logger.timeOperation(
                         "Save card to database",
-                        () => cosmosDbService.saveCard(card)
+                        () => cosmosDbService.saveCard(card!)
                     );
                     
                     // Log the initial state of the card
@@ -346,13 +346,13 @@ export async function getCardInfo(request: HttpRequest, context: InvocationConte
             // Check if card has PokeData ID but needs pricing refresh
             else if (condition2) {
                 logger.info(`Entering condition2 branch (needs pricing refresh)`);
-                logger.info(`Card has PokeData ID ${card.pokeDataId} but needs pricing refresh`);
+                logger.info(`Card has PokeData ID ${card!.pokeDataId} but needs pricing refresh`);
                 
                 // Get pricing directly using the PokeData ID
                 const pricingStartTime = Date.now();
                 const freshPricing = await logger.timeOperation(
-                    `Get pricing data for PokeData ID ${card.pokeDataId}`,
-                    () => pokeDataApiService.getCardPricingById(card.pokeDataId)
+                    `Get pricing data for PokeData ID ${card!.pokeDataId}`,
+                    () => pokeDataApiService.getCardPricingById(card!.pokeDataId!)
                 );
                 const pricingEndTime = Date.now();
                 logger.info(`Pricing data fetch completed in ${pricingEndTime - pricingStartTime}ms, pricing found: ${!!freshPricing}`);
@@ -378,13 +378,13 @@ export async function getCardInfo(request: HttpRequest, context: InvocationConte
             // Check if card has PokeData ID but is missing enhanced pricing data
             else if (condition3) {
                 logger.info(`Entering condition3 branch (missing enhanced pricing)`);
-                logger.info(`Card has PokeData ID ${card.pokeDataId} but is missing enhanced pricing data`);
+                logger.info(`Card has PokeData ID ${card!.pokeDataId} but is missing enhanced pricing data`);
                 
                 // Get pricing directly using the PokeData ID
                 const pricingStartTime = Date.now();
                 const freshPricing = await logger.timeOperation(
-                    `Get enhanced pricing data for PokeData ID ${card.pokeDataId}`,
-                    () => pokeDataApiService.getCardPricingById(card.pokeDataId)
+                    `Get enhanced pricing data for PokeData ID ${card!.pokeDataId}`,
+                    () => pokeDataApiService.getCardPricingById(card!.pokeDataId!)
                 );
                 const pricingEndTime = Date.now();
                 logger.info(`Pricing data fetch completed in ${pricingEndTime - pricingStartTime}ms, pricing found: ${!!freshPricing}`);
@@ -415,7 +415,7 @@ export async function getCardInfo(request: HttpRequest, context: InvocationConte
                 logger.info(`Saving updated card to database`);
                 await logger.timeOperation(
                     "Save updated card to database",
-                    () => cosmosDbService.updateCard(card)
+                    () => cosmosDbService.updateCard(card!)
                 );
                 
                 // Update cache if enabled
