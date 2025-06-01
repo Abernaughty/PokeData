@@ -10,7 +10,7 @@ const ENVIRONMENTS = {
     staging: {
         name: 'Staging',
         baseUrl: 'https://pokedata-func-staging.azurewebsites.net/api/cards',
-        functionKey: 'Uo4vpqa7si7iR1T3LpQfJScDpbIdQ473kbPjlmV-YJgCAzFur2lsFg==', // Add your staging function key here
+        functionKey: '', // Add your staging function key here
         description: 'Testing against staging slot (auto-deployed from main branch)'
     },
     production: {
