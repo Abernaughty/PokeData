@@ -58,6 +58,16 @@ The current state of the PokeData project includes the following working feature
    - ✅ Service classes for Cosmos DB, Blob Storage, and Redis Cache
    - ✅ CI/CD pipeline with GitHub Actions
 
+9. **Modern Deployment Workflow**:
+   - ✅ RBAC-based GitHub Actions workflows with OIDC authentication
+   - ✅ Automatic staging deployment on main/cloud-migration branch pushes
+   - ✅ Manual production deployment with slot swapping capability
+   - ✅ Federated identity credentials properly configured for GitHub Actions
+   - ✅ Staging-first deployment strategy for zero-downtime releases
+   - ✅ Comprehensive deployment documentation and troubleshooting guides
+   - ✅ Service principal with minimal required permissions
+   - ✅ Secure authentication without publish profiles or stored secrets
+
 9. **Image Migration to Azure Blob Storage**:
    - ✅ PowerShell scripts for uploading card images to Azure Blob Storage
    - ✅ Batch files for running test and full migration scripts
@@ -67,6 +77,34 @@ The current state of the PokeData project includes the following working feature
    - ✅ Reference file for application code changes (imageUtils.modified.ts)
 
 10. **Recent Improvements**:
+   - ✅ **Completed Cloud Migration and Fixed Post-Merge Issues (2025-06-01)**:
+     - **Fixed Critical Site Loading Issue**: Resolved main.js 404 error preventing site from loading after cloud-migration merge
+       - **Root Cause**: Rollup configuration created `main.min.js` in production but `index.html` requested `main.js`
+       - **Solution**: Updated `rollup.config.cjs` to consistently output `main.js` in all environments
+       - **Testing**: Verified local build creates correct filenames, deployed fix via GitHub Actions
+       - **Result**: Site now loads successfully at https://pokedata.maber.io
+     - **Completed Cloud Migration**: Updated feature flag defaults to enable cloud-first architecture
+       - **Cloud API**: Changed `useCloudApi()` default from `false` to `true` in `featureFlagService.js`
+       - **Cloud Images**: Changed `useCloudImages()` default from `false` to `true` in `featureFlagService.js`
+       - **Cloud Caching**: Changed `useCloudCaching()` default from `false` to `true` in `featureFlagService.js`
+       - **User Control Preserved**: Users can still override defaults via localStorage or URL parameters
+       - **Result**: Full transition to cloud architecture completed while maintaining flexibility for testing and fallback
+   
+   - ✅ **Implemented Proper Azure Function Deployment Workflow with RBAC Authentication (2025-06-01)**:
+     - **Replaced Legacy Workflows**: Removed old publish profile-based deployment workflows (`main_pokedata-func.yml`, `main_pokedata-func(staging).yml`)
+     - **Created Modern RBAC Workflows**: 
+       - `deploy-staging.yml`: Automatic deployment to staging slot on pushes to main/cloud-migration branches
+       - `deploy-production.yml`: Manual production deployment with slot swapping capability
+     - **Fixed OIDC Authentication Issues**: 
+       - Added required `id-token: write` and `contents: read` permissions to workflows
+       - Resolved AADSTS70025 federated identity credential error
+       - Created comprehensive setup guide for federated identity credentials
+     - **Implemented Staging-First Strategy**: Deploy to staging → test → swap to production for zero-downtime deployments
+     - **Enhanced Security**: Service principal with minimal permissions, no publish profiles stored in secrets
+     - **Created Comprehensive Documentation**: Added `docs/deployment-setup-guide.md` with complete setup instructions
+     - **Troubleshooting Support**: Added detailed error resolution for common OIDC authentication issues
+     - Result: Modern, secure CI/CD pipeline with proper staging workflow and comprehensive documentation
+
    - ✅ Identified and Documented PokeData API Credit Limitations (2025-05-21):
      - Discovered that PokeData API uses a credit-based system with monthly limits
      - Found that API calls fail when credits are exhausted rather than returning partial data

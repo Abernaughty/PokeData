@@ -333,7 +333,7 @@ export async function getCardInfo(request: HttpRequest, context: InvocationConte
                             logger.info(`Retrieved pricing data for PokeData ID: ${card.pokeDataId}`);
                             card.pricing = freshPricing;
                             card.pricingLastUpdated = new Date().toISOString();
-                            const enhancedPricing = pokeDataApiService['mapApiPricingToEnhancedPriceData']({ pricing: freshPricing });
+                            const enhancedPricing = pokeDataApiService.mapApiPricingToEnhancedPriceData({ pricing: freshPricing });
                             card.enhancedPricing = enhancedPricing || undefined;
                         } else {
                             logger.warn(`No pricing data available for PokeData ID: ${card.pokeDataId}`);
@@ -363,7 +363,7 @@ export async function getCardInfo(request: HttpRequest, context: InvocationConte
                     card.pricingLastUpdated = new Date().toISOString();
                     
                     // For backward compatibility - convert null to undefined if needed
-                    const enhancedPricing = pokeDataApiService['mapApiPricingToEnhancedPriceData']({ pricing: freshPricing });
+                    const enhancedPricing = pokeDataApiService.mapApiPricingToEnhancedPriceData({ pricing: freshPricing });
                     card.enhancedPricing = enhancedPricing || undefined;
                     
                     cardUpdated = true;
@@ -395,7 +395,7 @@ export async function getCardInfo(request: HttpRequest, context: InvocationConte
                     card.pricingLastUpdated = new Date().toISOString();
                     
                     // For backward compatibility - convert null to undefined if needed
-                    const enhancedPricing = pokeDataApiService['mapApiPricingToEnhancedPriceData']({ pricing: freshPricing });
+                    const enhancedPricing = pokeDataApiService.mapApiPricingToEnhancedPriceData({ pricing: freshPricing });
                     card.enhancedPricing = enhancedPricing || undefined;
                     
                     cardUpdated = true;
