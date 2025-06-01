@@ -13,7 +13,7 @@ This document outlines the technologies used, development setup, technical const
 - **Fetch API**: For making HTTP requests to external APIs
 - **Web Storage API**: For lightweight client-side storage
 
-### Planned Cloud Technologies
+### Current Cloud Technologies (Default)
 - **Azure Cosmos DB**: Primary database for card metadata and pricing information
 - **Azure Blob Storage**: Storage for card images
 - **Azure CDN**: Fast delivery of card images

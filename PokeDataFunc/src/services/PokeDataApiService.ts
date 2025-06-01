@@ -417,7 +417,7 @@ export class PokeDataApiService implements IPokeDataApiService {
     }
     
     // Helper methods for mapping API responses to our models
-    private mapApiPricingToEnhancedPriceData(apiPricing: any): EnhancedPriceData | null {
+    public mapApiPricingToEnhancedPriceData(apiPricing: any): EnhancedPriceData | null {
         if (!apiPricing) return null;
         
         console.log(`[PokeDataApiService] Mapping API pricing data:`, JSON.stringify(apiPricing).substring(0, 200) + '...');

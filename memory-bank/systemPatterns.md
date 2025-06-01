@@ -30,8 +30,8 @@ The current PokeData application follows a client-side architecture with a focus
 └─────────────────────────────────────────────────────────┘
 ```
 
-### Planned Cloud-Based Architecture
-The planned architecture transitions from a client-side only approach to a cloud-based architecture using Azure services:
+### Current Cloud-Based Architecture (Default)
+The application now uses a cloud-first architecture with Azure services as the default behavior:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
