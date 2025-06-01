@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getCardInfo = getCardInfo;
 const functions_1 = require("@azure/functions");
-const loggingUtils_1 = require("../src/utils/loggingUtils");
 const cacheUtils_1 = require("../src/utils/cacheUtils");
 const imageUtils_1 = require("../src/utils/imageUtils");
 const errorUtils_1 = require("../src/utils/errorUtils");
@@ -17,75 +16,6 @@ const redisCacheService = new RedisCacheService_1.RedisCacheService(process.env.
 const blobStorageService = new BlobStorageService_1.BlobStorageService(process.env.BLOB_STORAGE_CONNECTION_STRING || "");
 const pokemonTcgApiService = new PokemonTcgApiService_1.PokemonTcgApiService(process.env.POKEMON_TCG_API_KEY || "", process.env.POKEMON_TCG_API_BASE_URL);
 const pokeDataApiService = new PokeDataApiService_1.PokeDataApiService(process.env.POKEDATA_API_KEY || "", process.env.POKEDATA_API_BASE_URL);
-// Helper function to enrich a card with its PokeData ID using enhanced logging
-async function enrichCardWithPokeDataId(cardToEnrich, context, correlationId) {
-    // Create a logger with the shared correlation ID
-    const logger = new loggingUtils_1.LogManager(context, correlationId, loggingUtils_1.LogLevel.DEBUG);
-    // Create a single point of exit with proper logging
-    let success = false;
-    try {
-        logger.info(`ENTER enrichCardWithPokeDataId for card ${cardToEnrich.id} with setCode ${cardToEnrich.setCode}`);
-        // Get cards in the set from PokeData API using timeOperation for proper tracking
-        const pokeDataCards = await logger.timeOperation(`Fetch cards for set ${cardToEnrich.setCode}`, () => pokeDataApiService.getCardsInSetByCode(cardToEnrich.setCode));
-        if (pokeDataCards && pokeDataCards.length > 0) {
-            logger.info(`Retrieved ${pokeDataCards.length} cards from PokeData API for set ${cardToEnrich.setCode}`);
-            // Log first few cards for debugging
-            if (pokeDataCards.length > 0) {
-                logger.debug(`Sample cards: ${JSON.stringify(pokeDataCards.slice(0, 3).map(c => ({ id: c.id, num: c.num, name: c.name })))}`);
-            }
-            // Find the matching card by card number
-            // Note: Must use exact matching as card numbers in PokeData are formatted exactly (no padding)
-            logger.info(`Looking for card with number "${cardToEnrich.cardNumber}" in set`);
-            const matchingCard = pokeDataCards.find(pdc => pdc.num === cardToEnrich.cardNumber);
-            // If no exact match found, try with leading zeros removed
-            // This handles cases where our cardNumber might be "076" but PokeData has "76"
-            if (!matchingCard) {
-                const trimmedNumber = cardToEnrich.cardNumber.replace(/^0+/, '');
-                logger.info(`No exact match found, trying with trimmed number: "${trimmedNumber}"`);
-                // Log all card numbers in the set for comparison
-                const allCardNumbers = pokeDataCards.map(c => c.num).sort();
-                logger.debug(`All card numbers in set: ${JSON.stringify(allCardNumbers)}`);
-                const altMatch = pokeDataCards.find(pdc => pdc.num === trimmedNumber);
-                if (altMatch) {
-                    logger.info(`Found card with trimmed number "${trimmedNumber}" instead of "${cardToEnrich.cardNumber}". Card details: ${JSON.stringify({ id: altMatch.id, name: altMatch.name, num: altMatch.num })}`);
-                    cardToEnrich.pokeDataId = altMatch.id;
-                    success = true;
-                    await logger.flush();
-                    return true;
-                }
-                else {
-                    logger.warn(`No match found even with trimmed number "${trimmedNumber}"`);
-                }
-            }
-            if (matchingCard) {
-                logger.info(`Found matching PokeData card: ${matchingCard.name} with ID: ${matchingCard.id}`);
-                cardToEnrich.pokeDataId = matchingCard.id;
-                success = true;
-                await logger.flush();
-                return true;
-            }
-            else {
-                logger.warn(`No matching card found for number ${cardToEnrich.cardNumber} in set ${cardToEnrich.setCode}`);
-            }
-        }
-        else {
-            logger.warn(`No cards returned from PokeData API for set ${cardToEnrich.setCode}`);
-        }
-    }
-    catch (error) {
-        logger.error(`Error enriching card with PokeData ID: ${error.message}`);
-        logger.error(`Error stack: ${error.stack}`);
-        // If there's a response object, log that too
-        if (error.response) {
-            logger.error(`Error response status: ${error.response.status}`);
-            logger.error(`Error response data: ${JSON.stringify(error.response.data)}`);
-        }
-    }
-    // Log exit and return the success status
-    logger.info(`EXIT enrichCardWithPokeDataId, result: ${success}`);
-    await logger.flush();
-    return success;
-}
 // Helper function to check if pricing data is stale
 function isPricingStale(timestamp) {
     if (!timestamp)
@@ -95,247 +25,363 @@ function isPricingStale(timestamp) {
     const oneDayMs = 24 * 60 * 60 * 1000;
     return (now - lastUpdate) > oneDayMs;
 }
-// Helper function to log card state for debugging using enhanced logging
-function logCardState(card, stage, context, correlationId) {
-    // Create a logger with the shared correlation ID
-    const logger = new loggingUtils_1.LogManager(context, correlationId, loggingUtils_1.LogLevel.DEBUG);
-    logger.info(`CARD STATE at ${stage}: ${JSON.stringify({
-        id: card.id,
-        setCode: card.setCode,
-        cardNumber: card.cardNumber,
-        pokeDataId: card.pokeDataId,
-        hasPricing: !!card.pricing,
-        pricingCount: card.pricing ? Object.keys(card.pricing).length : 0,
-        pricingLastUpdated: card.pricingLastUpdated,
-        hasEnhancedPricing: !!card.enhancedPricing,
-        enhancedPricingKeys: card.enhancedPricing ? Object.keys(card.enhancedPricing) : [],
-        enhancedPricingCount: card.enhancedPricing ? Object.keys(card.enhancedPricing).length : 0
-    })}`);
-    // Flush logs to ensure they're captured
-    // We're not awaiting this since logCardState is a synchronous function
-    // But the flush will still happen asynchronously
-    logger.flush().catch(err => {
-        context.log(`Error flushing logs: ${err.message}`);
-    });
-}
 async function getCardInfo(request, context) {
     var _a;
     // Generate a correlation ID for request tracking
     const correlationId = `card-${request.params.cardId || 'unknown'}-${Date.now()}`;
-    // Create an enhanced logger with high log level to capture all details
-    const logger = new loggingUtils_1.LogManager(context, correlationId, loggingUtils_1.LogLevel.DEBUG);
-    // Log environment configuration
-    logger.info(`CONFIGURATION:
-    ENABLE_REDIS_CACHE: ${process.env.ENABLE_REDIS_CACHE}
-    CACHE_TTL_CARDS: ${process.env.CACHE_TTL_CARDS}
-    IMAGE_SOURCE_STRATEGY: ${process.env.IMAGE_SOURCE_STRATEGY}
-    ENABLE_CDN_IMAGES: ${process.env.ENABLE_CDN_IMAGES}
-    POKEDATA_API_BASE_URL: ${(_a = process.env.POKEDATA_API_BASE_URL) === null || _a === void 0 ? void 0 : _a.substring(0, 20)}...
-`);
+    // Use direct context.log instead of LogManager
+    context.log(`[${correlationId}] ===== STARTING getCardInfo function =====`);
+    // Log environment configuration for debugging
+    context.log(`[${correlationId}] ENVIRONMENT CONFIG:`, {
+        ENABLE_REDIS_CACHE: process.env.ENABLE_REDIS_CACHE,
+        CACHE_TTL_CARDS: process.env.CACHE_TTL_CARDS,
+        IMAGE_SOURCE_STRATEGY: process.env.IMAGE_SOURCE_STRATEGY,
+        ENABLE_CDN_IMAGES: process.env.ENABLE_CDN_IMAGES,
+        POKEDATA_API_BASE_URL: ((_a = process.env.POKEDATA_API_BASE_URL) === null || _a === void 0 ? void 0 : _a.substring(0, 30)) + '...',
+        HAS_POKEDATA_API_KEY: !!process.env.POKEDATA_API_KEY,
+        HAS_COSMOSDB_CONNECTION: !!process.env.COSMOSDB_CONNECTION_STRING,
+        HAS_REDIS_CONNECTION: !!process.env.REDIS_CONNECTION_STRING
+    });
+    // Check service initialization
+    context.log(`[${correlationId}] SERVICE INITIALIZATION CHECK:`, {
+        cosmosDbService: typeof cosmosDbService,
+        pokeDataApiService: typeof pokeDataApiService,
+        pokeDataApiServiceMethods: Object.getOwnPropertyNames(Object.getPrototypeOf(pokeDataApiService)),
+        hasMapMethod: typeof pokeDataApiService.mapApiPricingToEnhancedPriceData
+    });
     try {
         // Start timing the request
         const startTime = Date.now();
         // Get card ID from route parameters
         const cardId = request.params.cardId;
         if (!cardId) {
+            context.log(`[${correlationId}] ERROR: Missing card ID in request`);
             const errorResponse = (0, errorUtils_1.createNotFoundError)("Card ID", "missing", "GetCardInfo");
-            logger.error(`Missing card ID in request`);
-            // Ensure logs are flushed before returning
-            await logger.flush();
             return {
                 jsonBody: errorResponse,
                 status: errorResponse.status
             };
         }
-        logger.info(`Processing request for card: ${cardId}`);
+        context.log(`[${correlationId}] Processing request for card: ${cardId}`);
         // Parse query parameters
         const forceRefresh = request.query.get("forceRefresh") === "true";
-        // Ensure cardsTtl is a valid number
-        let cardsTtl = 86400; // 24 hours default
-        try {
-            const ttlFromEnv = parseInt(process.env.CACHE_TTL_CARDS || "86400");
-            cardsTtl = !isNaN(ttlFromEnv) ? ttlFromEnv : 86400;
-        }
-        catch (e) {
-            logger.warn(`Error parsing CACHE_TTL_CARDS, using default: ${e.message}`);
-        }
+        context.log(`[${correlationId}] Force refresh requested: ${forceRefresh}`);
         // Check Redis cache first (if enabled and not forcing refresh)
         const cacheKey = (0, cacheUtils_1.getCardCacheKey)(cardId);
         let card = null;
         let cacheHit = false;
         let cacheAge = 0;
         if (!forceRefresh && process.env.ENABLE_REDIS_CACHE === "true") {
+            context.log(`[${correlationId}] Checking Redis cache for key: ${cacheKey}`);
             const cacheStartTime = Date.now();
             const cachedEntry = await redisCacheService.get(cacheKey);
             const cacheEndTime = Date.now();
-            logger.debug(`Redis cache lookup completed in ${cacheEndTime - cacheStartTime}ms`);
+            context.log(`[${correlationId}] Redis cache lookup completed in ${cacheEndTime - cacheStartTime}ms`);
             card = (0, cacheUtils_1.parseCacheEntry)(cachedEntry);
             if (card) {
-                logger.info(`Cache hit for card: ${cardId}`);
+                context.log(`[${correlationId}] ✅ Cache HIT for card: ${cardId}`);
                 cacheHit = true;
-                // Ensure cachedEntry is not null before calling getCacheAge
                 if (cachedEntry) {
                     cacheAge = (0, cacheUtils_1.getCacheAge)(cachedEntry.timestamp);
-                    logger.info(`Cache entry age: ${cacheAge} seconds (${Math.round(cacheAge / 3600)} hours)`);
+                    context.log(`[${correlationId}] Cache entry age: ${cacheAge} seconds (${Math.round(cacheAge / 3600)} hours)`);
                 }
             }
+            else {
+                context.log(`[${correlationId}] ❌ Cache MISS for card: ${cardId}`);
+            }
+        }
+        else {
+            context.log(`[${correlationId}] Skipping cache check (forceRefresh=${forceRefresh}, cacheEnabled=${process.env.ENABLE_REDIS_CACHE})`);
         }
         // If not in cache, check Cosmos DB
         if (!card) {
-            logger.info(`Cache miss for card: ${cardId}, checking database`);
+            context.log(`[${correlationId}] Cache miss for card: ${cardId}, checking Cosmos DB`);
             const dbStartTime = Date.now();
-            card = await logger.timeOperation("Cosmos DB lookup", () => cosmosDbService.getCard(cardId));
+            card = await cosmosDbService.getCard(cardId);
             const dbEndTime = Date.now();
-            logger.info(`Database lookup completed in ${dbEndTime - dbStartTime}ms, found: ${!!card}`);
+            context.log(`[${correlationId}] Cosmos DB lookup completed in ${dbEndTime - dbStartTime}ms, result: ${card ? 'FOUND' : 'NOT FOUND'}`);
             // If not in database, fetch from external API
             if (!card) {
-                logger.info(`Card not found in database, fetching from Pokemon TCG API: ${cardId}`);
-                // Use timeOperation for proper tracking
-                card = await logger.timeOperation("Pokemon TCG API lookup", () => pokemonTcgApiService.getCard(cardId));
+                context.log(`[${correlationId}] Card not found in database, fetching from Pokemon TCG API: ${cardId}`);
+                const apiStartTime = Date.now();
+                card = await pokemonTcgApiService.getCard(cardId);
+                const apiEndTime = Date.now();
+                context.log(`[${correlationId}] Pokemon TCG API lookup completed in ${apiEndTime - apiStartTime}ms, result: ${card ? 'FOUND' : 'NOT FOUND'}`);
                 // If card found, save to database
                 if (card) {
-                    logger.info(`Card found in Pokemon TCG API, saving to database`);
-                    // Use timeOperation for database save operation
-                    await logger.timeOperation("Save card to database", () => cosmosDbService.saveCard(card));
-                    // Log the initial state of the card
-                    logCardState(card, "INITIAL_FROM_TCG_API", context, correlationId);
+                    context.log(`[${correlationId}] Card found in Pokemon TCG API, saving to database`);
+                    const saveStartTime = Date.now();
+                    await cosmosDbService.saveCard(card);
+                    const saveEndTime = Date.now();
+                    context.log(`[${correlationId}] Card saved to database in ${saveEndTime - saveStartTime}ms`);
+                }
+                else {
+                    context.log(`[${correlationId}] ❌ Card not found in Pokemon TCG API either`);
                 }
             }
         }
         // Now that we have the card (from cache, DB, or API), check for enrichment
         if (card) {
-            // Log card state before enrichment using our helper
-            logCardState(card, "BEFORE_ENRICHMENT", context, correlationId);
+            context.log(`[${correlationId}] ✅ Card found, starting enrichment process`);
+            // Log card state before enrichment
+            context.log(`[${correlationId}] CARD STATE BEFORE ENRICHMENT:`, {
+                id: card.id,
+                cardName: card.cardName || 'N/A',
+                setCode: card.setCode,
+                cardNumber: card.cardNumber,
+                pokeDataId: card.pokeDataId || 'MISSING',
+                hasPricing: !!card.pricing,
+                pricingKeys: card.pricing ? Object.keys(card.pricing) : [],
+                pricingCount: card.pricing ? Object.keys(card.pricing).length : 0,
+                pricingLastUpdated: card.pricingLastUpdated || 'NEVER',
+                hasEnhancedPricing: !!card.enhancedPricing,
+                enhancedPricingKeys: card.enhancedPricing ? Object.keys(card.enhancedPricing) : [],
+                enhancedPricingCount: card.enhancedPricing ? Object.keys(card.enhancedPricing).length : 0,
+                hasTcgPlayerPrice: !!card.tcgPlayerPrice
+            });
             let cardUpdated = false;
-            // Evaluate and log all condition results
+            // Evaluate enrichment conditions with detailed logging
             const condition1 = !card.pokeDataId;
             const condition2 = card.pokeDataId && (forceRefresh || !card.pricing || !card.pricingLastUpdated || isPricingStale(card.pricingLastUpdated));
             const condition3 = card.pokeDataId && (!card.enhancedPricing || Object.keys(card.enhancedPricing || {}).length === 0);
-            logger.info(`Enrichment condition evaluations:`);
-            logger.info(`- condition1 (!card.pokeDataId): ${condition1}`);
+            context.log(`[${correlationId}] ENRICHMENT CONDITION EVALUATIONS:`);
+            context.log(`[${correlationId}] - condition1 (needs PokeData ID): ${condition1}`);
+            context.log(`[${correlationId}] - condition2 (needs pricing refresh): ${condition2}`);
             if (condition2) {
-                logger.info(`- condition2 breakdown: forceRefresh=${forceRefresh}, !card.pricing=${!card.pricing}, !card.pricingLastUpdated=${!card.pricingLastUpdated}, isPricingStale=${card.pricingLastUpdated ? isPricingStale(card.pricingLastUpdated) : 'N/A'}`);
+                context.log(`[${correlationId}]   - breakdown: forceRefresh=${forceRefresh}, !pricing=${!card.pricing}, !pricingLastUpdated=${!card.pricingLastUpdated}, isPricingStale=${card.pricingLastUpdated ? isPricingStale(card.pricingLastUpdated) : 'N/A'}`);
                 if (card.pricingLastUpdated) {
                     const lastUpdate = new Date(card.pricingLastUpdated).getTime();
                     const now = Date.now();
-                    const oneDayMs = 24 * 60 * 60 * 1000;
-                    logger.info(`- pricingLastUpdated: ${card.pricingLastUpdated}, age: ${(now - lastUpdate) / oneDayMs} days`);
+                    const ageHours = (now - lastUpdate) / (1000 * 60 * 60);
+                    context.log(`[${correlationId}]   - pricingLastUpdated: ${card.pricingLastUpdated}, age: ${ageHours.toFixed(2)} hours`);
                 }
             }
-            logger.info(`- condition3 (missing enhanced pricing): ${condition3}`);
+            context.log(`[${correlationId}] - condition3 (missing enhanced pricing): ${condition3}`);
             if (condition3) {
-                logger.info(`- enhancedPricing check: enhancedPricing exists=${!!card.enhancedPricing}, keys count=${card.enhancedPricing ? Object.keys(card.enhancedPricing).length : 0}`);
+                context.log(`[${correlationId}]   - enhancedPricing exists: ${!!card.enhancedPricing}, keys count: ${card.enhancedPricing ? Object.keys(card.enhancedPricing).length : 0}`);
             }
-            if (card.enhancedPricing) {
-                logger.info(`Enhanced pricing keys: ${Object.keys(card.enhancedPricing).join(', ')}`);
-                logger.info(`Enhanced pricing size: ${Object.keys(card.enhancedPricing).length}`);
-                // If there are any keys, log a sample of the data
-                const keys = Object.keys(card.enhancedPricing);
-                if (keys.length > 0) {
-                    const sampleKey = keys[0];
-                    // Use a type assertion to tell TypeScript this is valid
-                    const sampleData = card.enhancedPricing[sampleKey];
-                    logger.info(`Sample enhanced pricing data for key ${sampleKey}: ${JSON.stringify(sampleData)}`);
-                }
-            }
-            // Check if card needs PokeData ID
-            if (!card.pokeDataId) {
-                logger.info(`Card ${cardId} missing PokeData ID, attempting to find it`);
-                const enrichStartTime = Date.now();
-                const enrichResult = await enrichCardWithPokeDataId(card, context, correlationId);
-                const enrichEndTime = Date.now();
-                logger.info(`PokeData ID enrichment completed in ${enrichEndTime - enrichStartTime}ms with result: ${enrichResult}`);
-                if (enrichResult) {
-                    logger.info(`Successfully added PokeData ID: ${card.pokeDataId} to card ${cardId}`);
-                    cardUpdated = true;
-                    // If we now have a pokeDataId, we can fetch pricing
-                    // Ensure pokeDataId is not undefined
-                    if (card.pokeDataId) {
-                        logger.info(`Fetching pricing data for newly found PokeData ID: ${card.pokeDataId}`);
-                        const pricingStartTime = Date.now();
-                        const freshPricing = await pokeDataApiService.getCardPricingById(card.pokeDataId);
-                        const pricingEndTime = Date.now();
-                        logger.info(`Pricing data fetch completed in ${pricingEndTime - pricingStartTime}ms, pricing found: ${!!freshPricing}`);
-                        if (freshPricing) {
-                            logger.info(`Retrieved pricing data for PokeData ID: ${card.pokeDataId}`);
-                            card.pricing = freshPricing;
-                            card.pricingLastUpdated = new Date().toISOString();
-                            const enhancedPricing = pokeDataApiService['mapApiPricingToEnhancedPriceData']({ pricing: freshPricing });
-                            card.enhancedPricing = enhancedPricing || undefined;
+            // CONDITION 1: Check if card needs PokeData ID
+            if (condition1) {
+                context.log(`[${correlationId}] 🔍 ENTERING CONDITION 1: Card ${cardId} missing PokeData ID, attempting to find it`);
+                try {
+                    // Verify service availability before making API calls
+                    context.log(`[${correlationId}] Verifying PokeDataApiService:`, {
+                        serviceType: typeof pokeDataApiService,
+                        hasGetCardsMethod: typeof pokeDataApiService.getCardsInSetByCode,
+                        hasGetPricingMethod: typeof pokeDataApiService.getCardPricingById,
+                        hasMapMethod: typeof pokeDataApiService.mapApiPricingToEnhancedPriceData,
+                        setCode: card.setCode
+                    });
+                    context.log(`[${correlationId}] Calling getCardsInSetByCode for set: ${card.setCode}`);
+                    const cardsStartTime = Date.now();
+                    const pokeDataCards = await pokeDataApiService.getCardsInSetByCode(card.setCode);
+                    const cardsEndTime = Date.now();
+                    context.log(`[${correlationId}] PokeData API getCardsInSetByCode completed in ${cardsEndTime - cardsStartTime}ms, returned ${pokeDataCards ? pokeDataCards.length : 0} cards`);
+                    if (pokeDataCards && pokeDataCards.length > 0) {
+                        context.log(`[${correlationId}] ✅ Retrieved ${pokeDataCards.length} cards from PokeData API for set ${card.setCode}`);
+                        // Log sample cards for debugging
+                        const sampleCards = pokeDataCards.slice(0, 5).map(c => ({ id: c.id, num: c.num, name: c.name }));
+                        context.log(`[${correlationId}] Sample PokeData cards:`, sampleCards);
+                        // Find matching card by exact card number first
+                        context.log(`[${correlationId}] Looking for card with exact number "${card.cardNumber}"`);
+                        let matchingCard = pokeDataCards.find(pdc => pdc.num === card.cardNumber);
+                        if (!matchingCard) {
+                            // Try with leading zeros removed
+                            const trimmedNumber = card.cardNumber.replace(/^0+/, '');
+                            context.log(`[${correlationId}] No exact match found, trying with trimmed number: "${trimmedNumber}"`);
+                            // Log all card numbers in the set for comparison
+                            const allCardNumbers = pokeDataCards.map(c => c.num).sort();
+                            context.log(`[${correlationId}] All available card numbers in set:`, allCardNumbers);
+                            matchingCard = pokeDataCards.find(pdc => pdc.num === trimmedNumber);
+                            if (matchingCard) {
+                                context.log(`[${correlationId}] ✅ Found card with trimmed number "${trimmedNumber}" instead of "${card.cardNumber}"`);
+                            }
+                        }
+                        if (matchingCard) {
+                            context.log(`[${correlationId}] 🎯 FOUND MATCHING POKEDATA CARD:`, {
+                                id: matchingCard.id,
+                                name: matchingCard.name,
+                                num: matchingCard.num,
+                                originalCardNumber: card.cardNumber
+                            });
+                            card.pokeDataId = matchingCard.id;
+                            cardUpdated = true;
+                            // Now fetch pricing for the newly found PokeData ID
+                            context.log(`[${correlationId}] 💰 Fetching pricing for newly found PokeData ID: ${card.pokeDataId}`);
+                            const pricingStartTime = Date.now();
+                            try {
+                                const freshPricing = await pokeDataApiService.getCardPricingById(card.pokeDataId);
+                                const pricingEndTime = Date.now();
+                                context.log(`[${correlationId}] Pricing fetch completed in ${pricingEndTime - pricingStartTime}ms, result: ${!!freshPricing}`);
+                                if (freshPricing) {
+                                    context.log(`[${correlationId}] ✅ Retrieved pricing data, keys:`, Object.keys(freshPricing));
+                                    card.pricing = freshPricing;
+                                    card.pricingLastUpdated = new Date().toISOString();
+                                    // Try to generate enhanced pricing
+                                    context.log(`[${correlationId}] 🔄 Attempting to generate enhanced pricing...`);
+                                    try {
+                                        if (typeof pokeDataApiService.mapApiPricingToEnhancedPriceData === 'function') {
+                                            context.log(`[${correlationId}] mapApiPricingToEnhancedPriceData method found, calling it...`);
+                                            const enhancedPricing = pokeDataApiService.mapApiPricingToEnhancedPriceData({ pricing: freshPricing });
+                                            card.enhancedPricing = enhancedPricing || undefined;
+                                            context.log(`[${correlationId}] ✅ Enhanced pricing generated successfully:`, !!enhancedPricing);
+                                            if (enhancedPricing) {
+                                                context.log(`[${correlationId}] Enhanced pricing keys:`, Object.keys(enhancedPricing));
+                                                context.log(`[${correlationId}] Enhanced pricing sample:`, JSON.stringify(enhancedPricing).substring(0, 200) + '...');
+                                            }
+                                        }
+                                        else {
+                                            context.log(`[${correlationId}] ❌ mapApiPricingToEnhancedPriceData method not found or not a function`);
+                                            context.log(`[${correlationId}] Available methods:`, Object.getOwnPropertyNames(Object.getPrototypeOf(pokeDataApiService)));
+                                        }
+                                    }
+                                    catch (enhancedError) {
+                                        context.log(`[${correlationId}] ❌ Error generating enhanced pricing:`, enhancedError.message);
+                                        context.log(`[${correlationId}] Enhanced pricing error stack:`, enhancedError.stack);
+                                    }
+                                }
+                                else {
+                                    context.log(`[${correlationId}] ❌ No pricing data returned from PokeData API for ID: ${card.pokeDataId}`);
+                                }
+                            }
+                            catch (pricingError) {
+                                context.log(`[${correlationId}] ❌ Error fetching pricing for PokeData ID ${card.pokeDataId}:`, pricingError.message);
+                                context.log(`[${correlationId}] Pricing error stack:`, pricingError.stack);
+                            }
                         }
                         else {
-                            logger.warn(`No pricing data available for PokeData ID: ${card.pokeDataId}`);
+                            context.log(`[${correlationId}] ❌ No matching card found for number ${card.cardNumber} in set ${card.setCode}`);
+                            const allCardNumbers = pokeDataCards.map(c => c.num).sort();
+                            context.log(`[${correlationId}] Available card numbers for reference:`, allCardNumbers);
                         }
                     }
+                    else {
+                        context.log(`[${correlationId}] ❌ No cards returned from PokeData API for set ${card.setCode}`);
+                    }
                 }
-                else {
-                    logger.warn(`Failed to find PokeData ID for card ${cardId}`);
+                catch (enrichError) {
+                    context.log(`[${correlationId}] ❌ Error during PokeData ID enrichment:`, enrichError.message);
+                    context.log(`[${correlationId}] Enrichment error stack:`, enrichError.stack);
+                    if (enrichError.response) {
+                        context.log(`[${correlationId}] Error response status:`, enrichError.response.status);
+                        context.log(`[${correlationId}] Error response data:`, enrichError.response.data);
+                    }
                 }
             }
-            // Check if card has PokeData ID but needs pricing refresh
+            // CONDITION 2: Check if card has PokeData ID but needs pricing refresh
             else if (condition2) {
-                logger.info(`Entering condition2 branch (needs pricing refresh)`);
-                logger.info(`Card has PokeData ID ${card.pokeDataId} but needs pricing refresh`);
-                // Get pricing directly using the PokeData ID
-                const pricingStartTime = Date.now();
-                const freshPricing = await logger.timeOperation(`Get pricing data for PokeData ID ${card.pokeDataId}`, () => pokeDataApiService.getCardPricingById(card.pokeDataId));
-                const pricingEndTime = Date.now();
-                logger.info(`Pricing data fetch completed in ${pricingEndTime - pricingStartTime}ms, pricing found: ${!!freshPricing}`);
-                if (freshPricing) {
-                    // Update the card's pricing data
-                    card.pricing = freshPricing;
-                    card.pricingLastUpdated = new Date().toISOString();
-                    // For backward compatibility - convert null to undefined if needed
-                    const enhancedPricing = pokeDataApiService['mapApiPricingToEnhancedPriceData']({ pricing: freshPricing });
-                    card.enhancedPricing = enhancedPricing || undefined;
-                    cardUpdated = true;
-                    logger.info(`Updated card ${cardId} with fresh pricing data`);
-                    // Log the updated card state after pricing refresh
-                    logCardState(card, "AFTER_PRICING_REFRESH", context, correlationId);
+                context.log(`[${correlationId}] 🔄 ENTERING CONDITION 2: Card has PokeData ID ${card.pokeDataId} but needs pricing refresh`);
+                try {
+                    const pricingStartTime = Date.now();
+                    const freshPricing = await pokeDataApiService.getCardPricingById(card.pokeDataId);
+                    const pricingEndTime = Date.now();
+                    context.log(`[${correlationId}] Fresh pricing fetch completed in ${pricingEndTime - pricingStartTime}ms, result: ${!!freshPricing}`);
+                    if (freshPricing) {
+                        context.log(`[${correlationId}] ✅ Retrieved fresh pricing data, keys:`, Object.keys(freshPricing));
+                        card.pricing = freshPricing;
+                        card.pricingLastUpdated = new Date().toISOString();
+                        // Generate enhanced pricing
+                        try {
+                            if (typeof pokeDataApiService.mapApiPricingToEnhancedPriceData === 'function') {
+                                const enhancedPricing = pokeDataApiService.mapApiPricingToEnhancedPriceData({ pricing: freshPricing });
+                                card.enhancedPricing = enhancedPricing || undefined;
+                                context.log(`[${correlationId}] ✅ Enhanced pricing updated:`, !!enhancedPricing);
+                                if (enhancedPricing) {
+                                    context.log(`[${correlationId}] Enhanced pricing keys:`, Object.keys(enhancedPricing));
+                                }
+                            }
+                            else {
+                                context.log(`[${correlationId}] ❌ mapApiPricingToEnhancedPriceData method not available`);
+                            }
+                        }
+                        catch (enhancedError) {
+                            context.log(`[${correlationId}] ❌ Error generating enhanced pricing:`, enhancedError.message);
+                        }
+                        cardUpdated = true;
+                        context.log(`[${correlationId}] ✅ Card pricing refreshed successfully`);
+                    }
+                    else {
+                        context.log(`[${correlationId}] ❌ No fresh pricing data returned`);
+                    }
                 }
-                else {
-                    logger.warn(`Failed to fetch pricing data for PokeData ID: ${card.pokeDataId}`);
+                catch (pricingError) {
+                    context.log(`[${correlationId}] ❌ Error fetching fresh pricing:`, pricingError.message);
+                    context.log(`[${correlationId}] Pricing refresh error stack:`, pricingError.stack);
                 }
             }
-            // Check if card has PokeData ID but is missing enhanced pricing data
+            // CONDITION 3: Check if card has PokeData ID but is missing enhanced pricing data
             else if (condition3) {
-                logger.info(`Entering condition3 branch (missing enhanced pricing)`);
-                logger.info(`Card has PokeData ID ${card.pokeDataId} but is missing enhanced pricing data`);
-                // Get pricing directly using the PokeData ID
-                const pricingStartTime = Date.now();
-                const freshPricing = await logger.timeOperation(`Get enhanced pricing data for PokeData ID ${card.pokeDataId}`, () => pokeDataApiService.getCardPricingById(card.pokeDataId));
-                const pricingEndTime = Date.now();
-                logger.info(`Pricing data fetch completed in ${pricingEndTime - pricingStartTime}ms, pricing found: ${!!freshPricing}`);
-                if (freshPricing) {
-                    // Update the card's pricing data
-                    card.pricing = freshPricing;
-                    card.pricingLastUpdated = new Date().toISOString();
-                    // For backward compatibility - convert null to undefined if needed
-                    const enhancedPricing = pokeDataApiService['mapApiPricingToEnhancedPriceData']({ pricing: freshPricing });
-                    card.enhancedPricing = enhancedPricing || undefined;
-                    cardUpdated = true;
-                    logger.info(`Added enhanced pricing data to card ${cardId}`);
-                    // Log the updated card state after pricing refresh
-                    logCardState(card, "AFTER_ENHANCED_PRICING_ADDED", context, correlationId);
+                context.log(`[${correlationId}] 📊 ENTERING CONDITION 3: Card has PokeData ID ${card.pokeDataId} but missing enhanced pricing`);
+                try {
+                    const pricingStartTime = Date.now();
+                    const freshPricing = await pokeDataApiService.getCardPricingById(card.pokeDataId);
+                    const pricingEndTime = Date.now();
+                    context.log(`[${correlationId}] Enhanced pricing fetch completed in ${pricingEndTime - pricingStartTime}ms, result: ${!!freshPricing}`);
+                    if (freshPricing) {
+                        context.log(`[${correlationId}] ✅ Retrieved pricing data for enhanced pricing generation`);
+                        card.pricing = freshPricing;
+                        card.pricingLastUpdated = new Date().toISOString();
+                        try {
+                            if (typeof pokeDataApiService.mapApiPricingToEnhancedPriceData === 'function') {
+                                const enhancedPricing = pokeDataApiService.mapApiPricingToEnhancedPriceData({ pricing: freshPricing });
+                                card.enhancedPricing = enhancedPricing || undefined;
+                                context.log(`[${correlationId}] ✅ Enhanced pricing added successfully:`, !!enhancedPricing);
+                                if (enhancedPricing) {
+                                    context.log(`[${correlationId}] Enhanced pricing keys:`, Object.keys(enhancedPricing));
+                                }
+                            }
+                            else {
+                                context.log(`[${correlationId}] ❌ mapApiPricingToEnhancedPriceData method not available`);
+                            }
+                        }
+                        catch (enhancedError) {
+                            context.log(`[${correlationId}] ❌ Error generating enhanced pricing:`, enhancedError.message);
+                        }
+                        cardUpdated = true;
+                    }
+                    else {
+                        context.log(`[${correlationId}] ❌ No pricing data returned for enhanced pricing generation`);
+                    }
                 }
-                else {
-                    logger.warn(`Failed to fetch enhanced pricing data for PokeData ID: ${card.pokeDataId}`);
+                catch (pricingError) {
+                    context.log(`[${correlationId}] ❌ Error fetching pricing for enhanced pricing:`, pricingError.message);
+                    context.log(`[${correlationId}] Enhanced pricing error stack:`, pricingError.stack);
                 }
             }
             else {
-                logger.info(`No enrichment conditions were met, card already has all data`);
+                context.log(`[${correlationId}] ✅ No enrichment conditions met - card already has all required data`);
             }
+            // Log card state after enrichment
+            context.log(`[${correlationId}] CARD STATE AFTER ENRICHMENT:`, {
+                id: card.id,
+                pokeDataId: card.pokeDataId || 'STILL MISSING',
+                hasPricing: !!card.pricing,
+                pricingKeys: card.pricing ? Object.keys(card.pricing) : [],
+                pricingLastUpdated: card.pricingLastUpdated || 'STILL NOT SET',
+                hasEnhancedPricing: !!card.enhancedPricing,
+                enhancedPricingKeys: card.enhancedPricing ? Object.keys(card.enhancedPricing) : [],
+                cardUpdated: cardUpdated,
+                enrichmentSummary: {
+                    hadPokeDataId: !condition1,
+                    neededPricingRefresh: condition2,
+                    neededEnhancedPricing: condition3,
+                    wasUpdated: cardUpdated
+                }
+            });
             // Save the updated card to database if changes were made
             if (cardUpdated) {
-                logger.info(`Saving updated card to database`);
-                await logger.timeOperation("Save updated card to database", () => cosmosDbService.updateCard(card));
+                context.log(`[${correlationId}] 💾 Saving updated card to database...`);
+                const saveStartTime = Date.now();
+                await cosmosDbService.updateCard(card);
+                const saveEndTime = Date.now();
+                context.log(`[${correlationId}] ✅ Card saved to database in ${saveEndTime - saveStartTime}ms`);
                 // Update cache if enabled
                 if (process.env.ENABLE_REDIS_CACHE === "true") {
-                    logger.info(`Updating card in cache`);
-                    // Use a hardcoded number for the ttl parameter
-                    await logger.timeOperation("Update Redis cache", async () => {
-                        await redisCacheService.set(cacheKey, (0, cacheUtils_1.formatCacheEntry)(card, 86400), 86400);
-                    });
+                    context.log(`[${correlationId}] 🗂️ Updating Redis cache...`);
+                    const cacheStartTime = Date.now();
+                    await redisCacheService.set(cacheKey, (0, cacheUtils_1.formatCacheEntry)(card, 86400), 86400);
+                    const cacheEndTime = Date.now();
+                    context.log(`[${correlationId}] ✅ Cache updated in ${cacheEndTime - cacheStartTime}ms`);
                 }
             }
             // Process image URLs
@@ -344,6 +390,7 @@ async function getCardInfo(request, context) {
                 sourceStrategy: (process.env.IMAGE_SOURCE_STRATEGY || "hybrid"),
                 enableCdn: process.env.ENABLE_CDN_IMAGES === "true"
             };
+            context.log(`[${correlationId}] 🖼️ Processing image URLs with options:`, imageOptions);
             card = await (0, imageUtils_1.processImageUrls)(card, {
                 ...imageOptions,
                 blobStorageService
@@ -356,26 +403,31 @@ async function getCardInfo(request, context) {
                 cached: cacheHit,
                 cacheAge: cacheHit ? cacheAge : 0
             };
-            // Create the HTTP response to return
-            const httpResponse = {
+            // Log the total function execution time and final summary
+            const endTime = Date.now();
+            context.log(`[${correlationId}] ===== FUNCTION COMPLETED SUCCESSFULLY =====`);
+            context.log(`[${correlationId}] EXECUTION SUMMARY:`, {
+                totalExecutionTime: `${endTime - startTime}ms`,
+                cardFound: true,
+                cacheHit: cacheHit,
+                cardUpdated: cardUpdated,
+                finalPokeDataId: card.pokeDataId || 'MISSING',
+                finalHasPricing: !!card.pricing,
+                finalHasEnhancedPricing: !!card.enhancedPricing,
+                responseStatus: response.status
+            });
+            return {
                 jsonBody: response,
                 status: response.status,
                 headers: {
                     "Cache-Control": `public, max-age=86400`
                 }
             };
-            // Log the total function execution time
-            const endTime = Date.now();
-            logger.info(`Function completed in ${endTime - startTime}ms`);
-            // Ensure all logs are flushed before returning
-            await logger.flush();
-            return httpResponse;
         }
         else {
-            // If we couldn't find the card after all lookups
+            context.log(`[${correlationId}] ❌ Card not found after all lookups (cache, database, and Pokemon TCG API)`);
             const errorResponse = (0, errorUtils_1.createNotFoundError)("Card", cardId, "GetCardInfo");
-            // Ensure logs are flushed before returning
-            await logger.flush();
+            context.log(`[${correlationId}] ===== FUNCTION COMPLETED - CARD NOT FOUND =====`);
             return {
                 jsonBody: errorResponse,
                 status: errorResponse.status
@@ -383,15 +435,15 @@ async function getCardInfo(request, context) {
         }
     }
     catch (error) {
-        // Log the error with our enhanced logger
-        logger.error(`Error in getCardInfo: ${error.message}`);
-        if (error.stack) {
-            logger.error(`Stack trace: ${error.stack}`);
+        context.log(`[${correlationId}] ❌❌❌ CRITICAL ERROR in getCardInfo:`, error.message);
+        context.log(`[${correlationId}] Error type:`, error.constructor.name);
+        context.log(`[${correlationId}] Error stack:`, error.stack);
+        if (error.response) {
+            context.log(`[${correlationId}] Error response status:`, error.response.status);
+            context.log(`[${correlationId}] Error response data:`, error.response.data);
         }
-        // Create the error response
         const errorResponse = (0, errorUtils_1.handleError)(error, "GetCardInfo");
-        // Ensure all logs are flushed before returning
-        await logger.flush();
+        context.log(`[${correlationId}] ===== FUNCTION COMPLETED - ERROR =====`);
         return {
             jsonBody: errorResponse,
             status: errorResponse.status
