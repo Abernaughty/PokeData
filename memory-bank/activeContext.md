@@ -15,6 +15,14 @@
 
 ## Recent Changes
 
+### ✅ **CRITICAL FIX: Site Loading Issue Re-Fixed (2025-06-01)**:
+- **Issue Recurrence**: The main.js 404 error returned after recent deployments, identical to previous issue
+  - **Root Cause**: Previous fix was lost/reverted - `entryFileNames` in `rollup.config.cjs` was back to dynamic naming
+  - **Investigation**: File showed `entryFileNames: \`[name]\${production ? '.min' : ''}.js\`` instead of fixed version
+  - **Re-applied Fix**: Changed `entryFileNames` back to static `'main.js'` in rollup configuration
+  - **Impact**: Site should now load correctly at https://pokedata.maber.io
+  - **Important**: Need to protect this critical configuration change in future merges/commits
+
 ### ✅ **CRITICAL FIX: Enhanced Pricing Data Issue Resolved (2025-06-01)**:
 - **Fixed Private Method Access Issue**: Resolved the critical bug preventing enhanced pricing data from being returned
   - **Root Cause**: `mapApiPricingToEnhancedPriceData` method was private but being accessed via bracket notation `pokeDataApiService['mapApiPricingToEnhancedPriceData']`
