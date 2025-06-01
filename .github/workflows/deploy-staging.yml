@@ -5,6 +5,10 @@ on:
     branches: [ main, cloud-migration ]
   workflow_dispatch:
 
+permissions:
+  id-token: write
+  contents: read
+
 env:
   AZURE_FUNCTIONAPP_NAME: pokedata-func
   AZURE_FUNCTIONAPP_PACKAGE_PATH: './PokeDataFunc'
