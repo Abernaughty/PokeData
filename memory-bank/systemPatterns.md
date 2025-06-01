@@ -707,187 +707,6 @@ App.svelte
    }
    ```
 
-## Enhanced Logging and Debugging Patterns (2025-06-01)
-
-### Enhanced Function Logging Pattern
-A comprehensive logging system was successfully implemented for Azure Functions to provide complete visibility into function execution:
-
-#### 1. Correlation ID Pattern
-- **Implementation**: Each request generates a unique correlation ID for request tracing
-- **Format**: `[card-{cardId}-{timestamp}]` (e.g., `[card-sv3pt5-172-1748816356778]`)
-- **Benefits**: Enables tracking of specific requests across all log entries
-- **Usage**: Prepended to every log message for easy filtering and debugging
-
-```javascript
-// Correlation ID pattern implementation
-const correlationId = `card-${request.params.cardId || 'unknown'}-${Date.now()}`;
-context.log(`[${correlationId}] ===== STARTING getCardInfo function =====`);
-```
-
-#### 2. Environment Configuration Logging Pattern
-- **Implementation**: Complete validation and logging of service connections and API availability
-- **Benefits**: Immediate visibility into service configuration and connectivity issues
-- **Example**:
-```javascript
-context.log(`[${correlationId}] ENVIRONMENT CONFIG:`, {
-  ENABLE_REDIS_CACHE: process.env.ENABLE_REDIS_CACHE,
-  HAS_POKEDATA_API_KEY: !!process.env.POKEDATA_API_KEY,
-  HAS_COSMOSDB_CONNECTION: !!process.env.COSMOSDB_CONNECTION_STRING,
-  HAS_REDIS_CONNECTION: !!process.env.REDIS_CONNECTION_STRING
-});
-```
-
-#### 3. Service Initialization Validation Pattern
-- **Implementation**: Validates all services are properly initialized and methods are available
-- **Benefits**: Early detection of service configuration issues
-- **Example**:
-```javascript
-context.log(`[${correlationId}] SERVICE INITIALIZATION CHECK:`, {
-  cosmosDbService: typeof index_1.cosmosDbService,
-  pokeDataApiService: typeof index_1.pokeDataApiService,
-  hasMapMethod: typeof index_1.pokeDataApiService.mapApiPricingToEnhancedPriceData
-});
-```
-
-#### 4. Enrichment Condition Evaluation Pattern
-- **Implementation**: Step-by-step logging of all decision logic with detailed reasoning
-- **Benefits**: Complete visibility into why enrichment decisions are made
-- **Example**:
-```javascript
-context.log(`[${correlationId}] ENRICHMENT CONDITION EVALUATIONS:`);
-context.log(`[${correlationId}] - condition1 (needs PokeData ID): ${condition1}`);
-context.log(`[${correlationId}] - condition2 (needs pricing refresh): ${condition2}`);
-if (condition2) {
-  context.log(`[${correlationId}]   - breakdown: forceRefresh=${forceRefresh}, isPricingStale=${isPricingStale(card.pricingLastUpdated)}`);
-}
-```
-
-#### 5. Performance Timing Pattern
-- **Implementation**: Every operation is timed for performance monitoring
-- **Benefits**: Identifies performance bottlenecks and optimization opportunities
-- **Example**:
-```javascript
-const startTime = Date.now();
-const result = await someOperation();
-const endTime = Date.now();
-context.log(`[${correlationId}] Operation completed in ${endTime - startTime}ms`);
-```
-
-#### 6. Complete Execution Summary Pattern
-- **Implementation**: Final summary with key metrics and outcomes
-- **Benefits**: Single log entry with complete request overview
-- **Example**:
-```javascript
-context.log(`[${correlationId}] EXECUTION SUMMARY:`, {
-  totalExecutionTime: `${endTime - startTime}ms`,
-  cardFound: true,
-  cardUpdated: cardUpdated,
-  finalPokeDataId: card.pokeDataId || 'MISSING'
-});
-```
-
-### Azure Functions Architecture Patterns
-
-#### 1. Directory Structure Pattern for Enhanced Functions
-**Critical Discovery**: Azure Functions v4 with TypeScript requires specific directory structure and import patterns:
-
-```
-PokeDataFunc/
-├── src/
-│   ├── index.ts                    # Main entry point (TypeScript)
-│   ├── index.js                    # Compiled entry point (JavaScript)
-│   └── functions/
-│       └── GetCardInfo/
-│           ├── index.ts            # Function implementation (TypeScript)
-│           └── index.js            # Enhanced function (JavaScript with correct imports)
-├── GetCardInfo/                    # Legacy function directory (auto-generated)
-│   ├── function.json
-│   ├── index.ts                    # Original function (may be outdated)
-│   └── index.js                    # Compiled from TypeScript (may have wrong imports)
-```
-
-#### 2. Import Path Resolution Pattern
-**Critical Discovery**: Import paths must be carefully managed based on function location:
-
-```javascript
-// CORRECT: For functions in src/functions/GetCardInfo/
-const cacheUtils_1 = require("../../utils/cacheUtils");
-const imageUtils_1 = require("../../utils/imageUtils");
-const index_1 = require("../../index");  // Shared services
-
-// INCORRECT: What TypeScript compilation often generates
-const cacheUtils_1 = require("../src/utils/cacheUtils");
-const CosmosDbService_1 = require("../src/services/CosmosDbService");  // Creates new instances
-```
-
-#### 3. Service Sharing Pattern
-**Best Practice**: Use shared service instances from main index rather than creating new instances:
-
-```javascript
-// CORRECT: Use shared services
-await index_1.cosmosDbService.getCard(cardId);
-await index_1.pokeDataApiService.getCardPricingById(pokeDataId);
-
-// INCORRECT: Create new instances (leads to configuration issues)
-const cosmosDbService = new CosmosDbService_1.CosmosDbService(process.env.COSMOSDB_CONNECTION_STRING);
-```
-
-### Troubleshooting Patterns
-
-#### 1. TypeScript Compilation Issue Pattern
-**Problem**: TypeScript compiles to current directory but Azure Functions loads from different location
-- **Symptoms**: Functions appear to load but don't execute enhanced logic
-- **Diagnosis**: Check if enhanced code is in `src/functions/` vs. legacy location
-- **Solution**: Copy/create enhanced JavaScript directly in correct location with proper imports
-
-#### 2. Import Path Issue Pattern
-**Problem**: Relative import paths break when functions are in different directory structure
-- **Symptoms**: Module not found errors or functions using basic instead of enhanced logic
-- **Diagnosis**: Verify import paths match actual directory structure
-- **Solution**: Update all import paths to use correct relative paths
-
-#### 3. Service Reference Issue Pattern
-**Problem**: Functions create new service instances instead of using shared ones
-- **Symptoms**: Configuration issues, services not properly initialized
-- **Diagnosis**: Check if services are imported from shared index vs. created directly
-- **Solution**: Use shared service instances from main index file
-
-#### 4. Schedule Configuration Pattern
-**Problem**: Timer functions not running at expected intervals
-- **Symptoms**: Functions running too frequently or not at all
-- **Diagnosis**: Check cron expression in both src/index.js and function startup logs
-- **Solution**: Update cron expression in main registration file and verify in logs
-
-### Smart Resource Management Patterns
-
-#### 1. Smart RefreshData Pattern
-**Implementation**: Daily smart detection instead of frequent polling
-- **Before**: `'0 0 */12 * * *'` (every 12 hours)
-- **After**: `'0 0 0 * * *'` (daily at midnight)
-- **Benefits**: 99% reduction in unnecessary processing
-- **Impact**: Reduced Azure Function execution costs while maintaining data freshness
-
-#### 2. Condition-Based Processing Pattern
-**Implementation**: Only process data that actually needs updating
-- **Condition 1**: Missing PokeData ID → Find and add mapping
-- **Condition 2**: Stale pricing data → Refresh pricing
-- **Condition 3**: Missing enhanced pricing → Generate enhanced data
-- **Benefits**: Efficient resource usage and targeted updates
-
-### Testing and Validation Patterns
-
-#### 1. Enhanced Function Testing Pattern
-**Implementation**: Comprehensive test scripts that validate both functionality and logging
-- **Test Scripts**: `test-enhanced-getCardInfo.js` tests multiple card scenarios
-- **Validation**: Verify both API responses and detailed logging output
-- **Coverage**: Test all three enrichment conditions with different card types
-
-#### 2. Log-Based Debugging Pattern
-**Implementation**: Use correlation IDs and detailed logging for troubleshooting
-- **Process**: Filter logs by correlation ID to trace specific requests
-- **Analysis**: Review condition evaluations and timing data
-- **Debugging**: Use service initialization checks to validate configuration
-
 ## Performance Considerations
 
 ### Current Performance Considerations
@@ -895,4 +714,155 @@ const cosmosDbService = new CosmosDbService_1.CosmosDbService(process.env.COSMOS
    - Set list cached for extended periods
    - Card lists cached by set code
    - Pricing data cached with shorter expiration
-   - Cache invali
+   - Cache invalidation on version changes
+
+2. **Lazy Loading**:
+   - Cards are only loaded when a set is selected
+   - Pricing data is only fetched when requested
+   - Images will be lazy loaded (planned feature)
+
+3. **Search Optimization**:
+   - Client-side filtering for responsive search
+   - Debounced search input to reduce processing
+   - Efficient string matching algorithms
+
+4. **Render Efficiency**:
+   - Svelte's efficient update mechanism
+   - Conditional rendering to minimize DOM updates
+   - Proper use of Svelte reactivity
+
+### Planned Cloud Performance Considerations
+1. **Multi-Tiered Caching Strategy**:
+   - Redis Cache for frequently accessed data (set lists, card lists)
+   - CDN for image delivery
+   - Browser caching for static assets
+   - TTL-based cache invalidation
+
+2. **Optimized Data Access Patterns**:
+   - Cosmos DB indexing for common query patterns
+   - Partition keys based on access patterns
+   - Denormalized data for efficient retrieval
+
+3. **Serverless Scaling**:
+   - Consumption-based Azure Functions
+   - Automatic scaling based on load
+   - Optimized cold start handling
+
+4. **Network Optimization**:
+   - CDN for edge caching
+   - Compression for API responses
+   - Minimized payload sizes
+   - Efficient API batching
+
+5. **Cost-Performance Balance**:
+   - Tiered storage approach (hot/cool)
+   - Consumption-based compute
+   - Cache optimization to reduce API calls
+   - Monitoring and alerts for cost control
+
+## Security Considerations
+
+### Current Security Considerations
+1. **API Key Protection**:
+   - API keys stored in configuration
+   - CORS proxy to prevent client-side exposure
+
+2. **Data Validation**:
+   - Input validation for search terms
+   - Response data validation before processing
+   - Safe handling of null/undefined values
+
+3. **Error Exposure**:
+   - User-friendly error messages
+   - Detailed errors logged to console
+   - No sensitive information in error messages
+
+4. **Content Security**:
+   - Proper Content Security Policy
+   - Safe handling of external content
+   - Validation of image URLs
+
+### Planned Cloud Security Considerations
+1. **Authentication and Authorization**:
+   - Azure AD integration for admin functions
+   - API Management subscription keys
+   - Role-based access control
+
+2. **Data Protection**:
+   - Encryption at rest for Cosmos DB and Blob Storage
+   - Encryption in transit with HTTPS/TLS
+   - Private endpoints for internal services
+
+3. **Network Security**:
+   - API Management for request validation
+   - IP restrictions for admin endpoints
+   - DDoS protection
+
+4. **Monitoring and Auditing**:
+   - Azure Monitor for security events
+   - Logging of all administrative actions
+   - Alerts for suspicious activities
+
+5. **Compliance**:
+   - GDPR considerations for user data
+   - Regular security reviews
+   - Automated vulnerability scanning
+
+## Accessibility Considerations
+
+1. **Keyboard Navigation**:
+   - Dropdown components are keyboard accessible
+   - Focus management for modal dialogs
+   - Proper tab order for form elements
+
+2. **Screen Reader Support**:
+   - Semantic HTML elements
+   - ARIA attributes for custom components
+   - Descriptive labels and announcements
+
+3. **Visual Accessibility**:
+   - Sufficient color contrast
+   - Text sizing and scaling
+   - Focus indicators
+
+4. **Error Handling**:
+   - Clear error messages
+   - Accessible error notifications
+   - Instructions for resolution
+
+## Quality Assurance and Code Review
+
+1. **Comprehensive Code Review Process**:
+   - Standardized review using the prompt in `memory-bank/codeReviewPrompt.md`
+   - Focus on 16 key areas including project structure, code quality, architecture, security, and more
+   - Severity-based issue prioritization (Critical, High, Medium, Low)
+   - Structured reporting format with actionable recommendations
+   - Integration with development workflow at key milestones
+   - Special attention to cross-session AI integration issues
+
+2. **Review Timing**:
+   - Pre-implementation reviews to understand patterns
+   - Post-implementation reviews to ensure quality
+   - Pre-release reviews to catch user-facing issues
+   - Periodic maintenance reviews to prevent technical debt
+   - Migration-specific reviews for cloud architecture transition
+
+## Future Architecture Considerations
+
+1. **Dependency Management**:
+   - Evaluation of major version updates (Svelte 3.x to 5.x)
+   - Incremental update strategy for dependencies
+   - Testing framework for compatibility verification
+   - Documentation of breaking changes and solutions
+
+2. **Collection Management**:
+   - Cosmos DB storage for user collections
+   - Azure Functions for collection operations
+   - UI components for collection management
+   - Collection statistics and valuation
+
+3. **Price History**:
+   - Time-series data in Cosmos DB
+   - Graph visualization components
+   - Historical data collection via Azure Functions
+   - Date range selection UI
