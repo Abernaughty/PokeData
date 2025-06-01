@@ -58,12 +58,61 @@ This will output JSON like:
    - `AZURE_TENANT_ID`: Use the `tenantId` from the JSON output  
    - `AZURE_SUBSCRIPTION_ID`: Use the `subscriptionId` from the JSON output
 
-### Step 3: Grant Additional Permissions
+### Step 3: Configure Federated Identity Credentials (CRITICAL)
+**This step is required for OIDC authentication to work with GitHub Actions.**
+
+First, get your Client ID if you don't have it:
+```bash
+# Find your service principal's Client ID
+CLIENT_ID=$(az ad sp list --display-name "github-actions-pokedata" --query "[].appId" -o tsv)
+echo "Client ID: $CLIENT_ID"
+```
+
+Then configure federated credentials to trust GitHub Actions from your repository:
+```bash
+# Create federated credential for main branch
+az ad app federated-credential create \
+  --id $CLIENT_ID \
+  --parameters '{
+    "name": "github-actions-main",
+    "issuer": "https://token.actions.githubusercontent.com",
+    "subject": "repo:Abernaughty/PokeData:ref:refs/heads/main",
+    "description": "GitHub Actions for main branch",
+    "audiences": ["api://AzureADTokenExchange"]
+  }'
+
+# Create federated credential for cloud-migration branch
+az ad app federated-credential create \
+  --id $CLIENT_ID \
+  --parameters '{
+    "name": "github-actions-cloud-migration",
+    "issuer": "https://token.actions.githubusercontent.com",
+    "subject": "repo:Abernaughty/PokeData:ref:refs/heads/cloud-migration",
+    "description": "GitHub Actions for cloud-migration branch",
+    "audiences": ["api://AzureADTokenExchange"]
+  }'
+
+# Create federated credential for manual workflow dispatch
+az ad app federated-credential create \
+  --id $CLIENT_ID \
+  --parameters '{
+    "name": "github-actions-workflow-dispatch",
+    "issuer": "https://token.actions.githubusercontent.com",
+    "subject": "repo:Abernaughty/PokeData:environment:production",
+    "description": "GitHub Actions for manual production deployments",
+    "audiences": ["api://AzureADTokenExchange"]
+  }'
+
+# Verify the credentials were created
+az ad app federated-credential list --id $CLIENT_ID
+```
+
+### Step 4: Grant Additional Permissions
 The service principal needs access to both production and staging slots:
 
 ```bash
 # Get the service principal object ID
-SP_OBJECT_ID=$(az ad sp show --id "your-client-id" --query objectId -o tsv)
+SP_OBJECT_ID=$(az ad sp show --id $CLIENT_ID --query objectId -o tsv)
 
 # Grant contributor access to the function app
 az role assignment create \
@@ -114,12 +163,19 @@ Available endpoints:
    - Check that resource names match exactly
    - Ensure subscription ID is correct
 
-2. **Authentication failures**
+2. **"AADSTS70025: The client has no configured federated identity credentials" error**
+   - This means Step 3 (Configure Federated Identity Credentials) was not completed
+   - Run the federated credential commands from Step 3
+   - Verify credentials were created: `az ad app federated-credential list --id $CLIENT_ID`
+   - Ensure the repository name and branch names match exactly in the subject field
+
+3. **Authentication failures**
    - Verify all three secrets are set correctly
    - Check that service principal hasn't expired
    - Ensure tenant ID matches your Azure AD
+   - Confirm federated identity credentials are configured (see issue #2 above)
 
-3. **Build failures**
+4. **Build failures**
    - Check that `package.json` has correct build script
    - Verify TypeScript compilation succeeds locally
    - Check Node.js version compatibility
@@ -171,4 +227,3 @@ If you encounter issues:
 2. Verify Azure resource permissions in the Azure Portal
 3. Test service principal authentication manually using Azure CLI
 4. Review the troubleshooting section above
-
