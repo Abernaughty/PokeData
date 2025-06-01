@@ -12,6 +12,10 @@ on:
         - swap
         - direct
 
+permissions:
+  id-token: write
+  contents: read
+
 env:
   AZURE_FUNCTIONAPP_NAME: pokedata-func
   AZURE_FUNCTIONAPP_PACKAGE_PATH: './PokeDataFunc'
