@@ -39,7 +39,7 @@ functions_1.app.http('getCardsBySet', {
 });
 // Register timer-triggered function
 functions_1.app.timer('refreshData', {
-    schedule: '0 0 0 * * *',
+    schedule: '0 0 */12 * * *',
     handler: RefreshData_1.refreshData
 });
 //# sourceMappingURL=index.js.map
