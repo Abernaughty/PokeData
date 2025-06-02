@@ -70,60 +70,11 @@ async function getCardInfo(request, context) {
                 const apiTime = Date.now() - apiStartTime;
                 if (card) {
                     context.log(`${correlationId} Pokemon TCG API SUCCESS for card: ${cardId} (${apiTime}ms)`);
-                    // Enhanced enrichment logic with three conditions
-                    context.log(`${correlationId} Starting enrichment evaluation for card: ${cardId}`);
-                    // Condition 1: TCG Player pricing enrichment
-                    let tcgEnrichmentTime = 0;
-                    if (!card.tcgPlayerPrice) {
-                        context.log(`${correlationId} Enrichment Condition 1: TCG Player pricing missing - ENRICHING`);
-                        let tcgStartTime = Date.now();
-                        const tcgPlayerPrice = await index_1.pokemonTcgApiService.getCardPricing(cardId);
-                        tcgEnrichmentTime = Date.now() - tcgStartTime;
-                        if (tcgPlayerPrice) {
-                            card.tcgPlayerPrice = tcgPlayerPrice;
-                            context.log(`${correlationId} Enrichment Condition 1: TCG Player pricing added (${tcgEnrichmentTime}ms)`);
-                        }
-                        else {
-                            context.log(`${correlationId} Enrichment Condition 1: TCG Player pricing unavailable (${tcgEnrichmentTime}ms)`);
-                        }
-                    }
-                    else {
-                        context.log(`${correlationId} Enrichment Condition 1: TCG Player pricing already present - SKIPPING`);
-                    }
-                    // Condition 2: Enhanced pricing data enrichment
-                    let enhancedEnrichmentTime = 0;
-                    if (!card.enhancedPricing) {
-                        context.log(`${correlationId} Enrichment Condition 2: Enhanced pricing missing - ENRICHING`);
-                        let enhancedStartTime = Date.now();
-                        const enhancedPricing = await index_1.pokeDataApiService.getCardPricing(cardId, card.pokeDataId);
-                        enhancedEnrichmentTime = Date.now() - enhancedStartTime;
-                        if (enhancedPricing) {
-                            card.enhancedPricing = enhancedPricing;
-                            context.log(`${correlationId} Enrichment Condition 2: Enhanced pricing added (${enhancedEnrichmentTime}ms)`);
-                        }
-                        else {
-                            context.log(`${correlationId} Enrichment Condition 2: Enhanced pricing unavailable (${enhancedEnrichmentTime}ms)`);
-                        }
-                    }
-                    else {
-                        context.log(`${correlationId} Enrichment Condition 2: Enhanced pricing already present - SKIPPING`);
-                    }
-                    // Condition 3: PokeData ID mapping enrichment
-                    if (!card.pokeDataId) {
-                        context.log(`${correlationId} Enrichment Condition 3: PokeData ID missing - attempting to map`);
-                        // This would be where we'd add PokeData ID mapping logic if needed
-                        context.log(`${correlationId} Enrichment Condition 3: PokeData ID mapping not implemented - SKIPPING`);
-                    }
-                    else {
-                        context.log(`${correlationId} Enrichment Condition 3: PokeData ID already present (${card.pokeDataId}) - SKIPPING`);
-                    }
-                    const totalEnrichmentTime = tcgEnrichmentTime + enhancedEnrichmentTime;
-                    context.log(`${correlationId} Enrichment complete - Total time: ${totalEnrichmentTime}ms`);
-                    // Save enriched card to database
+                    // Save new card to database (enrichment will happen in universal section)
                     let saveStartTime = Date.now();
                     await index_1.cosmosDbService.saveCard(card);
                     const saveTime = Date.now() - saveStartTime;
-                    context.log(`${correlationId} Card saved to Cosmos DB (${saveTime}ms)`);
+                    context.log(`${correlationId} New card saved to Cosmos DB (${saveTime}ms)`);
                 }
                 else {
                     context.log(`${correlationId} Pokemon TCG API FAILED for card: ${cardId} (${apiTime}ms)`);
@@ -144,6 +95,75 @@ async function getCardInfo(request, context) {
                 jsonBody: errorResponse,
                 status: errorResponse.status
             };
+        }
+        // Universal enrichment evaluation for ALL cards (regardless of source)
+        context.log(`${correlationId} Starting universal enrichment evaluation for card: ${cardId}`);
+        let cardWasModified = false;
+        // Condition 1: TCG Player pricing enrichment (only for newly fetched cards)
+        let tcgEnrichmentTime = 0;
+        if (!card.tcgPlayerPrice && !cacheHit) {
+            context.log(`${correlationId} Enrichment Condition 1: TCG Player pricing missing - ENRICHING`);
+            let tcgStartTime = Date.now();
+            const tcgPlayerPrice = await index_1.pokemonTcgApiService.getCardPricing(cardId);
+            tcgEnrichmentTime = Date.now() - tcgStartTime;
+            if (tcgPlayerPrice) {
+                card.tcgPlayerPrice = tcgPlayerPrice;
+                cardWasModified = true;
+                context.log(`${correlationId} Enrichment Condition 1: TCG Player pricing added (${tcgEnrichmentTime}ms)`);
+            }
+            else {
+                context.log(`${correlationId} Enrichment Condition 1: TCG Player pricing unavailable (${tcgEnrichmentTime}ms)`);
+            }
+        }
+        else if (card.tcgPlayerPrice) {
+            context.log(`${correlationId} Enrichment Condition 1: TCG Player pricing already present - SKIPPING`);
+        }
+        else {
+            context.log(`${correlationId} Enrichment Condition 1: TCG Player pricing skipped for cached card - SKIPPING`);
+        }
+        // Condition 2: Enhanced pricing data enrichment (for ALL cards)
+        let enhancedEnrichmentTime = 0;
+        if (!card.enhancedPricing) {
+            context.log(`${correlationId} Enrichment Condition 2: Enhanced pricing missing - ENRICHING`);
+            let enhancedStartTime = Date.now();
+            const enhancedPricing = await index_1.pokeDataApiService.getCardPricing(cardId, card.pokeDataId);
+            enhancedEnrichmentTime = Date.now() - enhancedStartTime;
+            if (enhancedPricing) {
+                card.enhancedPricing = enhancedPricing;
+                cardWasModified = true;
+                context.log(`${correlationId} Enrichment Condition 2: Enhanced pricing added (${enhancedEnrichmentTime}ms)`);
+            }
+            else {
+                context.log(`${correlationId} Enrichment Condition 2: Enhanced pricing unavailable (${enhancedEnrichmentTime}ms)`);
+            }
+        }
+        else {
+            context.log(`${correlationId} Enrichment Condition 2: Enhanced pricing already present - SKIPPING`);
+        }
+        // Condition 3: PokeData ID mapping enrichment (for ALL cards)
+        if (!card.pokeDataId) {
+            context.log(`${correlationId} Enrichment Condition 3: PokeData ID missing - attempting to map`);
+            // This would be where we'd add PokeData ID mapping logic if needed
+            context.log(`${correlationId} Enrichment Condition 3: PokeData ID mapping not implemented - SKIPPING`);
+        }
+        else {
+            context.log(`${correlationId} Enrichment Condition 3: PokeData ID already present (${card.pokeDataId}) - SKIPPING`);
+        }
+        const totalEnrichmentTime = tcgEnrichmentTime + enhancedEnrichmentTime;
+        context.log(`${correlationId} Universal enrichment complete - Total time: ${totalEnrichmentTime}ms, Modified: ${cardWasModified}`);
+        // Save card to database if it was modified during enrichment
+        if (cardWasModified) {
+            let saveStartTime = Date.now();
+            await index_1.cosmosDbService.saveCard(card);
+            const saveTime = Date.now() - saveStartTime;
+            context.log(`${correlationId} Enriched card saved to Cosmos DB (${saveTime}ms)`);
+            // Update cache if Redis is enabled
+            if (process.env.ENABLE_REDIS_CACHE === "true") {
+                let cacheWriteStartTime = Date.now();
+                await index_1.redisCacheService.set(cacheKey, (0, cacheUtils_1.formatCacheEntry)(card, cardsTtl), cardsTtl);
+                const cacheWriteTime = Date.now() - cacheWriteStartTime;
+                context.log(`${correlationId} Enriched card cached to Redis (${cacheWriteTime}ms)`);
+            }
         }
         // Process image URLs
         let imageStartTime = Date.now();
