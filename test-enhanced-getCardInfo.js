@@ -93,37 +93,6 @@ async function testCardInfo(testCase) {
             
             logSubSection('Pricing Data Analysis');
             
-            // Raw PokeData pricing
-            if (card.pricing) {
-                colorLog('green', `✅ Raw PokeData Pricing: Present`);
-                console.log(`- Last Updated: ${card.pricingLastUpdated}`);
-                console.log(`- Number of price points: ${Object.keys(card.pricing).length}`);
-                
-                // Show pricing age
-                if (card.pricingLastUpdated) {
-                    const lastUpdate = new Date(card.pricingLastUpdated);
-                    const now = new Date();
-                    const ageHours = (now - lastUpdate) / (1000 * 60 * 60);
-                    console.log(`- Pricing age: ${ageHours.toFixed(2)} hours`);
-                    
-                    if (ageHours > 24) {
-                        colorLog('yellow', `  ⚠️  Pricing is older than 24 hours`);
-                    }
-                }
-                
-                // Sample pricing data
-                const pricingKeys = Object.keys(card.pricing);
-                if (pricingKeys.length > 0) {
-                    console.log('\n  Sample Raw Pricing:');
-                    const sampleKeys = pricingKeys.slice(0, Math.min(5, pricingKeys.length));
-                    sampleKeys.forEach(key => {
-                        const price = card.pricing[key];
-                        console.log(`    - ${key}: $${price.value} (${price.source || 'Unknown source'})`);
-                    });
-                }
-            } else {
-                colorLog('red', `❌ Raw PokeData Pricing: Missing`);
-            }
             
             // Enhanced pricing
             if (card.enhancedPricing) {

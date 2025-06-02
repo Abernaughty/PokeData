@@ -1,0 +1,1332 @@
+{
+  "metadata": {
+    "generated": "2025-06-02T15:58:56.653Z",
+    "totalMappings": 123,
+    "unmappedTcg": 43,
+    "unmappedPokeData": 51
+  },
+  "mappings": {
+    "sv8pt5": {
+      "pokeDataCode": "PRE",
+      "pokeDataId": 557,
+      "tcgName": "Prismatic Evolutions",
+      "pokeDataName": "Prismatic Evolutions",
+      "matchType": "manual"
+    },
+    "sv8": {
+      "pokeDataCode": "SSP",
+      "pokeDataId": 555,
+      "tcgName": "Surging Sparks",
+      "pokeDataName": "Surging Sparks",
+      "matchType": "manual"
+    },
+    "sv6": {
+      "pokeDataCode": "TWM",
+      "pokeDataId": 545,
+      "tcgName": "Twilight Masquerade",
+      "pokeDataName": "Twilight Masquerade",
+      "matchType": "manual"
+    },
+    "base2": {
+      "pokeDataCode": null,
+      "pokeDataId": 83,
+      "tcgName": "Jungle",
+      "pokeDataName": "Jungle",
+      "matchType": "automatic"
+    },
+    "base3": {
+      "pokeDataCode": null,
+      "pokeDataId": 71,
+      "tcgName": "Fossil",
+      "pokeDataName": "Fossil",
+      "matchType": "automatic"
+    },
+    "base4": {
+      "pokeDataCode": null,
+      "pokeDataId": 73,
+      "tcgName": "Base Set 2",
+      "pokeDataName": "Base Set 2",
+      "matchType": "automatic"
+    },
+    "base5": {
+      "pokeDataCode": null,
+      "pokeDataId": 69,
+      "tcgName": "Team Rocket",
+      "pokeDataName": "Team Rocket",
+      "matchType": "automatic"
+    },
+    "gym1": {
+      "pokeDataCode": null,
+      "pokeDataId": 78,
+      "tcgName": "Gym Heroes",
+      "pokeDataName": "Gym Heroes",
+      "matchType": "automatic"
+    },
+    "gym2": {
+      "pokeDataCode": null,
+      "pokeDataId": 76,
+      "tcgName": "Gym Challenge",
+      "pokeDataName": "Gym Challenge",
+      "matchType": "automatic"
+    },
+    "neo1": {
+      "pokeDataCode": null,
+      "pokeDataId": 93,
+      "tcgName": "Neo Genesis",
+      "pokeDataName": "Neo Genesis",
+      "matchType": "automatic"
+    },
+    "neo2": {
+      "pokeDataCode": null,
+      "pokeDataId": 91,
+      "tcgName": "Neo Discovery",
+      "pokeDataName": "Neo Discovery",
+      "matchType": "automatic"
+    },
+    "si1": {
+      "pokeDataCode": null,
+      "pokeDataId": 290,
+      "tcgName": "Southern Islands",
+      "pokeDataName": "Southern Islands",
+      "matchType": "automatic"
+    },
+    "neo3": {
+      "pokeDataCode": null,
+      "pokeDataId": 95,
+      "tcgName": "Neo Revelation",
+      "pokeDataName": "Neo Revelation",
+      "matchType": "automatic"
+    },
+    "neo4": {
+      "pokeDataCode": null,
+      "pokeDataId": 89,
+      "tcgName": "Neo Destiny",
+      "pokeDataName": "Neo Destiny",
+      "matchType": "automatic"
+    },
+    "base6": {
+      "pokeDataCode": null,
+      "pokeDataId": 86,
+      "tcgName": "Legendary Collection",
+      "pokeDataName": "Legendary Collection",
+      "matchType": "automatic"
+    },
+    "ecard2": {
+      "pokeDataCode": null,
+      "pokeDataId": 68,
+      "tcgName": "Aquapolis",
+      "pokeDataName": "Aquapolis",
+      "matchType": "automatic"
+    },
+    "ecard3": {
+      "pokeDataCode": null,
+      "pokeDataId": 104,
+      "tcgName": "Skyridge",
+      "pokeDataName": "Skyridge",
+      "matchType": "automatic"
+    },
+    "ex2": {
+      "pokeDataCode": null,
+      "pokeDataId": 102,
+      "tcgName": "Sandstorm",
+      "pokeDataName": "Sandstorm",
+      "matchType": "automatic"
+    },
+    "ex3": {
+      "pokeDataCode": null,
+      "pokeDataId": 67,
+      "tcgName": "Dragon",
+      "pokeDataName": "Dragon",
+      "matchType": "automatic"
+    },
+    "ex4": {
+      "pokeDataCode": null,
+      "pokeDataId": 106,
+      "tcgName": "Team Magma vs Team Aqua",
+      "pokeDataName": "Team Magma vs Team Aqua",
+      "matchType": "automatic"
+    },
+    "ex5": {
+      "pokeDataCode": null,
+      "pokeDataId": 81,
+      "tcgName": "Hidden Legends",
+      "pokeDataName": "Hidden Legends",
+      "matchType": "automatic"
+    },
+    "pop1": {
+      "pokeDataCode": null,
+      "pokeDataId": 390,
+      "tcgName": "POP Series 1",
+      "pokeDataName": "Pop Series 1",
+      "matchType": "automatic"
+    },
+    "ex7": {
+      "pokeDataCode": null,
+      "pokeDataId": 107,
+      "tcgName": "Team Rocket Returns",
+      "pokeDataName": "Team Rocket Returns",
+      "matchType": "automatic"
+    },
+    "ex8": {
+      "pokeDataCode": null,
+      "pokeDataId": 66,
+      "tcgName": "Deoxys",
+      "pokeDataName": "Deoxys",
+      "matchType": "automatic"
+    },
+    "ex9": {
+      "pokeDataCode": null,
+      "pokeDataId": 65,
+      "tcgName": "Emerald",
+      "pokeDataName": "Emerald",
+      "matchType": "automatic"
+    },
+    "ex10": {
+      "pokeDataCode": null,
+      "pokeDataId": 64,
+      "tcgName": "Unseen Forces",
+      "pokeDataName": "Unseen Forces",
+      "matchType": "automatic"
+    },
+    "pop2": {
+      "pokeDataCode": null,
+      "pokeDataId": 391,
+      "tcgName": "POP Series 2",
+      "pokeDataName": "Pop Series 2",
+      "matchType": "automatic"
+    },
+    "ex11": {
+      "pokeDataCode": null,
+      "pokeDataId": 63,
+      "tcgName": "Delta Species",
+      "pokeDataName": "Delta Species",
+      "matchType": "automatic"
+    },
+    "ex12": {
+      "pokeDataCode": null,
+      "pokeDataId": 85,
+      "tcgName": "Legend Maker",
+      "pokeDataName": "Legend Maker",
+      "matchType": "automatic"
+    },
+    "pop3": {
+      "pokeDataCode": null,
+      "pokeDataId": 392,
+      "tcgName": "POP Series 3",
+      "pokeDataName": "Pop Series 3",
+      "matchType": "automatic"
+    },
+    "ex13": {
+      "pokeDataCode": null,
+      "pokeDataId": 82,
+      "tcgName": "Holon Phantoms",
+      "pokeDataName": "Holon Phantoms",
+      "matchType": "automatic"
+    },
+    "ex14": {
+      "pokeDataCode": null,
+      "pokeDataId": 62,
+      "tcgName": "Crystal Guardians",
+      "pokeDataName": "Crystal Guardians",
+      "matchType": "automatic"
+    },
+    "pop4": {
+      "pokeDataCode": null,
+      "pokeDataId": 393,
+      "tcgName": "POP Series 4",
+      "pokeDataName": "Pop Series 4",
+      "matchType": "automatic"
+    },
+    "ex15": {
+      "pokeDataCode": null,
+      "pokeDataId": 61,
+      "tcgName": "Dragon Frontiers",
+      "pokeDataName": "Dragon Frontiers",
+      "matchType": "automatic"
+    },
+    "pop5": {
+      "pokeDataCode": null,
+      "pokeDataId": 394,
+      "tcgName": "POP Series 5",
+      "pokeDataName": "Pop Series 5",
+      "matchType": "automatic"
+    },
+    "ex16": {
+      "pokeDataCode": null,
+      "pokeDataId": 99,
+      "tcgName": "Power Keepers",
+      "pokeDataName": "Power Keepers",
+      "matchType": "automatic"
+    },
+    "dp1": {
+      "pokeDataCode": null,
+      "pokeDataId": 60,
+      "tcgName": "Diamond & Pearl",
+      "pokeDataName": "Diamond & Pearl",
+      "matchType": "automatic"
+    },
+    "dp2": {
+      "pokeDataCode": null,
+      "pokeDataId": 88,
+      "tcgName": "Mysterious Treasures",
+      "pokeDataName": "Mysterious Treasures",
+      "matchType": "automatic"
+    },
+    "pop6": {
+      "pokeDataCode": null,
+      "pokeDataId": 395,
+      "tcgName": "POP Series 6",
+      "pokeDataName": "Pop Series 6",
+      "matchType": "automatic"
+    },
+    "dp3": {
+      "pokeDataCode": null,
+      "pokeDataId": 103,
+      "tcgName": "Secret Wonders",
+      "pokeDataName": "Secret Wonders",
+      "matchType": "automatic"
+    },
+    "dp4": {
+      "pokeDataCode": null,
+      "pokeDataId": 59,
+      "tcgName": "Great Encounters",
+      "pokeDataName": "Great Encounters",
+      "matchType": "automatic"
+    },
+    "pop7": {
+      "pokeDataCode": null,
+      "pokeDataId": 396,
+      "tcgName": "POP Series 7",
+      "pokeDataName": "Pop Series 7",
+      "matchType": "automatic"
+    },
+    "dp5": {
+      "pokeDataCode": null,
+      "pokeDataId": 87,
+      "tcgName": "Majestic Dawn",
+      "pokeDataName": "Majestic Dawn",
+      "matchType": "automatic"
+    },
+    "dp6": {
+      "pokeDataCode": null,
+      "pokeDataId": 58,
+      "tcgName": "Legends Awakened",
+      "pokeDataName": "Legends Awakened",
+      "matchType": "automatic"
+    },
+    "pop8": {
+      "pokeDataCode": null,
+      "pokeDataId": 397,
+      "tcgName": "POP Series 8",
+      "pokeDataName": "Pop Series 8",
+      "matchType": "automatic"
+    },
+    "dp7": {
+      "pokeDataCode": null,
+      "pokeDataId": 105,
+      "tcgName": "Stormfront",
+      "pokeDataName": "Stormfront",
+      "matchType": "automatic"
+    },
+    "pl1": {
+      "pokeDataCode": null,
+      "pokeDataId": 98,
+      "tcgName": "Platinum",
+      "pokeDataName": "Platinum",
+      "matchType": "automatic"
+    },
+    "pop9": {
+      "pokeDataCode": null,
+      "pokeDataId": 398,
+      "tcgName": "POP Series 9",
+      "pokeDataName": "Pop Series 9",
+      "matchType": "automatic"
+    },
+    "pl2": {
+      "pokeDataCode": null,
+      "pokeDataId": 100,
+      "tcgName": "Rising Rivals",
+      "pokeDataName": "Rising Rivals",
+      "matchType": "automatic"
+    },
+    "pl3": {
+      "pokeDataCode": null,
+      "pokeDataId": 57,
+      "tcgName": "Supreme Victors",
+      "pokeDataName": "Supreme Victors",
+      "matchType": "automatic"
+    },
+    "pl4": {
+      "pokeDataCode": null,
+      "pokeDataId": 56,
+      "tcgName": "Arceus",
+      "pokeDataName": "Arceus",
+      "matchType": "automatic"
+    },
+    "col1": {
+      "pokeDataCode": null,
+      "pokeDataId": 52,
+      "tcgName": "Call of Legends",
+      "pokeDataName": "Call of Legends",
+      "matchType": "automatic"
+    },
+    "bw2": {
+      "pokeDataCode": null,
+      "pokeDataId": 51,
+      "tcgName": "Emerging Powers",
+      "pokeDataName": "Emerging Powers",
+      "matchType": "automatic"
+    },
+    "bw3": {
+      "pokeDataCode": null,
+      "pokeDataId": 50,
+      "tcgName": "Noble Victories",
+      "pokeDataName": "Noble Victories",
+      "matchType": "automatic"
+    },
+    "bw4": {
+      "pokeDataCode": null,
+      "pokeDataId": 97,
+      "tcgName": "Next Destinies",
+      "pokeDataName": "Next Destinies",
+      "matchType": "automatic"
+    },
+    "bw5": {
+      "pokeDataCode": null,
+      "pokeDataId": 49,
+      "tcgName": "Dark Explorers",
+      "pokeDataName": "Dark Explorers",
+      "matchType": "automatic"
+    },
+    "bw6": {
+      "pokeDataCode": null,
+      "pokeDataId": 48,
+      "tcgName": "Dragons Exalted",
+      "pokeDataName": "Dragons Exalted",
+      "matchType": "automatic"
+    },
+    "dv1": {
+      "pokeDataCode": null,
+      "pokeDataId": 389,
+      "tcgName": "Dragon Vault",
+      "pokeDataName": "Dragon Vault",
+      "matchType": "automatic"
+    },
+    "bw7": {
+      "pokeDataCode": null,
+      "pokeDataId": 47,
+      "tcgName": "Boundaries Crossed",
+      "pokeDataName": "Boundaries Crossed",
+      "matchType": "automatic"
+    },
+    "bw8": {
+      "pokeDataCode": null,
+      "pokeDataId": 46,
+      "tcgName": "Plasma Storm",
+      "pokeDataName": "Plasma Storm",
+      "matchType": "automatic"
+    },
+    "bw9": {
+      "pokeDataCode": null,
+      "pokeDataId": 45,
+      "tcgName": "Plasma Freeze",
+      "pokeDataName": "Plasma Freeze",
+      "matchType": "automatic"
+    },
+    "bw10": {
+      "pokeDataCode": null,
+      "pokeDataId": 44,
+      "tcgName": "Plasma Blast",
+      "pokeDataName": "Plasma Blast",
+      "matchType": "automatic"
+    },
+    "xyp": {
+      "pokeDataCode": null,
+      "pokeDataId": 175,
+      "tcgName": "XY Black Star Promos",
+      "pokeDataName": "XY Black Star Promos",
+      "matchType": "automatic"
+    },
+    "bw11": {
+      "pokeDataCode": null,
+      "pokeDataId": 43,
+      "tcgName": "Legendary Treasures",
+      "pokeDataName": "Legendary Treasures",
+      "matchType": "automatic"
+    },
+    "xy1": {
+      "pokeDataCode": null,
+      "pokeDataId": 42,
+      "tcgName": "XY",
+      "pokeDataName": "XY Base",
+      "matchType": "automatic"
+    },
+    "xy2": {
+      "pokeDataCode": null,
+      "pokeDataId": 41,
+      "tcgName": "Flashfire",
+      "pokeDataName": "Flashfire",
+      "matchType": "automatic"
+    },
+    "xy3": {
+      "pokeDataCode": null,
+      "pokeDataId": 40,
+      "tcgName": "Furious Fists",
+      "pokeDataName": "Furious Fists",
+      "matchType": "automatic"
+    },
+    "xy4": {
+      "pokeDataCode": null,
+      "pokeDataId": 39,
+      "tcgName": "Phantom Forces",
+      "pokeDataName": "Phantom Forces",
+      "matchType": "automatic"
+    },
+    "xy5": {
+      "pokeDataCode": null,
+      "pokeDataId": 38,
+      "tcgName": "Primal Clash",
+      "pokeDataName": "Primal Clash",
+      "matchType": "automatic"
+    },
+    "dc1": {
+      "pokeDataCode": null,
+      "pokeDataId": 291,
+      "tcgName": "Double Crisis",
+      "pokeDataName": "Double Crisis",
+      "matchType": "automatic"
+    },
+    "xy6": {
+      "pokeDataCode": null,
+      "pokeDataId": 37,
+      "tcgName": "Roaring Skies",
+      "pokeDataName": "Roaring Skies",
+      "matchType": "automatic"
+    },
+    "xy7": {
+      "pokeDataCode": null,
+      "pokeDataId": 36,
+      "tcgName": "Ancient Origins",
+      "pokeDataName": "Ancient Origins",
+      "matchType": "automatic"
+    },
+    "xy8": {
+      "pokeDataCode": null,
+      "pokeDataId": 35,
+      "tcgName": "BREAKthrough",
+      "pokeDataName": "BREAKthrough",
+      "matchType": "automatic"
+    },
+    "xy9": {
+      "pokeDataCode": null,
+      "pokeDataId": 34,
+      "tcgName": "BREAKpoint",
+      "pokeDataName": "BREAKpoint",
+      "matchType": "automatic"
+    },
+    "g1": {
+      "pokeDataCode": null,
+      "pokeDataId": 33,
+      "tcgName": "Generations",
+      "pokeDataName": "Generations",
+      "matchType": "automatic"
+    },
+    "xy10": {
+      "pokeDataCode": null,
+      "pokeDataId": 32,
+      "tcgName": "Fates Collide",
+      "pokeDataName": "Fates Collide",
+      "matchType": "automatic"
+    },
+    "xy11": {
+      "pokeDataCode": null,
+      "pokeDataId": 31,
+      "tcgName": "Steam Siege",
+      "pokeDataName": "Steam Siege",
+      "matchType": "automatic"
+    },
+    "xy12": {
+      "pokeDataCode": null,
+      "pokeDataId": 22,
+      "tcgName": "Evolutions",
+      "pokeDataName": "Evolutions",
+      "matchType": "automatic"
+    },
+    "sm1": {
+      "pokeDataCode": null,
+      "pokeDataId": 19,
+      "tcgName": "Sun & Moon",
+      "pokeDataName": "Sun & Moon",
+      "matchType": "automatic"
+    },
+    "smp": {
+      "pokeDataCode": null,
+      "pokeDataId": 175,
+      "tcgName": "SM Black Star Promos",
+      "pokeDataName": "XY Black Star Promos",
+      "matchType": "automatic"
+    },
+    "sm2": {
+      "pokeDataCode": null,
+      "pokeDataId": 18,
+      "tcgName": "Guardians Rising",
+      "pokeDataName": "Guardians Rising",
+      "matchType": "automatic"
+    },
+    "sm3": {
+      "pokeDataCode": null,
+      "pokeDataId": 17,
+      "tcgName": "Burning Shadows",
+      "pokeDataName": "Burning Shadows",
+      "matchType": "automatic"
+    },
+    "sm35": {
+      "pokeDataCode": null,
+      "pokeDataId": 16,
+      "tcgName": "Shining Legends",
+      "pokeDataName": "Shining Legends",
+      "matchType": "automatic"
+    },
+    "sm4": {
+      "pokeDataCode": null,
+      "pokeDataId": 15,
+      "tcgName": "Crimson Invasion",
+      "pokeDataName": "Crimson Invasion",
+      "matchType": "automatic"
+    },
+    "sm5": {
+      "pokeDataCode": null,
+      "pokeDataId": 14,
+      "tcgName": "Ultra Prism",
+      "pokeDataName": "Ultra Prism",
+      "matchType": "automatic"
+    },
+    "sm6": {
+      "pokeDataCode": null,
+      "pokeDataId": 13,
+      "tcgName": "Forbidden Light",
+      "pokeDataName": "Forbidden Light",
+      "matchType": "automatic"
+    },
+    "sm7": {
+      "pokeDataCode": null,
+      "pokeDataId": 12,
+      "tcgName": "Celestial Storm",
+      "pokeDataName": "Celestial Storm",
+      "matchType": "automatic"
+    },
+    "sm75": {
+      "pokeDataCode": null,
+      "pokeDataId": 11,
+      "tcgName": "Dragon Majesty",
+      "pokeDataName": "Dragon Majesty",
+      "matchType": "automatic"
+    },
+    "sm8": {
+      "pokeDataCode": null,
+      "pokeDataId": 10,
+      "tcgName": "Lost Thunder",
+      "pokeDataName": "Lost Thunder",
+      "matchType": "automatic"
+    },
+    "sm9": {
+      "pokeDataCode": null,
+      "pokeDataId": 9,
+      "tcgName": "Team Up",
+      "pokeDataName": "Team Up",
+      "matchType": "automatic"
+    },
+    "det1": {
+      "pokeDataCode": null,
+      "pokeDataId": 23,
+      "tcgName": "Detective Pikachu",
+      "pokeDataName": "Detective Pikachu",
+      "matchType": "automatic"
+    },
+    "sm10": {
+      "pokeDataCode": null,
+      "pokeDataId": 24,
+      "tcgName": "Unbroken Bonds",
+      "pokeDataName": "Unbroken Bonds",
+      "matchType": "automatic"
+    },
+    "sm11": {
+      "pokeDataCode": null,
+      "pokeDataId": 8,
+      "tcgName": "Unified Minds",
+      "pokeDataName": "Unified Minds",
+      "matchType": "automatic"
+    },
+    "sm115": {
+      "pokeDataCode": null,
+      "pokeDataId": 1,
+      "tcgName": "Hidden Fates",
+      "pokeDataName": "Hidden Fates",
+      "matchType": "automatic"
+    },
+    "sm12": {
+      "pokeDataCode": null,
+      "pokeDataId": 7,
+      "tcgName": "Cosmic Eclipse",
+      "pokeDataName": "Cosmic Eclipse",
+      "matchType": "automatic"
+    },
+    "swshp": {
+      "pokeDataCode": null,
+      "pokeDataId": 175,
+      "tcgName": "SWSH Black Star Promos",
+      "pokeDataName": "XY Black Star Promos",
+      "matchType": "automatic"
+    },
+    "swsh1": {
+      "pokeDataCode": null,
+      "pokeDataId": 6,
+      "tcgName": "Sword & Shield",
+      "pokeDataName": "Sword & Shield",
+      "matchType": "automatic"
+    },
+    "swsh2": {
+      "pokeDataCode": null,
+      "pokeDataId": 5,
+      "tcgName": "Rebel Clash",
+      "pokeDataName": "Rebel Clash",
+      "matchType": "automatic"
+    },
+    "swsh3": {
+      "pokeDataCode": null,
+      "pokeDataId": 4,
+      "tcgName": "Darkness Ablaze",
+      "pokeDataName": "Darkness Ablaze",
+      "matchType": "automatic"
+    },
+    "swsh35": {
+      "pokeDataCode": null,
+      "pokeDataId": 2,
+      "tcgName": "Champion's Path",
+      "pokeDataName": "Champion's Path",
+      "matchType": "automatic"
+    },
+    "swsh4": {
+      "pokeDataCode": null,
+      "pokeDataId": 3,
+      "tcgName": "Vivid Voltage",
+      "pokeDataName": "Vivid Voltage",
+      "matchType": "automatic"
+    },
+    "swsh45": {
+      "pokeDataCode": null,
+      "pokeDataId": 21,
+      "tcgName": "Shining Fates",
+      "pokeDataName": "Shining Fates",
+      "matchType": "automatic"
+    },
+    "swsh5": {
+      "pokeDataCode": null,
+      "pokeDataId": 20,
+      "tcgName": "Battle Styles",
+      "pokeDataName": "Battle Styles",
+      "matchType": "automatic"
+    },
+    "swsh6": {
+      "pokeDataCode": null,
+      "pokeDataId": 26,
+      "tcgName": "Chilling Reign",
+      "pokeDataName": "Chilling Reign",
+      "matchType": "automatic"
+    },
+    "swsh7": {
+      "pokeDataCode": null,
+      "pokeDataId": 108,
+      "tcgName": "Evolving Skies",
+      "pokeDataName": "Evolving Skies",
+      "matchType": "automatic"
+    },
+    "cel25": {
+      "pokeDataCode": null,
+      "pokeDataId": 112,
+      "tcgName": "Celebrations",
+      "pokeDataName": "Celebrations",
+      "matchType": "automatic"
+    },
+    "cel25c": {
+      "pokeDataCode": null,
+      "pokeDataId": 111,
+      "tcgName": "Celebrations: Classic Collection",
+      "pokeDataName": "Celebrations: Classic Collection",
+      "matchType": "automatic"
+    },
+    "swsh8": {
+      "pokeDataCode": null,
+      "pokeDataId": 172,
+      "tcgName": "Fusion Strike",
+      "pokeDataName": "Fusion Strike",
+      "matchType": "automatic"
+    },
+    "swsh9": {
+      "pokeDataCode": null,
+      "pokeDataId": 178,
+      "tcgName": "Brilliant Stars",
+      "pokeDataName": "Brilliant Stars",
+      "matchType": "automatic"
+    },
+    "swsh10": {
+      "pokeDataCode": null,
+      "pokeDataId": 182,
+      "tcgName": "Astral Radiance",
+      "pokeDataName": "Astral Radiance",
+      "matchType": "automatic"
+    },
+    "swsh11": {
+      "pokeDataCode": null,
+      "pokeDataId": 400,
+      "tcgName": "Lost Origin",
+      "pokeDataName": "Lost Origin",
+      "matchType": "automatic"
+    },
+    "swsh12": {
+      "pokeDataCode": null,
+      "pokeDataId": 503,
+      "tcgName": "Silver Tempest",
+      "pokeDataName": "Silver Tempest",
+      "matchType": "automatic"
+    },
+    "swsh12pt5": {
+      "pokeDataCode": null,
+      "pokeDataId": 506,
+      "tcgName": "Crown Zenith",
+      "pokeDataName": "Crown Zenith",
+      "matchType": "automatic"
+    },
+    "sv1": {
+      "pokeDataCode": null,
+      "pokeDataId": 510,
+      "tcgName": "Scarlet & Violet",
+      "pokeDataName": "Scarlet & Violet Base",
+      "matchType": "automatic"
+    },
+    "sv2": {
+      "pokeDataCode": null,
+      "pokeDataId": 513,
+      "tcgName": "Paldea Evolved",
+      "pokeDataName": "Paldea Evolved",
+      "matchType": "automatic"
+    },
+    "sv3": {
+      "pokeDataCode": null,
+      "pokeDataId": 517,
+      "tcgName": "Obsidian Flames",
+      "pokeDataName": "Obsidian Flames",
+      "matchType": "automatic"
+    },
+    "sv4": {
+      "pokeDataCode": null,
+      "pokeDataId": 536,
+      "tcgName": "Paradox Rift",
+      "pokeDataName": "Paradox Rift",
+      "matchType": "automatic"
+    },
+    "sv4pt5": {
+      "pokeDataCode": null,
+      "pokeDataId": 539,
+      "tcgName": "Paldean Fates",
+      "pokeDataName": "Paldean Fates",
+      "matchType": "automatic"
+    },
+    "sv5": {
+      "pokeDataCode": null,
+      "pokeDataId": 542,
+      "tcgName": "Temporal Forces",
+      "pokeDataName": "Temporal Forces",
+      "matchType": "automatic"
+    },
+    "sv6pt5": {
+      "pokeDataCode": null,
+      "pokeDataId": 548,
+      "tcgName": "Shrouded Fable",
+      "pokeDataName": "Shrouded Fable",
+      "matchType": "automatic"
+    },
+    "sv7": {
+      "pokeDataCode": null,
+      "pokeDataId": 549,
+      "tcgName": "Stellar Crown",
+      "pokeDataName": "Stellar Crown",
+      "matchType": "automatic"
+    },
+    "sv9": {
+      "pokeDataCode": "JTG",
+      "pokeDataId": 562,
+      "tcgName": "Journey Together",
+      "pokeDataName": "Journey Together",
+      "matchType": "automatic"
+    },
+    "sv10": {
+      "pokeDataCode": null,
+      "pokeDataId": 567,
+      "tcgName": "Destined Rivals",
+      "pokeDataName": "Destined Rivals",
+      "matchType": "automatic"
+    }
+  },
+  "unmapped": {
+    "pokemonTcg": [
+      {
+        "id": "base1",
+        "name": "Base",
+        "ptcgoCode": "BS"
+      },
+      {
+        "id": "basep",
+        "name": "Wizards Black Star Promos",
+        "ptcgoCode": "PR"
+      },
+      {
+        "id": "ecard1",
+        "name": "Expedition Base Set",
+        "ptcgoCode": "EX"
+      },
+      {
+        "id": "ex1",
+        "name": "Ruby & Sapphire",
+        "ptcgoCode": "RS"
+      },
+      {
+        "id": "np",
+        "name": "Nintendo Black Star Promos",
+        "ptcgoCode": "PR-NP"
+      },
+      {
+        "id": "ex6",
+        "name": "FireRed & LeafGreen",
+        "ptcgoCode": "RG"
+      },
+      {
+        "id": "dpp",
+        "name": "DP Black Star Promos",
+        "ptcgoCode": "PR-DPP"
+      },
+      {
+        "id": "ru1",
+        "name": "Pokémon Rumble"
+      },
+      {
+        "id": "hgss1",
+        "name": "HeartGold & SoulSilver",
+        "ptcgoCode": "HS"
+      },
+      {
+        "id": "hsp",
+        "name": "HGSS Black Star Promos",
+        "ptcgoCode": "PR-HS"
+      },
+      {
+        "id": "hgss2",
+        "name": "HS—Unleashed",
+        "ptcgoCode": "UL"
+      },
+      {
+        "id": "hgss3",
+        "name": "HS—Undaunted",
+        "ptcgoCode": "UD"
+      },
+      {
+        "id": "hgss4",
+        "name": "HS—Triumphant",
+        "ptcgoCode": "TM"
+      },
+      {
+        "id": "bwp",
+        "name": "BW Black Star Promos",
+        "ptcgoCode": "PR-BLW"
+      },
+      {
+        "id": "bw1",
+        "name": "Black & White",
+        "ptcgoCode": "BLW"
+      },
+      {
+        "id": "mcd11",
+        "name": "McDonald's Collection 2011"
+      },
+      {
+        "id": "mcd12",
+        "name": "McDonald's Collection 2012"
+      },
+      {
+        "id": "xy0",
+        "name": "Kalos Starter Set",
+        "ptcgoCode": "KSS"
+      },
+      {
+        "id": "mcd16",
+        "name": "McDonald's Collection 2016"
+      },
+      {
+        "id": "sma",
+        "name": "Hidden Fates Shiny Vault",
+        "ptcgoCode": "HIF"
+      },
+      {
+        "id": "mcd19",
+        "name": "McDonald's Collection 2019"
+      },
+      {
+        "id": "swsh45sv",
+        "name": "Shining Fates Shiny Vault",
+        "ptcgoCode": "SHF"
+      },
+      {
+        "id": "mcd14",
+        "name": "McDonald's Collection 2014"
+      },
+      {
+        "id": "mcd15",
+        "name": "McDonald's Collection 2015"
+      },
+      {
+        "id": "mcd18",
+        "name": "McDonald's Collection 2018"
+      },
+      {
+        "id": "mcd17",
+        "name": "McDonald's Collection 2017"
+      },
+      {
+        "id": "mcd21",
+        "name": "McDonald's Collection 2021"
+      },
+      {
+        "id": "bp",
+        "name": "Best of Game",
+        "ptcgoCode": "BP"
+      },
+      {
+        "id": "fut20",
+        "name": "Pokémon Futsal Collection",
+        "ptcgoCode": "FUT20"
+      },
+      {
+        "id": "tk1a",
+        "name": "EX Trainer Kit Latias"
+      },
+      {
+        "id": "tk1b",
+        "name": "EX Trainer Kit Latios"
+      },
+      {
+        "id": "tk2a",
+        "name": "EX Trainer Kit 2 Plusle"
+      },
+      {
+        "id": "tk2b",
+        "name": "EX Trainer Kit 2 Minun"
+      },
+      {
+        "id": "swsh9tg",
+        "name": "Brilliant Stars Trainer Gallery",
+        "ptcgoCode": "BRS"
+      },
+      {
+        "id": "swsh10tg",
+        "name": "Astral Radiance Trainer Gallery",
+        "ptcgoCode": "ASR"
+      },
+      {
+        "id": "pgo",
+        "name": "Pokémon GO",
+        "ptcgoCode": "PGO"
+      },
+      {
+        "id": "swsh11tg",
+        "name": "Lost Origin Trainer Gallery",
+        "ptcgoCode": "LOR"
+      },
+      {
+        "id": "swsh12tg",
+        "name": "Silver Tempest Trainer Gallery",
+        "ptcgoCode": "SIT"
+      },
+      {
+        "id": "mcd22",
+        "name": "McDonald's Collection 2022"
+      },
+      {
+        "id": "swsh12pt5gg",
+        "name": "Crown Zenith Galarian Gallery",
+        "ptcgoCode": "CRZ"
+      },
+      {
+        "id": "svp",
+        "name": "Scarlet & Violet Black Star Promos",
+        "ptcgoCode": "PR-SV"
+      },
+      {
+        "id": "sve",
+        "name": "Scarlet & Violet Energies",
+        "ptcgoCode": "SVE"
+      },
+      {
+        "id": "sv3pt5",
+        "name": "151",
+        "ptcgoCode": "MEW"
+      }
+    ],
+    "pokeData": [
+      {
+        "id": 559,
+        "code": "M24",
+        "name": "Mcdonald's Dragon Discovery"
+      },
+      {
+        "id": 554,
+        "code": null,
+        "name": "Trick or Trade 2024"
+      },
+      {
+        "id": 561,
+        "code": null,
+        "name": "Trading Card Game Classic"
+      },
+      {
+        "id": 532,
+        "code": null,
+        "name": "Pokemon Card 151"
+      },
+      {
+        "id": 531,
+        "code": null,
+        "name": "Trick or Trade 2023"
+      },
+      {
+        "id": 530,
+        "code": null,
+        "name": "McDonald's Promos 2023"
+      },
+      {
+        "id": 515,
+        "code": null,
+        "name": "Scarlet & Violet Promos"
+      },
+      {
+        "id": 504,
+        "code": null,
+        "name": "Trick or Trade 2022"
+      },
+      {
+        "id": 399,
+        "code": null,
+        "name": "Mcdonald's Promos 2022"
+      },
+      {
+        "id": 387,
+        "code": null,
+        "name": "Pokemon GO"
+      },
+      {
+        "id": 171,
+        "code": null,
+        "name": "Mcdonald's 25th Anniversary"
+      },
+      {
+        "id": 521,
+        "code": null,
+        "name": "McDonald's Promos 2019"
+      },
+      {
+        "id": 109,
+        "code": null,
+        "name": "Sword & Shield Promo"
+      },
+      {
+        "id": 522,
+        "code": null,
+        "name": "McDonald's Promos 2018"
+      },
+      {
+        "id": 523,
+        "code": null,
+        "name": "McDonald's Promos 2017"
+      },
+      {
+        "id": 25,
+        "code": null,
+        "name": "Sun & Moon Black Star Promo"
+      },
+      {
+        "id": 524,
+        "code": null,
+        "name": "McDonald's Promos 2016"
+      },
+      {
+        "id": 169,
+        "code": null,
+        "name": "Generations Radiant Collection"
+      },
+      {
+        "id": 525,
+        "code": null,
+        "name": "McDonald's Promos 2015"
+      },
+      {
+        "id": 174,
+        "code": null,
+        "name": "Alternate Art Promos"
+      },
+      {
+        "id": 526,
+        "code": null,
+        "name": "McDonald's Promos 2014"
+      },
+      {
+        "id": 170,
+        "code": null,
+        "name": "Legendary Treasures Radiant Collection"
+      },
+      {
+        "id": 528,
+        "code": null,
+        "name": "McDonald's Promos 2012"
+      },
+      {
+        "id": 529,
+        "code": null,
+        "name": "McDonald's Promos 2011"
+      },
+      {
+        "id": 30,
+        "code": null,
+        "name": "Black and White"
+      },
+      {
+        "id": 292,
+        "code": null,
+        "name": "Black and White Promos"
+      },
+      {
+        "id": 53,
+        "code": null,
+        "name": "Triumphant"
+      },
+      {
+        "id": 54,
+        "code": null,
+        "name": "Undaunted"
+      },
+      {
+        "id": 55,
+        "code": null,
+        "name": "Unleashed"
+      },
+      {
+        "id": 80,
+        "code": null,
+        "name": "HeartGold SoulSilver"
+      },
+      {
+        "id": 518,
+        "code": null,
+        "name": "HGSS Black Star Promo"
+      },
+      {
+        "id": 176,
+        "code": null,
+        "name": "Miscellaneous Promos"
+      },
+      {
+        "id": 553,
+        "code": null,
+        "name": "Pokemon Rumble"
+      },
+      {
+        "id": 113,
+        "code": null,
+        "name": "Diamond and Pearl Promo"
+      },
+      {
+        "id": 75,
+        "code": null,
+        "name": "Fire Red Leaf Green"
+      },
+      {
+        "id": 519,
+        "code": null,
+        "name": "Nintendo Black Star Promo"
+      },
+      {
+        "id": 101,
+        "code": null,
+        "name": "Ruby and Sapphire"
+      },
+      {
+        "id": 74,
+        "code": null,
+        "name": "Expedition"
+      },
+      {
+        "id": 90,
+        "code": null,
+        "name": "Neo Destiny 1st Edition"
+      },
+      {
+        "id": 96,
+        "code": null,
+        "name": "Neo Revelation 1st Edition"
+      },
+      {
+        "id": 92,
+        "code": null,
+        "name": "Neo Discovery 1st Edition"
+      },
+      {
+        "id": 94,
+        "code": null,
+        "name": "Neo Genesis 1st Edition"
+      },
+      {
+        "id": 77,
+        "code": null,
+        "name": "Gym Challenge 1st Edition"
+      },
+      {
+        "id": 79,
+        "code": null,
+        "name": "Gym Heroes 1st Edition"
+      },
+      {
+        "id": 70,
+        "code": null,
+        "name": "Team Rocket 1st Edition"
+      },
+      {
+        "id": 72,
+        "code": null,
+        "name": "Fossil 1st Edition"
+      },
+      {
+        "id": 110,
+        "code": null,
+        "name": "WOTC Promo"
+      },
+      {
+        "id": 84,
+        "code": null,
+        "name": "Jungle 1st Edition"
+      },
+      {
+        "id": 27,
+        "code": null,
+        "name": "Base Set Unlimited"
+      },
+      {
+        "id": 29,
+        "code": null,
+        "name": "Base Set Shadowless"
+      },
+      {
+        "id": 28,
+        "code": null,
+        "name": "Base Set 1st Edition"
+      }
+    ]
+  }
+}

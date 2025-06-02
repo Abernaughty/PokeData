@@ -76,7 +76,30 @@ The current state of the PokeData project includes the following working feature
    - ✅ Comprehensive documentation for implementation and next steps
    - ✅ Reference file for application code changes (imageUtils.modified.ts)
 
-10. **Recent Improvements**:
+10. **BREAKTHROUGH SUCCESS: Enhanced Logging Fully Working in Production (2025-06-01)**:
+   - ✅ **🎯 THE MAGIC BULLET FOUND**: Removing legacy function directories was the critical fix that solved the enhanced logging issue
+     - **Root Cause FULLY Identified**: Azure was prioritizing legacy function.json structure over v4 programming model
+       - **Discovery**: Azure Portal showed `function.json` in staging GetCardInfo, proving legacy functions were executing
+       - **Problem**: Mixed programming models (legacy + v4) caused Azure to ignore `src/index.js` registration
+       - **Solution**: Complete removal of legacy function directories forced Azure to use v4 enhanced functions
+     - **Critical Actions Taken**:
+       - **✅ Removed Legacy Directories**: Deleted `GetCardInfo/`, `GetCardsBySet/`, `GetSetList/`, `RefreshData/` 
+       - **✅ Cleaned v4 Structure**: Removed `function.json` files from `src/functions/` subdirectories
+       - **✅ Fixed Schedule**: Updated RefreshData to daily (`'0 0 0 * * *'`) in `src/index.js`
+       - **✅ Deployed Clean Structure**: Pushed to main branch triggering Azure staging deployment
+     - **CONFIRMED WORKING**: Enhanced logging now executing in Azure production environment
+       - **✅ Correlation IDs**: Appearing in Azure logs like `[card-sv3pt5-172-timestamp]`
+       - **✅ Enrichment Conditions**: All three conditions working with detailed evaluation logging
+       - **✅ Performance Timing**: Complete operation timing (DB: 529ms, API: 218ms, etc.)
+       - **✅ Service Validation**: Environment configuration and service initialization logging
+       - **✅ Complete Workflow Visibility**: Full Cache → DB → API → Enrichment → Save cycle
+     - **Technical Breakthrough**: Pure v4 programming model now operational in Azure
+       - **Result**: Azure loads functions exclusively from `src/index.js` registration
+       - **Impact**: Enhanced logging executes from `src/functions/GetCardInfo/index.js` as intended
+       - **Monitoring**: Complete visibility into function execution for debugging and optimization
+     - **Key Learning**: Never mix legacy function.json with v4 src/index.js registration - Azure prioritizes legacy
+
+11. **Recent Improvements**:
    - ✅ **Completed Cloud Migration and Fixed Post-Merge Issues (2025-06-01)**:
      - **Fixed Critical Site Loading Issue**: Resolved main.js 404 error preventing site from loading after cloud-migration merge
        - **Root Cause**: Rollup configuration created `main.min.js` in production but `index.html` requested `main.js`

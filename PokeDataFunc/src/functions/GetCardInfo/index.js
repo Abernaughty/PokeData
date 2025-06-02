@@ -5,6 +5,7 @@ const cacheUtils_1 = require("../../utils/cacheUtils");
 const imageUtils_1 = require("../../utils/imageUtils");
 const errorUtils_1 = require("../../utils/errorUtils");
 const index_1 = require("../../index");
+const SetMappingService_1 = require("../../services/SetMappingService");
 // Helper function to extract card identifiers from card ID
 function extractCardIdentifiers(cardId) {
     // Extract the set code portion (before the dash) and the numeric portion (after the dash)
@@ -166,10 +167,20 @@ async function getCardInfo(request, context) {
                 const identifiers = extractCardIdentifiers(cardId);
                 if (identifiers.setCode && identifiers.number) {
                     context.log(`${correlationId} Enrichment Condition 3: Attempting to map set ${identifiers.setCode} card ${identifiers.number}`);
-                    // Step 1: Get the set ID from PokeData API
-                    const setId = await index_1.pokeDataApiService.getSetIdByCode(identifiers.setCode);
+                    // Step 1: Try to get PokeData set ID from mapping service first (efficient)
+                    let setId = SetMappingService_1.setMappingService.getPokeDataSetId(identifiers.setCode);
                     if (setId) {
-                        context.log(`${correlationId} Enrichment Condition 3: Found set ID ${setId} for set ${identifiers.setCode}`);
+                        context.log(`${correlationId} Enrichment Condition 3: Found mapped set ID ${setId} for set ${identifiers.setCode} (from mapping service)`);
+                    }
+                    else {
+                        // Fallback: Get the set ID from PokeData API (slower)
+                        context.log(`${correlationId} Enrichment Condition 3: No mapping found, querying PokeData API for set ${identifiers.setCode}`);
+                        setId = await index_1.pokeDataApiService.getSetIdByCode(identifiers.setCode);
+                        if (setId) {
+                            context.log(`${correlationId} Enrichment Condition 3: Found set ID ${setId} for set ${identifiers.setCode} (from API)`);
+                        }
+                    }
+                    if (setId) {
                         // Step 2: Get the card ID using set ID and card number
                         const pokeDataId = await index_1.pokeDataApiService.getCardIdBySetAndNumber(setId, identifiers.number);
                         if (pokeDataId) {

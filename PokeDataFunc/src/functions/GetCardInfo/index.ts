@@ -12,6 +12,7 @@ import {
     pokemonTcgApiService, 
     pokeDataApiService 
 } from "../../index";
+import { setMappingService } from "../../services/SetMappingService";
 
 // Helper function to extract card identifiers from card ID
 function extractCardIdentifiers(cardId: string): { setCode: string, number: string } {
@@ -194,12 +195,22 @@ export async function getCardInfo(request: HttpRequest, context: InvocationConte
                 if (identifiers.setCode && identifiers.number) {
                     context.log(`${correlationId} Enrichment Condition 3: Attempting to map set ${identifiers.setCode} card ${identifiers.number}`);
                     
-                    // Step 1: Get the set ID from PokeData API
-                    const setId = await pokeDataApiService.getSetIdByCode(identifiers.setCode);
+                    // Step 1: Try to get PokeData set ID from mapping service first (efficient)
+                    let setId = setMappingService.getPokeDataSetId(identifiers.setCode);
                     
                     if (setId) {
-                        context.log(`${correlationId} Enrichment Condition 3: Found set ID ${setId} for set ${identifiers.setCode}`);
+                        context.log(`${correlationId} Enrichment Condition 3: Found mapped set ID ${setId} for set ${identifiers.setCode} (from mapping service)`);
+                    } else {
+                        // Fallback: Get the set ID from PokeData API (slower)
+                        context.log(`${correlationId} Enrichment Condition 3: No mapping found, querying PokeData API for set ${identifiers.setCode}`);
+                        setId = await pokeDataApiService.getSetIdByCode(identifiers.setCode);
                         
+                        if (setId) {
+                            context.log(`${correlationId} Enrichment Condition 3: Found set ID ${setId} for set ${identifiers.setCode} (from API)`);
+                        }
+                    }
+                    
+                    if (setId) {
                         // Step 2: Get the card ID using set ID and card number
                         const pokeDataId = await pokeDataApiService.getCardIdBySetAndNumber(setId, identifiers.number);
                         
