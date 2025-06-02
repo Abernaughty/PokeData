@@ -13,6 +13,25 @@ import {
     pokeDataApiService 
 } from "../../index";
 
+// Helper function to extract card identifiers from card ID
+function extractCardIdentifiers(cardId: string): { setCode: string, number: string } {
+    // Extract the set code portion (before the dash) and the numeric portion (after the dash)
+    const match = cardId.match(/(.*)-(\d+.*)/);
+    
+    if (match) {
+        return {
+            setCode: match[1], // The set code (e.g., "sv8pt5")
+            number: match[2]   // The card number (e.g., "155")
+        };
+    }
+    
+    // Fallback if the format doesn't match
+    return {
+        setCode: '',
+        number: cardId
+    };
+}
+
 export async function getCardInfo(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
     // Generate correlation ID for enhanced logging
     const timestamp = Date.now();
@@ -163,10 +182,48 @@ export async function getCardInfo(request: HttpRequest, context: InvocationConte
         }
         
         // Condition 3: PokeData ID mapping enrichment (for ALL cards)
+        let pokeDataMappingTime = 0;
         if (!card.pokeDataId) {
             context.log(`${correlationId} Enrichment Condition 3: PokeData ID missing - attempting to map`);
-            // This would be where we'd add PokeData ID mapping logic if needed
-            context.log(`${correlationId} Enrichment Condition 3: PokeData ID mapping not implemented - SKIPPING`);
+            let mappingStartTime = Date.now();
+            
+            try {
+                // Extract set code and card number from card ID
+                const identifiers = extractCardIdentifiers(cardId);
+                
+                if (identifiers.setCode && identifiers.number) {
+                    context.log(`${correlationId} Enrichment Condition 3: Attempting to map set ${identifiers.setCode} card ${identifiers.number}`);
+                    
+                    // Step 1: Get the set ID from PokeData API
+                    const setId = await pokeDataApiService.getSetIdByCode(identifiers.setCode);
+                    
+                    if (setId) {
+                        context.log(`${correlationId} Enrichment Condition 3: Found set ID ${setId} for set ${identifiers.setCode}`);
+                        
+                        // Step 2: Get the card ID using set ID and card number
+                        const pokeDataId = await pokeDataApiService.getCardIdBySetAndNumber(setId, identifiers.number);
+                        
+                        if (pokeDataId) {
+                            card.pokeDataId = pokeDataId;
+                            cardWasModified = true;
+                            pokeDataMappingTime = Date.now() - mappingStartTime;
+                            context.log(`${correlationId} Enrichment Condition 3: PokeData ID ${pokeDataId} mapped and stored (${pokeDataMappingTime}ms)`);
+                        } else {
+                            pokeDataMappingTime = Date.now() - mappingStartTime;
+                            context.log(`${correlationId} Enrichment Condition 3: No PokeData ID found for card ${identifiers.number} in set ${setId} (${pokeDataMappingTime}ms)`);
+                        }
+                    } else {
+                        pokeDataMappingTime = Date.now() - mappingStartTime;
+                        context.log(`${correlationId} Enrichment Condition 3: No set ID found for set code ${identifiers.setCode} (${pokeDataMappingTime}ms)`);
+                    }
+                } else {
+                    pokeDataMappingTime = Date.now() - mappingStartTime;
+                    context.log(`${correlationId} Enrichment Condition 3: Invalid card ID format for mapping: ${cardId} (${pokeDataMappingTime}ms)`);
+                }
+            } catch (error: any) {
+                pokeDataMappingTime = Date.now() - mappingStartTime;
+                context.log(`${correlationId} Enrichment Condition 3: Error during PokeData ID mapping: ${error.message} (${pokeDataMappingTime}ms)`);
+            }
         } else {
             context.log(`${correlationId} Enrichment Condition 3: PokeData ID already present (${card.pokeDataId}) - SKIPPING`);
         }
