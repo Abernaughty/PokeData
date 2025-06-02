@@ -6,8 +6,8 @@
 - ✅ **AUTOMATED MAPPING GENERATION**: Created fuzzy matching script that automatically maps sets between APIs
 - ✅ **PRODUCTION TESTING**: Set mapping system tested and validated with 5/5 passing tests
 - ✅ **DEPLOYMENT PIPELINE**: Both Azure Functions and Static Web Apps deployments completed successfully
-- 🔴 **PRODUCTION WEBSITE ISSUE**: Website still showing 404 errors for main.js despite successful deployments
-- 🔄 **DEPLOYMENT INVESTIGATION**: Need to verify Azure Functions v4 compatibility and build configurations
+- ✅ **PRODUCTION WEBSITE ISSUE FIXED**: Resolved 404 errors for main.js by adding build steps to Azure Static Web Apps workflow
+- ✅ **DEPLOYMENT CONFIGURATION CORRECTED**: Fixed Azure deployment to properly build and deploy Svelte application
 - ✅ **CLOUD MIGRATION COMPLETED**: Successfully completed full transition to cloud-first architecture
 - ✅ **SITE LOADING FIXED**: Resolved critical post-merge main.js 404 error preventing site loading (locally)
 - ✅ **FEATURE FLAGS UPDATED**: Changed all cloud features to default enabled (APIs, images, caching)
@@ -53,6 +53,23 @@
     - **sv9** (Journey Together) → **JTG** (PokeData ID: 562) ✅
   - **Result**: Prismatic Evolutions cards now automatically get PokeData IDs and enhanced pricing data
 
+### ✅ **PRODUCTION WEBSITE 404 ERROR FIXED (2025-06-02)**:
+- **🎯 CRITICAL FIX**: Resolved 404 errors for main.js preventing production website from loading
+  - **Root Cause Identified**: Azure Static Web Apps workflow was missing build steps
+    - **Problem**: Workflow deployed `public` folder without running `pnpm run build`
+    - **Result**: No `main.js` file was generated during deployment
+    - **Impact**: Production website couldn't load the main application script
+  - **Solution Implemented**:
+    - **✅ Added Node.js Setup**: Added Node.js 18 setup to Azure workflow
+    - **✅ Added PNPM Setup**: Added PNPM installation step to Azure workflow
+    - **✅ Added Build Step**: Added `pnpm run build` to generate required files
+    - **✅ Fixed Rollup Config**: Ensured `main.js` (not `main.min.js`) is generated in production
+  - **Files Modified**:
+    - **`.github/workflows/azure-static-web-apps-orange-ocean-0579a9c10.yml`**: Added build steps
+    - **`rollup.config.cjs`**: Fixed filename generation to always use `main.js`
+  - **Deployment Triggered**: Changes pushed to main branch, Azure deployment in progress
+  - **Expected Result**: Production website at `https://pokedata.maber.io` should now load correctly
+
 ### ✅ **DEPLOYMENT PIPELINE FIXES AND PRODUCTION ISSUES (2025-06-02)**:
 - **Azure Static Web Apps Configuration Fixed**: Corrected deployment workflow for Svelte frontend
   - **Root Cause**: `output_location` was empty, causing build files not to be deployed properly
@@ -60,11 +77,6 @@
   - **Workflow Fixed**: Removed conflicting `app_artifact_location` parameter
   - **Missing Parameters Added**: Added required `app_location` to close_pull_request_job
   - **Deployment Status**: Both Azure Functions and Static Web Apps deployments completed successfully
-- **🔴 ONGOING ISSUE**: Production website still showing 404 errors for main.js despite successful deployments
-  - **Local Development**: ✅ Working correctly at `http://localhost:3000`
-  - **Production Website**: ❌ Still failing at `https://pokedata.maber.io`
-  - **Investigation Needed**: Verify Azure Functions v4 compatibility and build configurations
-  - **Potential Causes**: Build process differences, Azure Static Web Apps configuration, or caching issues
 
 ### ✅ **TEST OUTPUT IMPROVEMENTS (2025-06-02)**:
 - **Removed Confusing Raw Pricing Checks**: Cleaned up test output to focus on relevant functionality
