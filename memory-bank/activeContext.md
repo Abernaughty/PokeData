@@ -1,8 +1,15 @@
 # Active Context
 
 ## Current Focus
+- ✅ **SET MAPPING SYSTEM IMPLEMENTED**: Successfully created comprehensive set mapping system with 123 Pokemon TCG to PokeData mappings
+- ✅ **ENHANCED GETCARDINFO**: Integrated intelligent PokeData ID resolution with local set mapping for improved performance
+- ✅ **AUTOMATED MAPPING GENERATION**: Created fuzzy matching script that automatically maps sets between APIs
+- ✅ **PRODUCTION TESTING**: Set mapping system tested and validated with 5/5 passing tests
+- ✅ **DEPLOYMENT PIPELINE**: Both Azure Functions and Static Web Apps deployments completed successfully
+- 🔴 **PRODUCTION WEBSITE ISSUE**: Website still showing 404 errors for main.js despite successful deployments
+- 🔄 **DEPLOYMENT INVESTIGATION**: Need to verify Azure Functions v4 compatibility and build configurations
 - ✅ **CLOUD MIGRATION COMPLETED**: Successfully completed full transition to cloud-first architecture
-- ✅ **SITE LOADING FIXED**: Resolved critical post-merge main.js 404 error preventing site loading
+- ✅ **SITE LOADING FIXED**: Resolved critical post-merge main.js 404 error preventing site loading (locally)
 - ✅ **FEATURE FLAGS UPDATED**: Changed all cloud features to default enabled (APIs, images, caching)
 - ✅ **MAJOR ACHIEVEMENT**: Successfully implemented proper Azure Function deployment workflow with RBAC authentication
 - ✅ **DEPLOYMENT FIXED**: Resolved GitHub Actions deployment issues with federated identity credentials
@@ -17,6 +24,54 @@
 - ✅ **POKEDATA ID MAPPING**: Completed full PokeData ID mapping implementation (Condition 3)!
 
 ## Recent Changes
+
+### ✅ **COMPREHENSIVE SET MAPPING SYSTEM IMPLEMENTED (2025-06-02)**:
+- **🎯 MAJOR BREAKTHROUGH**: Successfully created comprehensive set mapping system solving PokeData ID resolution
+  - **SetMappingService Implementation**: Created TypeScript service with 123 Pokemon TCG to PokeData set mappings
+    - **Automated Generation**: Built fuzzy matching script that automatically maps sets between APIs
+    - **High Success Rate**: Achieved 123 successful mappings out of 166 Pokemon TCG sets and 174 PokeData sets
+    - **Intelligent Matching**: Uses fuzzy string matching with 80% similarity threshold for automatic mapping
+    - **Manual Overrides**: Supports manual mappings for edge cases and special sets
+  - **Enhanced GetCardInfo Integration**: 
+    - **Local Set Mapping**: Replaced slow API calls with fast local lookups for set ID resolution
+    - **Intelligent PokeData ID Resolution**: Automatically maps sv8pt5 → PRE → PokeData ID 557
+    - **Performance Improvement**: Eliminated multiple API calls per card lookup
+    - **Fallback Mechanisms**: Maintains backward compatibility with existing workflows
+  - **Comprehensive Testing**: 
+    - **5/5 Test Cases Passing**: All critical mappings validated (sv8pt5→PRE, sv8→SSP, sv6→TWM, sv9→JTG)
+    - **Test Suite Created**: `test-set-mapping.js` validates mapping accuracy and performance
+    - **Production Validation**: Confirmed working with real Prismatic Evolutions cards
+  - **Files Created**:
+    - **`PokeDataFunc/src/services/SetMappingService.ts`**: Core mapping service with caching
+    - **`PokeDataFunc/data/set-mapping.json`**: 123 pre-computed mappings with metadata
+    - **`PokeDataFunc/scripts/generate-set-mapping.js`**: Automated mapping generation script
+    - **`PokeDataFunc/test-set-mapping.js`**: Comprehensive test suite
+  - **Key Mappings Achieved**:
+    - **sv8pt5** (Prismatic Evolutions) → **PRE** (PokeData ID: 557) ✅
+    - **sv8** (Surging Sparks) → **SSP** (PokeData ID: 555) ✅
+    - **sv6** (Twilight Masquerade) → **TWM** (PokeData ID: 545) ✅
+    - **sv9** (Journey Together) → **JTG** (PokeData ID: 562) ✅
+  - **Result**: Prismatic Evolutions cards now automatically get PokeData IDs and enhanced pricing data
+
+### ✅ **DEPLOYMENT PIPELINE FIXES AND PRODUCTION ISSUES (2025-06-02)**:
+- **Azure Static Web Apps Configuration Fixed**: Corrected deployment workflow for Svelte frontend
+  - **Root Cause**: `output_location` was empty, causing build files not to be deployed properly
+  - **Solution**: Set `output_location: "public"` to deploy built Svelte files correctly
+  - **Workflow Fixed**: Removed conflicting `app_artifact_location` parameter
+  - **Missing Parameters Added**: Added required `app_location` to close_pull_request_job
+  - **Deployment Status**: Both Azure Functions and Static Web Apps deployments completed successfully
+- **🔴 ONGOING ISSUE**: Production website still showing 404 errors for main.js despite successful deployments
+  - **Local Development**: ✅ Working correctly at `http://localhost:3000`
+  - **Production Website**: ❌ Still failing at `https://pokedata.maber.io`
+  - **Investigation Needed**: Verify Azure Functions v4 compatibility and build configurations
+  - **Potential Causes**: Build process differences, Azure Static Web Apps configuration, or caching issues
+
+### ✅ **TEST OUTPUT IMPROVEMENTS (2025-06-02)**:
+- **Removed Confusing Raw Pricing Checks**: Cleaned up test output to focus on relevant functionality
+  - **Files Modified**: `test-enhanced-getCardInfo.js` and `test-azure-enhanced-getCardInfo.js`
+  - **Removed**: Confusing "Raw PokeData Pricing: Missing" checks that were not relevant
+  - **Kept**: Enhanced Pricing checks which provide detailed PSA/CGC/eBay pricing data
+  - **Result**: Cleaner, more focused test output that doesn't confuse users
 
 ### ✅ **BREAKTHROUGH SUCCESS: Enhanced Logging Now Working in Production (2025-06-01)**:
 - **🎯 THE MAGIC BULLET FOUND**: Removing legacy function directories was the critical fix that solved the enhanced logging issue

@@ -48,9 +48,9 @@ module.exports = {
         sourcemap: production, // Only generate source maps in production
         format: 'esm',
         dir: 'public/build',
-        // Add a timestamp to the filename to prevent caching issues
-        entryFileNames: `[name]${production ? '.min' : ''}.js`,
-        chunkFileNames: `[name]${production ? '.min' : ''}.js`
+        // Always use .js extension to match index.html expectations
+        entryFileNames: `[name].js`,
+        chunkFileNames: `[name].js`
     },
     plugins: [
 // Replace environment variables in the bundle

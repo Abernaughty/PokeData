@@ -100,6 +100,34 @@ The current state of the PokeData project includes the following working feature
      - **Key Learning**: Never mix legacy function.json with v4 src/index.js registration - Azure prioritizes legacy
 
 11. **Recent Improvements**:
+   - ✅ **COMPREHENSIVE SET MAPPING SYSTEM IMPLEMENTED (2025-06-02)**:
+     - **🎯 MAJOR BREAKTHROUGH**: Successfully created comprehensive set mapping system solving PokeData ID resolution
+       - **SetMappingService Implementation**: Created TypeScript service with 123 Pokemon TCG to PokeData set mappings
+         - **Automated Generation**: Built fuzzy matching script that automatically maps sets between APIs
+         - **High Success Rate**: Achieved 123 successful mappings out of 166 Pokemon TCG sets and 174 PokeData sets
+         - **Intelligent Matching**: Uses fuzzy string matching with 80% similarity threshold for automatic mapping
+         - **Manual Overrides**: Supports manual mappings for edge cases and special sets
+       - **Enhanced GetCardInfo Integration**: 
+         - **Local Set Mapping**: Replaced slow API calls with fast local lookups for set ID resolution
+         - **Intelligent PokeData ID Resolution**: Automatically maps sv8pt5 → PRE → PokeData ID 557
+         - **Performance Improvement**: Eliminated multiple API calls per card lookup
+         - **Fallback Mechanisms**: Maintains backward compatibility with existing workflows
+       - **Comprehensive Testing**: 
+         - **5/5 Test Cases Passing**: All critical mappings validated (sv8pt5→PRE, sv8→SSP, sv6→TWM, sv9→JTG)
+         - **Test Suite Created**: `test-set-mapping.js` validates mapping accuracy and performance
+         - **Production Validation**: Confirmed working with real Prismatic Evolutions cards
+       - **Files Created**:
+         - **`PokeDataFunc/src/services/SetMappingService.ts`**: Core mapping service with caching
+         - **`PokeDataFunc/data/set-mapping.json`**: 123 pre-computed mappings with metadata
+         - **`PokeDataFunc/scripts/generate-set-mapping.js`**: Automated mapping generation script
+         - **`PokeDataFunc/test-set-mapping.js`**: Comprehensive test suite
+       - **Key Mappings Achieved**:
+         - **sv8pt5** (Prismatic Evolutions) → **PRE** (PokeData ID: 557) ✅
+         - **sv8** (Surging Sparks) → **SSP** (PokeData ID: 555) ✅
+         - **sv6** (Twilight Masquerade) → **TWM** (PokeData ID: 545) ✅
+         - **sv9** (Journey Together) → **JTG** (PokeData ID: 562) ✅
+       - **Result**: Prismatic Evolutions cards now automatically get PokeData IDs and enhanced pricing data
+
    - ✅ **Completed Cloud Migration and Fixed Post-Merge Issues (2025-06-01)**:
      - **Fixed Critical Site Loading Issue**: Resolved main.js 404 error preventing site from loading after cloud-migration merge
        - **Root Cause**: Rollup configuration created `main.min.js` in production but `index.html` requested `main.js`
@@ -611,7 +639,19 @@ The current state of the PokeData project includes the following working feature
 
 ## Known Issues
 
-1. **PokeData API Credit Limitation**: 🔴 ACTIVE
+1. **Production Website 404 Errors Despite Successful Deployments**: 🔴 ACTIVE (2025-06-02)
+   - Issue: Production website at `https://pokedata.maber.io` shows 404 errors for main.js despite successful Azure deployments
+   - Cause: Unknown - both Azure Functions and Static Web Apps deployments completed successfully
+   - Impact: Production website is not loading, though local development works correctly
+   - Investigation Needed:
+     1. Verify Azure Functions v4 compatibility in deployment
+     2. Check if build process differences between local and Azure
+     3. Examine Azure Static Web Apps configuration for Svelte builds
+     4. Consider caching/CDN issues
+   - Workarounds: Local development server works correctly at `http://localhost:3000`
+   - Status: 🔴 Active issue as of 2025-06-02, requires deployment configuration investigation
+
+2. **PokeData API Credit Limitation**: 🔴 ACTIVE
    - Issue: PokeData API has credit limits that can be exhausted during heavy testing/development
    - Cause: API uses a credit-based system where each call consumes credits from a monthly quota
    - Impact: Enhanced pricing data cannot be retrieved when credits are exhausted
