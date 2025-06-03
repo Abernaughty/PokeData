@@ -6,6 +6,7 @@ export interface ICosmosDbService {
     // Card operations
     getCard(cardId: string): Promise<Card | null>;
     getCardsBySet(setCode: string): Promise<Card[]>;
+    getCardsBySetId(setId: string): Promise<Card[]>;
     saveCard(card: Card): Promise<void>;
     updateCard(card: Card): Promise<void>;
     
@@ -86,12 +87,45 @@ export class CosmosDbService implements ICosmosDbService {
             return [];
         }
     }
+
+    async getCardsBySetId(setId: string): Promise<Card[]> {
+        try {
+            console.log(`[CosmosDbService] Querying cards for setId: ${setId}`);
+            
+            // Query cards directly by setId (for PokeData-first approach)
+            const cardsQuerySpec = {
+                query: "SELECT * FROM c WHERE c.setId = @setId",
+                parameters: [
+                    { name: "@setId", value: setId }
+                ]
+            };
+            
+            const { resources } = await this.cardContainer.items.query(cardsQuerySpec).fetchAll();
+            console.log(`[CosmosDbService] Found ${resources.length} cards for setId: ${setId}`);
+            
+            return resources as Card[];
+        } catch (error) {
+            console.error(`Error getting cards for setId ${setId}:`, error);
+            return [];
+        }
+    }
     
     async saveCard(card: Card): Promise<void> {
         try {
-            await this.cardContainer.items.upsert(card);
+            console.log(`[CosmosDbService] Attempting to save card: ${card.id} for setId: ${card.setId}`);
+            console.log(`[CosmosDbService] Card data preview: ${JSON.stringify({
+                id: card.id,
+                setId: card.setId,
+                cardName: card.cardName,
+                cardNumber: card.cardNumber,
+                source: (card as any).source
+            })}`);
+            
+            const result = await this.cardContainer.items.upsert(card);
+            console.log(`[CosmosDbService] Successfully saved card ${card.id} - Status: ${result.statusCode}, RU: ${result.requestCharge}`);
         } catch (error) {
-            console.error(`Error saving card ${card.id}:`, error);
+            console.error(`[CosmosDbService] ERROR saving card ${card.id}:`, error);
+            console.error(`[CosmosDbService] Card data that failed:`, JSON.stringify(card, null, 2));
             throw error;
         }
     }
