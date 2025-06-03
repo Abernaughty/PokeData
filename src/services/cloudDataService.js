@@ -38,23 +38,39 @@ export const cloudDataService = {
       const apiResponse = await response.json();
       console.log('API response for sets:', apiResponse);
       
-      // Ensure we extract the array of sets from the response
+      // Handle PokeData-first response structure
       let setsArray = [];
       
-      if (apiResponse && Array.isArray(apiResponse)) {
-        // Direct array response
+      if (apiResponse && apiResponse.data) {
+        // PokeData-first response structure: { data: { sets: [...] } }
+        if (apiResponse.data.sets && Array.isArray(apiResponse.data.sets)) {
+          setsArray = apiResponse.data.sets;
+        } else if (Array.isArray(apiResponse.data)) {
+          // Direct array in data wrapper
+          setsArray = apiResponse.data;
+        }
+      } else if (apiResponse && Array.isArray(apiResponse)) {
+        // Direct array response (fallback)
         setsArray = apiResponse;
-      } else if (apiResponse && apiResponse.data && Array.isArray(apiResponse.data)) {
-        // Data wrapper with array
-        setsArray = apiResponse.data;
-      } else if (apiResponse && apiResponse.sets && Array.isArray(apiResponse.sets)) {
-        // Sets wrapper with array
-        setsArray = apiResponse.sets;
       } else {
         console.warn('Unexpected API response format:', apiResponse);
         // Return empty array as fallback
         return [];
       }
+      
+      // Transform PokeData sets to frontend format
+      setsArray = setsArray.map(set => ({
+        id: set.setId || set.id,
+        name: set.setName || set.name,
+        code: set.setCode || set.code,
+        // Keep original PokeData properties for backend compatibility
+        setId: set.setId,
+        setName: set.setName,
+        setCode: set.setCode,
+        language: set.language,
+        releaseYear: set.releaseYear,
+        isRecent: set.isRecent
+      }));
       
       // Check if the response contains grouped sets (objects with type: 'group')
       if (groupByExpansion && setsArray.length > 0 && setsArray[0].type === 'group') {
@@ -89,7 +105,7 @@ export const cloudDataService = {
   
   /**
    * Get cards for a specific set
-   * @param {string} setCode - The set code
+   * @param {string} setId - The set ID (PokeData-first backend expects numeric setId)
    * @param {Object} options - Additional options
    * @param {boolean} options.forceRefresh - Whether to force a refresh from the API
    * @param {number} options.page - Page number for pagination (used only when fetchAllPages is false)
@@ -97,14 +113,14 @@ export const cloudDataService = {
    * @param {boolean} options.fetchAllPages - Whether to fetch all pages (default: true)
    * @returns {Promise<Object>} Paginated array of card objects or all cards if fetchAllPages=true
    */
-  async getCardsForSet(setCode, options = {}) {
+  async getCardsForSet(setId, options = {}) {
     try {
-      if (!setCode) {
-        console.error('Set code is required to fetch cards');
+      if (!setId) {
+        console.error('Set ID is required to fetch cards');
         return { items: [], totalCount: 0, pageNumber: 1, pageSize: 100, totalPages: 0 };
       }
       
-      console.log(`Fetching cards for set ${setCode} from cloud API...`);
+      console.log(`Fetching cards for set ${setId} from cloud API...`);
       
       // Default options
       const fetchAllPages = options.fetchAllPages !== false; // Default to true unless explicitly set to false
@@ -115,7 +131,7 @@ export const cloudDataService = {
       
       // If we're not fetching all pages, just get the requested page
       if (!fetchAllPages) {
-        return this.fetchCardsPage(setCode, initialPage, pageSize, options.forceRefresh);
+        return this.fetchCardsPage(setId, initialPage, pageSize, options.forceRefresh);
       }
       
       // If we are fetching all pages, start with page 1
@@ -124,10 +140,10 @@ export const cloudDataService = {
       let totalPages = 1; // Will be updated after first request
       let totalCount = 0;
       
-      console.log(`Fetching all pages for set ${setCode}...`);
+      console.log(`Fetching all pages for set ${setId}...`);
       
       // Fetch first page to get total pages
-      const firstPageResult = await this.fetchCardsPage(setCode, currentPage, pageSize, options.forceRefresh);
+      const firstPageResult = await this.fetchCardsPage(setId, currentPage, pageSize, options.forceRefresh);
       
       // Extract pagination info
       totalPages = firstPageResult.totalPages || 1;
@@ -143,7 +159,7 @@ export const cloudDataService = {
         currentPage++;
         console.log(`Fetching page ${currentPage}/${totalPages}...`);
         
-        const pageResult = await this.fetchCardsPage(setCode, currentPage, pageSize, options.forceRefresh);
+        const pageResult = await this.fetchCardsPage(setId, currentPage, pageSize, options.forceRefresh);
         
         // Add cards from this page
         allCards = [...allCards, ...pageResult.items];
@@ -160,10 +176,10 @@ export const cloudDataService = {
         totalPages: 1
       };
       
-      console.log(`Successfully retrieved all ${allCards.length} cards for set ${setCode}`);
+      console.log(`Successfully retrieved all ${allCards.length} cards for set ${setId}`);
       return result;
     } catch (error) {
-      console.error(`Error fetching cards for set ${setCode} from cloud API:`, error);
+      console.error(`Error fetching cards for set ${setId} from cloud API:`, error);
       throw error;
     }
   },
@@ -171,15 +187,15 @@ export const cloudDataService = {
   /**
    * Fetch a single page of cards for a set
    * @private
-   * @param {string} setCode - The set code
+   * @param {string} setId - The set ID
    * @param {number} page - Page number
    * @param {number} pageSize - Items per page
    * @param {boolean} forceRefresh - Whether to force refresh from API
    * @returns {Promise<Object>} Paginated card data
    */
-  async fetchCardsPage(setCode, page, pageSize, forceRefresh = false) {
+  async fetchCardsPage(setId, page, pageSize, forceRefresh = false) {
     try {
-      const url = new URL(API_CONFIG.buildCardsForSetUrl(setCode));
+      const url = new URL(API_CONFIG.buildCardsForSetUrl(setId));
       
       // Add query parameters
       if (forceRefresh) {
@@ -197,7 +213,7 @@ export const cloudDataService = {
       
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unable to get error details');
-        console.error(`API error for set ${setCode} page ${page}: ${response.status} - ${errorText}`);
+        console.error(`API error for set ${setId} page ${page}: ${response.status} - ${errorText}`);
         throw new Error(`API error: ${response.status}. Details: ${errorText}`);
       }
       
@@ -251,7 +267,7 @@ export const cloudDataService = {
       
       return cardsData;
     } catch (error) {
-      console.error(`Error fetching cards for set ${setCode} page ${page}:`, error);
+      console.error(`Error fetching cards for set ${setId} page ${page}:`, error);
       throw error;
     }
   },
@@ -320,8 +336,46 @@ export const cloudDataService = {
         pricing: {} // Create the pricing object expected by the frontend
       };
       
-      // Prioritize enhanced pricing data from pokeData API
-      if (cardData.enhancedPricing) {
+      // Handle PokeData-first pricing structure
+      if (cardData.pricing) {
+        console.log('Transforming PokeData-first pricing structure:', cardData.pricing);
+        
+        // Transform PSA grades: psa: {9: 1059} → "psa-9": {value: 1059, currency: "USD"}
+        if (cardData.pricing.psa) {
+          Object.entries(cardData.pricing.psa).forEach(([grade, value]) => {
+            transformedCard.pricing[`psa-${grade}`] = { value: value, currency: 'USD' };
+          });
+        }
+        
+        // Transform CGC grades: cgc: {8_0: 1200} → "cgc-8.0": {value: 1200, currency: "USD"}
+        if (cardData.pricing.cgc) {
+          Object.entries(cardData.pricing.cgc).forEach(([grade, value]) => {
+            // Handle both underscore format (8_0) and direct format (8.0)
+            const cleanGrade = grade.includes('_') ? grade.replace('_', '.') : grade;
+            transformedCard.pricing[`cgc-${cleanGrade}`] = { value: value, currency: 'USD' };
+          });
+        }
+        
+        // Transform TCGPlayer price: tcgPlayer: 1204.97 → market: {value: 1204.97, currency: "USD"}
+        if (cardData.pricing.tcgPlayer) {
+          transformedCard.pricing.market = { value: cardData.pricing.tcgPlayer, currency: 'USD' };
+        }
+        
+        // Transform eBay raw price: ebayRaw: 1124.93 → ebayRaw: {value: 1124.93, currency: "USD"}
+        if (cardData.pricing.ebayRaw) {
+          transformedCard.pricing.ebayRaw = { value: cardData.pricing.ebayRaw, currency: 'USD' };
+        }
+        
+        // Transform PokeData raw price if available
+        if (cardData.pricing.pokeDataRaw) {
+          transformedCard.pricing.pokeDataRaw = { value: cardData.pricing.pokeDataRaw, currency: 'USD' };
+        }
+      }
+      
+      // Fallback: Handle legacy enhancedPricing structure (if still present)
+      else if (cardData.enhancedPricing) {
+        console.log('Using legacy enhancedPricing structure:', cardData.enhancedPricing);
+        
         // Add PSA graded prices if they exist
         if (cardData.enhancedPricing.psaGrades) {
           Object.entries(cardData.enhancedPricing.psaGrades).forEach(([grade, priceInfo]) => {
@@ -340,8 +394,10 @@ export const cloudDataService = {
         }
       }
       
-      // Only use TCG Player pricing as fallback if no enhanced pricing data is available
-      if (Object.keys(transformedCard.pricing).length === 0 && cardData.tcgPlayerPrice) {
+      // Final fallback: Use TCG Player pricing if no other pricing data is available
+      else if (cardData.tcgPlayerPrice) {
+        console.log('Using TCGPlayer pricing as fallback:', cardData.tcgPlayerPrice);
+        
         // Map TCG Player pricing values to the expected format
         if (cardData.tcgPlayerPrice.market) {
           transformedCard.pricing.market = { value: cardData.tcgPlayerPrice.market, currency: 'USD' };
@@ -355,6 +411,27 @@ export const cloudDataService = {
         if (cardData.tcgPlayerPrice.high) {
           transformedCard.pricing.high = { value: cardData.tcgPlayerPrice.high, currency: 'USD' };
         }
+      }
+      
+      // Transform image structure: images: {small: "...", large: "..."} → image_url: "..."
+      if (cardData.images) {
+        transformedCard.image_url = cardData.images.small || cardData.images.large;
+        console.log('Transformed image URL:', transformedCard.image_url);
+      }
+      
+      // Ensure card name is available
+      if (!transformedCard.name && cardData.cardName) {
+        transformedCard.name = cardData.cardName;
+      }
+      
+      // Ensure card number is available
+      if (!transformedCard.num && cardData.cardNumber) {
+        transformedCard.num = cardData.cardNumber;
+      }
+      
+      // Ensure set name is available
+      if (!transformedCard.set_name && cardData.setName) {
+        transformedCard.set_name = cardData.setName;
       }
       
       console.log(`Successfully processed pricing data for card ${cardId}`);
@@ -443,8 +520,45 @@ export const cloudDataService = {
         pricing: {} // Create the pricing object expected by the frontend
       };
       
-      // Prioritize enhanced pricing data from pokeData API
-      if (cardData.enhancedPricing) {
+      // Handle PokeData-first pricing structure
+      if (cardData.pricing) {
+        console.log('Transforming PokeData-first pricing structure (with metadata):', cardData.pricing);
+        
+        // Transform PSA grades: psa: {9: 1059} → "psa-9": {value: 1059, currency: "USD"}
+        if (cardData.pricing.psa) {
+          Object.entries(cardData.pricing.psa).forEach(([grade, value]) => {
+            transformedCard.pricing[`psa-${grade}`] = { value: value, currency: 'USD' };
+          });
+        }
+        
+        // Transform CGC grades: cgc: {8_0: 1200} → "cgc-8.0": {value: 1200, currency: "USD"}
+        if (cardData.pricing.cgc) {
+          Object.entries(cardData.pricing.cgc).forEach(([grade, value]) => {
+            const cleanGrade = grade.replace('_', '.');
+            transformedCard.pricing[`cgc-${cleanGrade}`] = { value: value, currency: 'USD' };
+          });
+        }
+        
+        // Transform TCGPlayer price: tcgPlayer: 1204.97 → market: {value: 1204.97, currency: "USD"}
+        if (cardData.pricing.tcgPlayer) {
+          transformedCard.pricing.market = { value: cardData.pricing.tcgPlayer, currency: 'USD' };
+        }
+        
+        // Transform eBay raw price: ebayRaw: 1124.93 → ebayRaw: {value: 1124.93, currency: "USD"}
+        if (cardData.pricing.ebayRaw) {
+          transformedCard.pricing.ebayRaw = { value: cardData.pricing.ebayRaw, currency: 'USD' };
+        }
+        
+        // Transform PokeData raw price if available
+        if (cardData.pricing.pokeDataRaw) {
+          transformedCard.pricing.pokeDataRaw = { value: cardData.pricing.pokeDataRaw, currency: 'USD' };
+        }
+      }
+      
+      // Fallback: Handle legacy enhancedPricing structure (if still present)
+      else if (cardData.enhancedPricing) {
+        console.log('Using legacy enhancedPricing structure (with metadata):', cardData.enhancedPricing);
+        
         // Add PSA graded prices if they exist
         if (cardData.enhancedPricing.psaGrades) {
           Object.entries(cardData.enhancedPricing.psaGrades).forEach(([grade, priceInfo]) => {
@@ -463,8 +577,10 @@ export const cloudDataService = {
         }
       }
       
-      // Only use TCG Player pricing as fallback if no enhanced pricing data is available
-      if (Object.keys(transformedCard.pricing).length === 0 && cardData.tcgPlayerPrice) {
+      // Final fallback: Use TCG Player pricing if no other pricing data is available
+      else if (cardData.tcgPlayerPrice) {
+        console.log('Using TCGPlayer pricing as fallback (with metadata):', cardData.tcgPlayerPrice);
+        
         // Map TCG Player pricing values to the expected format
         if (cardData.tcgPlayerPrice.market) {
           transformedCard.pricing.market = { value: cardData.tcgPlayerPrice.market, currency: 'USD' };
@@ -478,6 +594,27 @@ export const cloudDataService = {
         if (cardData.tcgPlayerPrice.high) {
           transformedCard.pricing.high = { value: cardData.tcgPlayerPrice.high, currency: 'USD' };
         }
+      }
+      
+      // Transform image structure: images: {small: "...", large: "..."} → image_url: "..."
+      if (cardData.images) {
+        transformedCard.image_url = cardData.images.small || cardData.images.large;
+        console.log('Transformed image URL (with metadata):', transformedCard.image_url);
+      }
+      
+      // Ensure card name is available
+      if (!transformedCard.name && cardData.cardName) {
+        transformedCard.name = cardData.cardName;
+      }
+      
+      // Ensure card number is available
+      if (!transformedCard.num && cardData.cardNumber) {
+        transformedCard.num = cardData.cardNumber;
+      }
+      
+      // Ensure set name is available
+      if (!transformedCard.set_name && cardData.setName) {
+        transformedCard.set_name = cardData.setName;
       }
       
       console.log('Transformed pricing data for with-metadata response');

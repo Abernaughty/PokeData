@@ -30,8 +30,10 @@ export const hybridDataService = {
    */
   async getCardsForSet(setCode, setId) {
     if (featureFlagService.useCloudApi()) {
-      console.log(`Using cloud API for cards in set ${setCode}`);
-      const result = await cloudDataService.getCardsForSet(setCode);
+      console.log(`Using cloud API for cards in set ${setCode} (ID: ${setId})`);
+      // Use setId for PokeData-first backend, fallback to setCode if setId not available
+      const identifier = setId || setCode;
+      const result = await cloudDataService.getCardsForSet(identifier);
       return result.items || [];
     } else {
       console.log(`Using local API for cards in set ${setCode}`);

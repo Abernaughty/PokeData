@@ -141,6 +141,13 @@
     <!-- Safely display results only if the price data exists -->
     {#if $priceData !== null && $priceData !== undefined && typeof $priceData === 'object'}
       <div class="results">
+        <!-- Card Image Display -->
+        {#if $priceData?.image_url}
+          <div class="card-image">
+            <img src={$priceData.image_url} alt={$priceData.name || 'Card'} />
+          </div>
+        {/if}
+        
         <!-- Always use safe property access to avoid null references -->
         <h2>{$priceData?.name || ($selectedCard && $selectedCard.name) || 'Card'}</h2>
         <p><strong>Set:</strong> {$priceData?.set_name || ($selectedSet && $selectedSet.name) || 'Unknown'}</p>
@@ -386,6 +393,29 @@
     background-color: rgba(249, 249, 249, 0.9);
     backdrop-filter: blur(5px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+  
+  .card-image {
+    text-align: center;
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+  }
+  
+  .card-image img {
+    max-width: 100%;
+    max-height: 300px;
+    width: auto;
+    height: auto;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: transform 0.2s ease;
+  }
+  
+  .card-image img:hover {
+    transform: scale(1.05);
   }
   
   .results h2 {
