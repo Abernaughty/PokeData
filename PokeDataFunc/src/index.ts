@@ -47,7 +47,7 @@ app.http('getCardInfo', {
 app.http('getCardsBySet', {
     methods: ['GET'],
     authLevel: 'function',
-    route: 'sets/{setCode}/cards',
+    route: 'sets/{setId}/cards',
     handler: getCardsBySet
 });
 

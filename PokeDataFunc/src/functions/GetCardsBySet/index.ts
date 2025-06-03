@@ -43,23 +43,34 @@ interface PokeDataFirstCardBasic {
  */
 export async function getCardsBySet(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
     const timestamp = Date.now();
-    const correlationId = `[pokedata-set-${request.params.setCode}-${timestamp}]`;
+    const setIdParam = request.params.setId;
+    const correlationId = `[pokedata-set-${setIdParam || 'unknown'}-${timestamp}]`;
     const startTime = Date.now();
     
     try {
-        // Get set code from route parameters
-        const setCode = request.params.setCode;
+        // Get set ID from route parameters
         
-        if (!setCode) {
-            context.log(`${correlationId} ERROR: Missing set code in request`);
-            const errorResponse = createBadRequestError("Set code is required", "GetCardsBySet");
+        if (!setIdParam) {
+            context.log(`${correlationId} ERROR: Missing set ID in request`);
+            const errorResponse = createBadRequestError("Set ID is required", "GetCardsBySet");
             return {
                 jsonBody: errorResponse,
                 status: errorResponse.status
             };
         }
         
-        context.log(`${correlationId} Processing PokeData-first request for set: ${setCode}`);
+        // Parse set ID as integer
+        const setId = parseInt(setIdParam);
+        if (isNaN(setId)) {
+            context.log(`${correlationId} ERROR: Invalid set ID format: ${setIdParam}`);
+            const errorResponse = createBadRequestError("Set ID must be a valid number", "GetCardsBySet");
+            return {
+                jsonBody: errorResponse,
+                status: errorResponse.status
+            };
+        }
+        
+        context.log(`${correlationId} Processing PokeData-first request for set ID: ${setId}`);
         
         // Parse query parameters
         const forceRefresh = request.query.get("forceRefresh") === "true";
@@ -80,10 +91,10 @@ export async function getCardsBySet(request: HttpRequest, context: InvocationCon
             };
         }
         
-        context.log(`${correlationId} Request parameters - setCode: ${setCode}, page: ${page}, pageSize: ${pageSize}, forceRefresh: ${forceRefresh}`);
+        context.log(`${correlationId} Request parameters - setId: ${setId}, page: ${page}, pageSize: ${pageSize}, forceRefresh: ${forceRefresh}`);
         
         // Check cache first (if enabled and not forcing refresh)
-        const cacheKey = getCardsForSetCacheKey(`pokedata-${setCode}`);
+        const cacheKey = getCardsForSetCacheKey(`pokedata-${setId}`);
         let cards: PokeDataFirstCardBasic[] | null = null;
         let cacheHit = false;
         let cacheAge = 0;
@@ -97,11 +108,11 @@ export async function getCardsBySet(request: HttpRequest, context: InvocationCon
             const cacheTime = Date.now() - cacheStartTime;
             
             if (cards) {
-                context.log(`${correlationId} Cache HIT for set: ${setCode} (${cacheTime}ms) - ${cards.length} cards`);
+                context.log(`${correlationId} Cache HIT for set: ${setId} (${cacheTime}ms) - ${cards.length} cards`);
                 cacheHit = true;
                 cacheAge = cachedEntry ? getCacheAge(cachedEntry.timestamp) : 0;
             } else {
-                context.log(`${correlationId} Cache MISS for set: ${setCode} (${cacheTime}ms)`);
+                context.log(`${correlationId} Cache MISS for set: ${setId} (${cacheTime}ms)`);
             }
         } else {
             context.log(`${correlationId} Skipping cache - forceRefresh: ${forceRefresh}, Redis enabled: ${process.env.ENABLE_REDIS_CACHE}`);
@@ -110,10 +121,10 @@ export async function getCardsBySet(request: HttpRequest, context: InvocationCon
         // If not in cache, check Cosmos DB
         let dbStartTime = Date.now();
         if (!cards) {
-            context.log(`${correlationId} Checking Cosmos DB for set: ${setCode}`);
+            context.log(`${correlationId} Checking Cosmos DB for set: ${setId}`);
             
-            // Query for cards by set code in PokeData-first format
-            const dbCards = await cosmosDbService.getCardsBySet(`pokedata-${setCode}`);
+            // Query for cards by set ID in PokeData-first format
+            const dbCards = await cosmosDbService.getCardsBySet(`pokedata-${setId}`);
             
             const dbTime = Date.now() - dbStartTime;
             
@@ -138,32 +149,32 @@ export async function getCardsBySet(request: HttpRequest, context: InvocationCon
                     };
                 });
                 
-                context.log(`${correlationId} Database HIT for set: ${setCode} (${dbTime}ms) - ${cards.length} cards`);
+                context.log(`${correlationId} Database HIT for set: ${setId} (${dbTime}ms) - ${cards.length} cards`);
             } else {
-                context.log(`${correlationId} Database MISS for set: ${setCode} (${dbTime}ms)`);
+                context.log(`${correlationId} Database MISS for set: ${setId} (${dbTime}ms)`);
             }
         }
         
         // If not found anywhere, fetch from PokeData API
         if (!cards || cards.length === 0) {
-            context.log(`${correlationId} Fetching fresh data from PokeData API for set: ${setCode}`);
+            context.log(`${correlationId} Fetching fresh data from PokeData API for set: ${setId}`);
             
             try {
                 // Step 1: Get all cards from PokeData for this set (basic card info only)
                 const apiStartTime = Date.now();
-                const pokeDataCards = await pokeDataApiService.getCardsInSetByCode(setCode);
+                const pokeDataCards = await pokeDataApiService.getCardsInSet(setId);
                 const apiTime = Date.now() - apiStartTime;
                 
                 if (!pokeDataCards || pokeDataCards.length === 0) {
-                    context.log(`${correlationId} ERROR: No cards found in PokeData for set: ${setCode} (${apiTime}ms)`);
-                    const errorResponse = createNotFoundError("Cards for set", setCode, "GetCardsBySet");
+                    context.log(`${correlationId} ERROR: No cards found in PokeData for set: ${setId} (${apiTime}ms)`);
+                    const errorResponse = createNotFoundError("Cards for set", String(setId), "GetCardsBySet");
                     return {
                         jsonBody: errorResponse,
                         status: errorResponse.status
                     };
                 }
                 
-                context.log(`${correlationId} PokeData API returned ${pokeDataCards.length} cards for set ${setCode} (${apiTime}ms)`);
+                context.log(`${correlationId} PokeData API returned ${pokeDataCards.length} cards for set ${setId} (${apiTime}ms)`);
                 
                 // Step 2: For each card, get full details with pricing
                 const transformStartTime = Date.now();
@@ -180,7 +191,7 @@ export async function getCardsBySet(request: HttpRequest, context: InvocationCon
                                 pokeDataId: pokeDataCard.id,
                                 setId: pokeDataCard.set_id,
                                 setName: pokeDataCard.set_name,
-                                setCode: pokeDataCard.set_code || setCode,
+                                setCode: pokeDataCard.set_code || '',
                                 cardName: pokeDataCard.name,
                                 cardNumber: pokeDataCard.num,
                                 secret: pokeDataCard.secret || false,
@@ -240,7 +251,7 @@ export async function getCardsBySet(request: HttpRequest, context: InvocationCon
                             pokeDataId: pokeDataCard.id,
                             setId: pokeDataCard.set_id,
                             setName: pokeDataCard.set_name,
-                            setCode: pokeDataCard.set_code || setCode,
+                            setCode: pokeDataCard.set_code || '',
                             cardName: pokeDataCard.name,
                             cardNumber: pokeDataCard.num,
                             secret: pokeDataCard.secret || false,
@@ -258,7 +269,7 @@ export async function getCardsBySet(request: HttpRequest, context: InvocationCon
                             pokeDataId: pokeDataCard.id,
                             setId: pokeDataCard.set_id,
                             setName: pokeDataCard.set_name,
-                            setCode: pokeDataCard.set_code || setCode,
+                            setCode: pokeDataCard.set_code || '',
                             cardName: pokeDataCard.name,
                             cardNumber: pokeDataCard.num,
                             secret: pokeDataCard.secret || false,
