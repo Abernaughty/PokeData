@@ -10,7 +10,7 @@ import {
 
 // PokeData-first card structure (without images - loaded on-demand)
 interface PokeDataFirstCardBasic {
-    id: string;                    // "pokedata-{cardId}"
+    id: string;                    // Clean numeric ID (e.g., "73092")
     source: "pokedata";
     pokeDataId: number;
     setId: number;
@@ -135,7 +135,7 @@ export async function getCardsBySet(request: HttpRequest, context: InvocationCon
                     return {
                         id: card.id,
                         source: "pokedata" as const,
-                        pokeDataId: card.pokeDataId || parseInt(card.id.replace('pokedata-', '')),
+                        pokeDataId: card.pokeDataId || (card.id.startsWith('pokedata-') ? parseInt(card.id.replace('pokedata-', '')) : parseInt(card.id)),
                         setId: card.setId,
                         setName: card.setName,
                         setCode: card.setCode,
@@ -186,7 +186,7 @@ export async function getCardsBySet(request: HttpRequest, context: InvocationCon
                         if (!fullCardData) {
                             // If we can't get pricing, create card with basic info and empty pricing
                             return {
-                                id: `pokedata-${pokeDataCard.id}`,
+                                id: String(pokeDataCard.id),
                                 source: "pokedata" as const,
                                 pokeDataId: pokeDataCard.id,
                                 setId: pokeDataCard.set_id,
@@ -246,7 +246,7 @@ export async function getCardsBySet(request: HttpRequest, context: InvocationCon
                         }
                         
                         return {
-                            id: `pokedata-${pokeDataCard.id}`,
+                            id: String(pokeDataCard.id),
                             source: "pokedata" as const,
                             pokeDataId: pokeDataCard.id,
                             setId: pokeDataCard.set_id,
@@ -264,7 +264,7 @@ export async function getCardsBySet(request: HttpRequest, context: InvocationCon
                         context.log(`${correlationId} Warning: Failed to get pricing for card ${pokeDataCard.id}: ${error.message}`);
                         // Return card with basic info and empty pricing
                         return {
-                            id: `pokedata-${pokeDataCard.id}`,
+                            id: String(pokeDataCard.id),
                             source: "pokedata" as const,
                             pokeDataId: pokeDataCard.id,
                             setId: pokeDataCard.set_id,
