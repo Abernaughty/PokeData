@@ -213,7 +213,7 @@ export async function getCardInfo(request: HttpRequest, context: InvocationConte
                 
                 // Step 3: Create base card structure
                 card = {
-                    id: `pokedata-${pokeDataCardId}`,
+                    id: pokeDataCardId,
                     source: "pokedata",
                     pokeDataId: cardIdNum,
                     setId: fullCardData.set_id,

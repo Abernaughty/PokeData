@@ -145,7 +145,7 @@ async function getCardInfo(request, context) {
                 context.log(`${correlationId} Pricing transformed - ${Object.keys(transformedPricing).length} sources available`);
                 // Step 3: Create base card structure
                 card = {
-                    id: `pokedata-${pokeDataCardId}`,
+                    id: pokeDataCardId,
                     source: "pokedata",
                     pokeDataId: cardIdNum,
                     setId: fullCardData.set_id,
