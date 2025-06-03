@@ -14,7 +14,7 @@ async function testConsolidatedGetSetList() {
         }
         
         // Test the main /api/sets endpoint (should now use PokeData-first implementation)
-        const baseUrl = 'https://pokedata-func.azurewebsites.net';
+        const baseUrl = 'https://pokedata-func-staging.azurewebsites.net';
         const endpoint = '/api/sets';
         const url = `${baseUrl}${endpoint}`;
         
@@ -24,11 +24,8 @@ async function testConsolidatedGetSetList() {
         
         const startTime = Date.now();
         const response = await axios.get(url, {
-            headers: {
-                'x-functions-key': functionKey,
-                'Content-Type': 'application/json'
-            },
             params: {
+                code: functionKey,
                 language: 'ENGLISH',
                 page: 1,
                 pageSize: 10
