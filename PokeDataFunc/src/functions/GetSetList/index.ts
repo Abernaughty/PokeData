@@ -1,63 +1,95 @@
 import { HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
-import { Set, SetOrGroup } from "../../models/Set";
 import { ApiResponse } from "../../models/ApiResponse";
 import { getSetListCacheKey, formatCacheEntry, parseCacheEntry, getCacheAge } from "../../utils/cacheUtils";
-import { groupSetsByExpansion } from "../../utils/setUtils";
 import { handleError } from "../../utils/errorUtils";
-import { cosmosDbService, redisCacheService, pokemonTcgApiService } from "../../index";
+import { cosmosDbService, redisCacheService, pokeDataApiService } from "../../index";
+
+// PokeData Set interface (from PokeDataApiService)
+interface PokeDataSet {
+    code: string | null;
+    id: number;
+    language: 'ENGLISH' | 'JAPANESE';
+    name: string;
+    release_date: string;
+}
+
+// Enhanced set interface with additional metadata
+interface EnhancedPokeDataSet extends PokeDataSet {
+    cardCount?: number;
+    releaseYear?: number;
+    isRecent?: boolean;
+}
 
 export async function getSetList(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+    const correlationId = `[setlist-${Date.now()}]`;
+    
     try {
-        context.log("Processing request for set list");
+        context.log(`${correlationId} Processing PokeData-first request for set list`);
         
         // Parse query parameters
-        const groupByExpansion = request.query.get("groupByExpansion") === "true";
+        const language = request.query.get("language") || "ENGLISH";
+        const includeCardCounts = request.query.get("includeCardCounts") === "true";
         const forceRefresh = request.query.get("forceRefresh") === "true";
+        const page = parseInt(request.query.get("page") || "1");
+        const pageSize = parseInt(request.query.get("pageSize") || "100");
+        
+        // Long TTL for sets since they don't change frequently
         const setsTtl = parseInt(process.env.CACHE_TTL_SETS || "604800"); // 7 days default
         
+        context.log(`${correlationId} Parameters: language=${language}, includeCardCounts=${includeCardCounts}, page=${page}, pageSize=${pageSize}`);
+        
         // Check Redis cache first (if enabled and not forcing refresh)
-        const cacheKey = getSetListCacheKey();
-        let sets: Set[] | null = null;
+        const cacheKey = `${getSetListCacheKey()}-pokedata-${language}`;
+        let sets: PokeDataSet[] | null = null;
         let cacheHit = false;
         let cacheAge = 0;
         
         if (!forceRefresh && process.env.ENABLE_REDIS_CACHE === "true") {
-            const cachedEntry = await redisCacheService.get<{ data: Set[]; timestamp: number; ttl: number }>(cacheKey);
-            sets = parseCacheEntry<Set[]>(cachedEntry);
+            context.log(`${correlationId} Checking Redis cache with key: ${cacheKey}`);
+            const cachedEntry = await redisCacheService.get<{ data: PokeDataSet[]; timestamp: number; ttl: number }>(cacheKey);
+            sets = parseCacheEntry<PokeDataSet[]>(cachedEntry);
             
             if (sets) {
-                context.log("Cache hit for set list");
+                context.log(`${correlationId} Cache hit for PokeData set list (${sets.length} sets)`);
                 cacheHit = true;
                 cacheAge = cachedEntry ? getCacheAge(cachedEntry.timestamp) : 0;
+            } else {
+                context.log(`${correlationId} Cache miss for PokeData set list`);
             }
         }
         
-        // If not in cache, check Cosmos DB
+        // If not in cache, fetch from PokeData API
         if (!sets) {
-            context.log("Cache miss for set list, checking database");
-            sets = await cosmosDbService.getAllSets();
+            context.log(`${correlationId} Fetching sets from PokeData API`);
+            const startTime = Date.now();
             
-            // If not in database, fetch from external API
-            if (!sets || sets.length === 0) {
-                context.log("Set list not found in database, fetching from API");
-                sets = await pokemonTcgApiService.getAllSets();
+            try {
+                const allSets = await pokeDataApiService.getAllSets();
+                const apiTime = Date.now() - startTime;
                 
-                // Save to database if found
-                if (sets && sets.length > 0) {
-                    await cosmosDbService.saveSets(sets);
+                // Filter by language if specified
+                sets = allSets.filter(set => 
+                    language === "ALL" || set.language === language
+                );
+                
+                context.log(`${correlationId} PokeData API returned ${allSets.length} total sets, ${sets.length} for language ${language} (${apiTime}ms)`);
+                
+                // Save to cache if found
+                if (sets && sets.length > 0 && process.env.ENABLE_REDIS_CACHE === "true") {
+                    context.log(`${correlationId} Saving ${sets.length} sets to Redis cache`);
+                    await redisCacheService.set(cacheKey, formatCacheEntry(sets, setsTtl), setsTtl);
                 }
-            }
-            
-            // Save to cache if found
-            if (sets && sets.length > 0 && process.env.ENABLE_REDIS_CACHE === "true") {
-                await redisCacheService.set(cacheKey, formatCacheEntry(sets, setsTtl), setsTtl);
+            } catch (error: any) {
+                context.log(`${correlationId} Error fetching from PokeData API: ${error.message}`);
+                throw error;
             }
         }
         
         if (!sets || sets.length === 0) {
+            context.log(`${correlationId} No sets found for language: ${language}`);
             const errorResponse: ApiResponse<null> = {
                 status: 404,
-                error: "Set list not found",
+                error: `No sets found for language: ${language}`,
                 timestamp: new Date().toISOString()
             };
             
@@ -67,23 +99,81 @@ export async function getSetList(request: HttpRequest, context: InvocationContex
             };
         }
         
-        // Group sets by expansion if requested
-        const result = groupByExpansion ? groupSetsByExpansion(sets) : sets;
+        // Enhance sets with additional metadata
+        const enhancedSets: EnhancedPokeDataSet[] = sets.map(set => {
+            const enhanced: EnhancedPokeDataSet = { ...set };
+            
+            // Add release year
+            if (set.release_date) {
+                enhanced.releaseYear = new Date(set.release_date).getFullYear();
+            }
+            
+            // Mark recent sets (released in last 2 years)
+            if (set.release_date) {
+                const releaseDate = new Date(set.release_date);
+                const twoYearsAgo = new Date();
+                twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+                enhanced.isRecent = releaseDate > twoYearsAgo;
+            }
+            
+            return enhanced;
+        });
         
-        // Return the set list
-        const response: ApiResponse<Set[] | SetOrGroup[]> = {
+        // Sort sets by release date (newest first)
+        enhancedSets.sort((a, b) => {
+            if (!a.release_date || !b.release_date) return 0;
+            return new Date(b.release_date).getTime() - new Date(a.release_date).getTime();
+        });
+        
+        // Apply pagination
+        const totalCount = enhancedSets.length;
+        const totalPages = Math.ceil(totalCount / pageSize);
+        const startIndex = (page - 1) * pageSize;
+        const endIndex = Math.min(startIndex + pageSize, totalCount);
+        const paginatedSets = enhancedSets.slice(startIndex, endIndex);
+        
+        context.log(`${correlationId} Returning page ${page}/${totalPages} with ${paginatedSets.length} sets (${startIndex + 1}-${startIndex + paginatedSets.length} of ${totalCount})`);
+        
+        // If card counts are requested, we could fetch them here
+        // For now, we'll skip this to maintain fast response times
+        // This could be added as a separate endpoint or background process
+        if (includeCardCounts) {
+            context.log(`${correlationId} Card counts requested but not implemented yet for performance reasons`);
+        }
+        
+        // Return the set list with pagination metadata
+        const response: ApiResponse<{
+            sets: EnhancedPokeDataSet[];
+            pagination: {
+                page: number;
+                pageSize: number;
+                totalCount: number;
+                totalPages: number;
+            };
+        }> = {
             status: 200,
-            data: result,
+            data: {
+                sets: paginatedSets,
+                pagination: {
+                    page,
+                    pageSize,
+                    totalCount,
+                    totalPages
+                }
+            },
             timestamp: new Date().toISOString(),
             cached: cacheHit,
             cacheAge: cacheHit ? cacheAge : undefined
         };
+        
+        context.log(`${correlationId} Successfully returning ${paginatedSets.length} PokeData sets`);
         
         return { 
             jsonBody: response,
             status: response.status
         };
     } catch (error: any) {
+        context.log(`${correlationId} Error in getSetList: ${error.message}`);
         const errorResponse = handleError(error, "GetSetList");
         return {
             jsonBody: errorResponse,

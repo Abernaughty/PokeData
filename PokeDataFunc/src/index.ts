@@ -25,11 +25,9 @@ export const pokeDataApiService = new PokeDataApiService(
 
 // Import function handlers
 import { getSetList } from './functions/GetSetList';
-import { getSetListPokeDataFirst } from './functions/GetSetList/index-pokedata-first';
 import { getCardInfo } from './functions/GetCardInfo';
 import { getCardsBySet } from './functions/GetCardsBySet';
 import { refreshData } from './functions/RefreshData';
-import { debugPokeData } from './functions/DebugPokeData';
 
 // Register functions
 app.http('getSetList', {
@@ -53,19 +51,6 @@ app.http('getCardsBySet', {
     handler: getCardsBySet
 });
 
-app.http('getSetListPokeDataFirst', {
-    methods: ['GET'],
-    authLevel: 'function',
-    route: 'pokedata/sets',
-    handler: getSetListPokeDataFirst
-});
-
-app.http('debugPokeData', {
-    methods: ['GET'],
-    authLevel: 'function',
-    route: 'debug/pokedata',
-    handler: debugPokeData
-});
 
 // Register timer-triggered function
 app.timer('refreshData', {
