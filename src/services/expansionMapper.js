@@ -50,6 +50,123 @@ const SPECIAL_CASES = {
   "SVP": "Scarlet & Violet",
 };
 
+// Name-based mapping for sets without codes (PokeData-first architecture)
+const SET_NAME_MAPPINGS = {
+  // Scarlet & Violet Series
+  "Prismatic Evolutions": "Scarlet & Violet",
+  "Surging Sparks": "Scarlet & Violet",
+  "Stellar Crown": "Scarlet & Violet",
+  "Shrouded Fable": "Scarlet & Violet",
+  "Twilight Masquerade": "Scarlet & Violet",
+  "Temporal Forces": "Scarlet & Violet",
+  "Paldean Fates": "Scarlet & Violet",
+  "Paradox Rift": "Scarlet & Violet",
+  "Pokemon Card 151": "Scarlet & Violet",
+  "Obsidian Flames": "Scarlet & Violet",
+  "Paldea Evolved": "Scarlet & Violet",
+  "Scarlet & Violet Base": "Scarlet & Violet",
+  "Scarlet & Violet Promos": "Scarlet & Violet",
+  
+  // Sword & Shield Series
+  "Crown Zenith": "Sword & Shield",
+  "Silver Tempest": "Sword & Shield",
+  "Lost Origin": "Sword & Shield",
+  "Pokemon GO": "Sword & Shield",
+  "Astral Radiance": "Sword & Shield",
+  "Brilliant Stars": "Sword & Shield",
+  "Fusion Strike": "Sword & Shield",
+  "Celebrations": "Sword & Shield",
+  "Celebrations: Classic Collection": "Sword & Shield",
+  "Evolving Skies": "Sword & Shield",
+  "Chilling Reign": "Sword & Shield",
+  "Battle Styles": "Sword & Shield",
+  "Shining Fates": "Sword & Shield",
+  "Vivid Voltage": "Sword & Shield",
+  "Champion's Path": "Sword & Shield",
+  "Darkness Ablaze": "Sword & Shield",
+  "Rebel Clash": "Sword & Shield",
+  "Sword & Shield": "Sword & Shield",
+  "Sword & Shield Promo": "Sword & Shield",
+  
+  // Sun & Moon Series
+  "Cosmic Eclipse": "Sun & Moon",
+  "Hidden Fates": "Sun & Moon",
+  "Unified Minds": "Sun & Moon",
+  "Unbroken Bonds": "Sun & Moon",
+  "Detective Pikachu": "Sun & Moon",
+  "Team Up": "Sun & Moon",
+  "Lost Thunder": "Sun & Moon",
+  "Dragon Majesty": "Sun & Moon",
+  "Celestial Storm": "Sun & Moon",
+  "Forbidden Light": "Sun & Moon",
+  "Ultra Prism": "Sun & Moon",
+  "Crimson Invasion": "Sun & Moon",
+  "Shining Legends": "Sun & Moon",
+  "Burning Shadows": "Sun & Moon",
+  "Guardians Rising": "Sun & Moon",
+  "Sun & Moon": "Sun & Moon",
+  "Sun & Moon Black Star Promo": "Sun & Moon",
+  
+  // XY Series
+  "Evolutions": "XY",
+  "Steam Siege": "XY",
+  "Fates Collide": "XY",
+  "Generations Radiant Collection": "XY",
+  "Generations": "XY",
+  "BREAKpoint": "XY",
+  "BREAKthrough": "XY",
+  "Ancient Origins": "XY",
+  "Roaring Skies": "XY",
+  "Double Crisis": "XY",
+  "Primal Clash": "XY",
+  "Phantom Forces": "XY",
+  "Furious Fists": "XY",
+  "Flashfire": "XY",
+  "XY Base": "XY",
+  "Legendary Treasures Radiant Collection": "XY",
+  "Legendary Treasures": "XY",
+  "XY Black Star Promos": "XY",
+  
+  // Black & White Series
+  "Plasma Blast": "Black & White",
+  "Plasma Freeze": "Black & White",
+  "Plasma Storm": "Black & White",
+  "Dragon Vault": "Black & White",
+  "Boundaries Crossed": "Black & White",
+  "Dragons Exalted": "Black & White",
+  "Dark Explorers": "Black & White",
+  "Next Destinies": "Black & White",
+  "Noble Victories": "Black & White",
+  "Emerging Powers": "Black & White",
+  "Black and White": "Black & White",
+  "Black and White Promos": "Black & White",
+  
+  // HeartGold & SoulSilver Series
+  "Call of Legends": "HeartGold & SoulSilver",
+  "Triumphant": "HeartGold & SoulSilver",
+  
+  // Special Sets and Promos
+  "Journey Together": "Scarlet & Violet",
+  "Destined Rivals": "Scarlet & Violet",
+  "Trading Card Game Classic": "Other",
+  "Trick or Trade 2024": "Other",
+  "Trick or Trade 2023": "Other",
+  "Trick or Trade 2022": "Other",
+  "Mcdonald's Dragon Discovery": "Other",
+  "McDonald's Promos 2023": "Other",
+  "McDonald's Promos 2022": "Other",
+  "McDonald's Promos 2019": "Other",
+  "McDonald's Promos 2018": "Other",
+  "McDonald's Promos 2017": "Other",
+  "McDonald's Promos 2016": "Other",
+  "McDonald's Promos 2015": "Other",
+  "McDonald's Promos 2014": "Other",
+  "McDonald's Promos 2012": "Other",
+  "McDonald's Promos 2011": "Other",
+  "Mcdonald's 25th Anniversary": "Other",
+  "Alternate Art Promos": "Other"
+};
+
 // Fallback expansion for sets that don't match any pattern
 const FALLBACK_EXPANSION = "Other";
 
@@ -59,26 +176,40 @@ const FALLBACK_EXPANSION = "Other";
  * @returns {string} The expansion name
  */
 function getExpansionForSet(set) {
-  // If the set doesn't have a code, try to determine from the name
-  if (!set.code) {
-    // Check if the name contains an expansion name
-    for (const { expansion } of EXPANSION_PATTERNS) {
-      if (set.name && set.name.includes(expansion)) {
+  // First, try to use the code if it exists and is not null
+  if (set.code && set.code !== null) {
+    // Check special cases first
+    if (SPECIAL_CASES[set.code]) {
+      return SPECIAL_CASES[set.code];
+    }
+
+    // Check patterns
+    for (const { pattern, expansion } of EXPANSION_PATTERNS) {
+      if (pattern.test(set.code)) {
         return expansion;
       }
     }
-    return FALLBACK_EXPANSION;
   }
 
-  // Check special cases first
-  if (SPECIAL_CASES[set.code]) {
-    return SPECIAL_CASES[set.code];
-  }
+  // If no code or code is null, use name-based mapping (PokeData-first architecture)
+  if (set.name) {
+    // Check direct name mapping first (most reliable)
+    if (SET_NAME_MAPPINGS[set.name]) {
+      return SET_NAME_MAPPINGS[set.name];
+    }
 
-  // Check patterns
-  for (const { pattern, expansion } of EXPANSION_PATTERNS) {
-    if (pattern.test(set.code)) {
-      return expansion;
+    // Check if the name contains an expansion name (fallback)
+    for (const { expansion } of EXPANSION_PATTERNS) {
+      if (set.name.includes(expansion)) {
+        return expansion;
+      }
+    }
+
+    // Check for partial name matches (for variations)
+    for (const [mappedName, expansion] of Object.entries(SET_NAME_MAPPINGS)) {
+      if (set.name.includes(mappedName) || mappedName.includes(set.name)) {
+        return expansion;
+      }
     }
   }
 

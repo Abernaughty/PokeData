@@ -141,100 +141,109 @@
     <!-- Safely display results only if the price data exists -->
     {#if $priceData !== null && $priceData !== undefined && typeof $priceData === 'object'}
       <div class="results">
-        <!-- Card Image Display -->
-        {#if $priceData?.image_url}
-          <div class="card-image">
-            <img src={$priceData.image_url} alt={$priceData.name || 'Card'} />
-          </div>
-        {/if}
-        
-        <!-- Always use safe property access to avoid null references -->
-        <h2>{$priceData?.name || ($selectedCard && $selectedCard.name) || 'Card'}</h2>
-        <p><strong>Set:</strong> {$priceData?.set_name || ($selectedSet && $selectedSet.name) || 'Unknown'}</p>
-        <p><strong>Number:</strong> {$priceData?.num || ($selectedCard && $selectedCard.num) || 'Unknown'}</p>
-        
-        <!-- Only display rarity if we have it -->
-        {#if ($priceData && $priceData.rarity) || ($selectedCard && $selectedCard.rarity)}
-          <p><strong>Rarity:</strong> {($priceData && $priceData.rarity) || ($selectedCard && $selectedCard.rarity) || 'Unknown'}</p>
-        {/if}
-        
-        <h3>Prices:</h3>
-        <!-- Check if we have any valid pricing data -->
-        {#if !$priceData?.pricing || Object.keys($priceData.pricing || {}).length === 0}
-          <p class="no-prices">No pricing data available for this card.</p>
-        {:else}
-          <ul>
-            <!-- Group PSA graded prices -->
-            {#if hasGradedPrices($priceData.pricing, 'psa')}
-              <li class="pricing-category">PSA Graded</li>
-              {#each Object.entries($priceData.pricing || {}).filter(([k]) => k.startsWith('psa-')) as [market, price]}
-                <li class="graded-price">
-                  <span class="market">Grade {market.replace('psa-', '')}:</span> 
-                  <span class="price">${formatPrice(price?.value)}</span> 
-                  <span class="currency">{price?.currency || 'USD'}</span>
-                </li>
-              {/each}
-            {/if}
-            
-            <!-- Group CGC graded prices -->
-            {#if hasGradedPrices($priceData.pricing, 'cgc')}
-              <li class="pricing-category">CGC Graded</li>
-              {#each Object.entries($priceData.pricing || {}).filter(([k]) => k.startsWith('cgc-')) as [market, price]}
-                <li class="graded-price">
-                  <span class="market">Grade {market.replace('cgc-', '')}:</span> 
-                  <span class="price">${formatPrice(price?.value)}</span> 
-                  <span class="currency">{price?.currency || 'USD'}</span>
-                </li>
-              {/each}
-            {/if}
-            
-            <!-- Show eBay raw price -->
-            {#if $priceData.pricing?.ebayRaw}
-              <li class="pricing-category">eBay Raw</li>
-              <li>
-                <span class="market">Market Average:</span> 
-                <span class="price">${formatPrice($priceData.pricing.ebayRaw?.value)}</span> 
-                <span class="currency">{$priceData.pricing.ebayRaw?.currency || 'USD'}</span>
-              </li>
-            {/if}
-            
-            <!-- Show TCG Player prices if available -->
-            {#if hasTcgPlayerPrices($priceData.pricing)}
-              <li class="pricing-category">TCG Player</li>
-              {#each Object.entries($priceData.pricing || {}).filter(([k]) => ['market', 'low', 'mid', 'high'].includes(k)) as [market, price]}
-                <li>
-                  <span class="market">{market}:</span> 
-                  <span class="price">${formatPrice(price?.value)}</span> 
-                  <span class="currency">{price?.currency || 'USD'}</span>
-                </li>
-              {/each}
-            {/if}
-            
-            <!-- Show any other pricing source not covered above -->
-            {#each Object.entries($priceData.pricing || {}).filter(([k]) => !k.startsWith('psa-') && !k.startsWith('cgc-') && k !== 'ebayRaw' && !['market', 'low', 'mid', 'high'].includes(k)) as [market, price]}
-              <li>
-                <span class="market">{market}:</span> 
-                <span class="price">${formatPrice(price?.value)}</span> 
-                <span class="currency">{price?.currency || 'USD'}</span>
-              </li>
-            {/each}
-          </ul>
-          
-          <!-- Add pricing timestamp display -->
-          {#if $pricingTimestamp}
-            <div class="pricing-timestamp">
-              <small>
-                Pricing data as of: {new Date($pricingTimestamp).toLocaleString()}
-                {#if $pricingFromCache}
-                  <span class="cached-indicator">(Cached)</span>
-                {/if}
-                {#if $pricingIsStale}
-                  <span class="stale-indicator">(Stale data - using best available)</span>
-                {/if}
-              </small>
+        <div class="results-container">
+          <!-- Left side: Card Details and Image -->
+          <div class="card-info">
+            <!-- Always use safe property access to avoid null references -->
+            <div class="card-details">
+              <h2>{$priceData?.name || ($selectedCard && $selectedCard.name) || 'Card'}</h2>
+              <p><strong>Set:</strong> {$priceData?.set_name || ($selectedSet && $selectedSet.name) || 'Unknown'}</p>
+              <p><strong>Number:</strong> {$priceData?.num || ($selectedCard && $selectedCard.num) || 'Unknown'}</p>
+              
+              <!-- Only display rarity if we have it -->
+              {#if ($priceData && $priceData.rarity) || ($selectedCard && $selectedCard.rarity)}
+                <p><strong>Rarity:</strong> {($priceData && $priceData.rarity) || ($selectedCard && $selectedCard.rarity) || 'Unknown'}</p>
+              {/if}
             </div>
-          {/if}
-        {/if}
+            
+            {#if $priceData?.image_url}
+              <div class="card-image">
+                <img src={$priceData.image_url} alt={$priceData.name || 'Card'} />
+              </div>
+            {/if}
+          </div>
+          
+          <!-- Right side: Pricing Information -->
+          <div class="pricing-info">
+            <h3>Prices:</h3>
+            <!-- Check if we have any valid pricing data -->
+            {#if !$priceData?.pricing || Object.keys($priceData.pricing || {}).length === 0}
+              <p class="no-prices">No pricing data available for this card.</p>
+            {:else}
+              <ul>
+                <!-- Group PSA graded prices -->
+                {#if hasGradedPrices($priceData.pricing, 'psa')}
+                  <li class="pricing-category">PSA Graded</li>
+                  {#each Object.entries($priceData.pricing || {}).filter(([k]) => k.startsWith('psa-')) as [market, price]}
+                    <li class="graded-price">
+                      <span class="market">Grade {market.replace('psa-', '')}:</span> 
+                      <span class="price">${formatPrice(price?.value)}</span> 
+                      <span class="currency">{price?.currency || 'USD'}</span>
+                    </li>
+                  {/each}
+                {/if}
+                
+                <!-- Group CGC graded prices -->
+                {#if hasGradedPrices($priceData.pricing, 'cgc')}
+                  <li class="pricing-category">CGC Graded</li>
+                  {#each Object.entries($priceData.pricing || {}).filter(([k]) => k.startsWith('cgc-')) as [market, price]}
+                    <li class="graded-price">
+                      <span class="market">Grade {market.replace('cgc-', '')}:</span> 
+                      <span class="price">${formatPrice(price?.value)}</span> 
+                      <span class="currency">{price?.currency || 'USD'}</span>
+                    </li>
+                  {/each}
+                {/if}
+                
+                <!-- Show eBay raw price -->
+                {#if $priceData.pricing?.ebayRaw}
+                  <li class="pricing-category">eBay Raw</li>
+                  <li>
+                    <span class="market">Market Average:</span> 
+                    <span class="price">${formatPrice($priceData.pricing.ebayRaw?.value)}</span> 
+                    <span class="currency">{$priceData.pricing.ebayRaw?.currency || 'USD'}</span>
+                  </li>
+                {/if}
+                
+                <!-- Show TCG Player prices if available -->
+                {#if hasTcgPlayerPrices($priceData.pricing)}
+                  <li class="pricing-category">TCG Player</li>
+                  {#each Object.entries($priceData.pricing || {}).filter(([k]) => ['market', 'low', 'mid', 'high'].includes(k)) as [market, price]}
+                    <li>
+                      <span class="market">{market}:</span> 
+                      <span class="price">${formatPrice(price?.value)}</span> 
+                      <span class="currency">{price?.currency || 'USD'}</span>
+                    </li>
+                  {/each}
+                {/if}
+                
+                <!-- Show any other pricing source not covered above -->
+                {#each Object.entries($priceData.pricing || {}).filter(([k]) => !k.startsWith('psa-') && !k.startsWith('cgc-') && k !== 'ebayRaw' && !['market', 'low', 'mid', 'high'].includes(k)) as [market, price]}
+                  <li>
+                    <span class="market">{market}:</span> 
+                    <span class="price">${formatPrice(price?.value)}</span> 
+                    <span class="currency">{price?.currency || 'USD'}</span>
+                  </li>
+                {/each}
+              </ul>
+              
+              <!-- Add pricing timestamp display -->
+              {#if $pricingTimestamp}
+                <div class="pricing-timestamp">
+                  <small>
+                    Pricing data as of: {new Date($pricingTimestamp).toLocaleString()}
+                    {#if $pricingFromCache}
+                      <span class="cached-indicator">(Cached)</span>
+                    {/if}
+                    {#if $pricingIsStale}
+                      <span class="stale-indicator">(Stale data - using best available)</span>
+                    {/if}
+                  </small>
+                </div>
+              {/if}
+            {/if}
+          </div>
+        </div>
       </div>
     {/if}
   </div>
@@ -395,6 +404,22 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
   
+  .results-container {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+  }
+  
+  .card-info {
+    flex: 0 0 300px;
+    min-width: 250px;
+  }
+  
+  .pricing-info {
+    flex: 1;
+    min-width: 0;
+  }
+  
   .card-image {
     text-align: center;
     margin-bottom: 1rem;
@@ -416,6 +441,20 @@
   
   .card-image img:hover {
     transform: scale(1.05);
+  }
+  
+  .card-details h2 {
+    color: #3c5aa6;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 0.5rem;
+    font-size: 1.4rem;
+  }
+  
+  .card-details p {
+    margin: 0.3rem 0;
+    font-size: 0.95rem;
   }
   
   .results h2 {
@@ -472,10 +511,10 @@
     letter-spacing: 0.5px;
   }
   
-  .graded-price {
+  .results .graded-price {
     margin-left: 0.5rem;
     border-left: 3px solid #3c5aa6;
-    padding-left: 0.5rem;
+    padding-left: 0.8rem;
   }
   
   .no-prices {
@@ -505,6 +544,23 @@
   }
   
   /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .results-container {
+      flex-direction: column;
+      gap: 1rem;
+    }
+    
+    .card-info {
+      flex: none;
+      width: 100%;
+    }
+    
+    .card-image {
+      max-width: 250px;
+      margin: 0 auto 1rem auto;
+    }
+  }
+  
   @media (max-width: 600px) {
     main {
       padding: 0.5rem;
@@ -516,6 +572,14 @@
     
     h1 {
       font-size: 1.5rem;
+    }
+    
+    .results {
+      padding: 0.75rem;
+    }
+    
+    .card-image {
+      max-width: 200px;
     }
   }
 </style>
