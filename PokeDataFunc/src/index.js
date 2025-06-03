@@ -34,7 +34,7 @@ functions_1.app.http('getCardInfo', {
 functions_1.app.http('getCardsBySet', {
     methods: ['GET'],
     authLevel: 'function',
-    route: 'sets/{setCode}/cards',
+    route: 'sets/{setId}/cards',
     handler: GetCardsBySet_1.getCardsBySet
 });
 // Register timer-triggered function

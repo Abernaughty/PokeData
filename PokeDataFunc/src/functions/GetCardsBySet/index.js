@@ -15,20 +15,30 @@ const index_1 = require("../../index");
  */
 async function getCardsBySet(request, context) {
     const timestamp = Date.now();
-    const correlationId = `[pokedata-set-${request.params.setCode}-${timestamp}]`;
+    const setIdParam = request.params.setId;
+    const correlationId = `[pokedata-set-${setIdParam || 'unknown'}-${timestamp}]`;
     const startTime = Date.now();
     try {
-        // Get set code from route parameters
-        const setCode = request.params.setCode;
-        if (!setCode) {
-            context.log(`${correlationId} ERROR: Missing set code in request`);
-            const errorResponse = (0, errorUtils_1.createBadRequestError)("Set code is required", "GetCardsBySet");
+        // Get set ID from route parameters
+        if (!setIdParam) {
+            context.log(`${correlationId} ERROR: Missing set ID in request`);
+            const errorResponse = (0, errorUtils_1.createBadRequestError)("Set ID is required", "GetCardsBySet");
             return {
                 jsonBody: errorResponse,
                 status: errorResponse.status
             };
         }
-        context.log(`${correlationId} Processing PokeData-first request for set: ${setCode}`);
+        // Parse set ID as integer
+        const setId = parseInt(setIdParam);
+        if (isNaN(setId)) {
+            context.log(`${correlationId} ERROR: Invalid set ID format: ${setIdParam}`);
+            const errorResponse = (0, errorUtils_1.createBadRequestError)("Set ID must be a valid number", "GetCardsBySet");
+            return {
+                jsonBody: errorResponse,
+                status: errorResponse.status
+            };
+        }
+        context.log(`${correlationId} Processing PokeData-first request for set ID: ${setId}`);
         // Parse query parameters
         const forceRefresh = request.query.get("forceRefresh") === "true";
         const page = parseInt(request.query.get("page") || "1");
@@ -43,9 +53,9 @@ async function getCardsBySet(request, context) {
                 status: errorResponse.status
             };
         }
-        context.log(`${correlationId} Request parameters - setCode: ${setCode}, page: ${page}, pageSize: ${pageSize}, forceRefresh: ${forceRefresh}`);
+        context.log(`${correlationId} Request parameters - setId: ${setId}, page: ${page}, pageSize: ${pageSize}, forceRefresh: ${forceRefresh}`);
         // Check cache first (if enabled and not forcing refresh)
-        const cacheKey = (0, cacheUtils_1.getCardsForSetCacheKey)(`pokedata-${setCode}`);
+        const cacheKey = (0, cacheUtils_1.getCardsForSetCacheKey)(`pokedata-${setId}`);
         let cards = null;
         let cacheHit = false;
         let cacheAge = 0;
@@ -56,12 +66,12 @@ async function getCardsBySet(request, context) {
             cards = (0, cacheUtils_1.parseCacheEntry)(cachedEntry);
             const cacheTime = Date.now() - cacheStartTime;
             if (cards) {
-                context.log(`${correlationId} Cache HIT for set: ${setCode} (${cacheTime}ms) - ${cards.length} cards`);
+                context.log(`${correlationId} Cache HIT for set: ${setId} (${cacheTime}ms) - ${cards.length} cards`);
                 cacheHit = true;
                 cacheAge = cachedEntry ? (0, cacheUtils_1.getCacheAge)(cachedEntry.timestamp) : 0;
             }
             else {
-                context.log(`${correlationId} Cache MISS for set: ${setCode} (${cacheTime}ms)`);
+                context.log(`${correlationId} Cache MISS for set: ${setId} (${cacheTime}ms)`);
             }
         }
         else {
@@ -70,9 +80,9 @@ async function getCardsBySet(request, context) {
         // If not in cache, check Cosmos DB
         let dbStartTime = Date.now();
         if (!cards) {
-            context.log(`${correlationId} Checking Cosmos DB for set: ${setCode}`);
-            // Query for cards by set code in PokeData-first format
-            const dbCards = await index_1.cosmosDbService.getCardsBySet(`pokedata-${setCode}`);
+            context.log(`${correlationId} Checking Cosmos DB for set: ${setId}`);
+            // Query for cards by set ID (stored as number in database)
+            const dbCards = await index_1.cosmosDbService.getCardsBySetId(String(setId));
             const dbTime = Date.now() - dbStartTime;
             if (dbCards && dbCards.length > 0) {
                 // Convert from stored format to PokeDataFirstCardBasic format if needed
@@ -81,7 +91,7 @@ async function getCardsBySet(request, context) {
                     return {
                         id: card.id,
                         source: "pokedata",
-                        pokeDataId: card.pokeDataId || parseInt(card.id.replace('pokedata-', '')),
+                        pokeDataId: card.pokeDataId || (card.id.startsWith('pokedata-') ? parseInt(card.id.replace('pokedata-', '')) : parseInt(card.id)),
                         setId: card.setId,
                         setName: card.setName,
                         setCode: card.setCode,
@@ -94,29 +104,29 @@ async function getCardsBySet(request, context) {
                         lastUpdated: card.lastUpdated || new Date().toISOString()
                     };
                 });
-                context.log(`${correlationId} Database HIT for set: ${setCode} (${dbTime}ms) - ${cards.length} cards`);
+                context.log(`${correlationId} Database HIT for set: ${setId} (${dbTime}ms) - ${cards.length} cards`);
             }
             else {
-                context.log(`${correlationId} Database MISS for set: ${setCode} (${dbTime}ms)`);
+                context.log(`${correlationId} Database MISS for set: ${setId} (${dbTime}ms)`);
             }
         }
         // If not found anywhere, fetch from PokeData API
         if (!cards || cards.length === 0) {
-            context.log(`${correlationId} Fetching fresh data from PokeData API for set: ${setCode}`);
+            context.log(`${correlationId} Fetching fresh data from PokeData API for set: ${setId}`);
             try {
                 // Step 1: Get all cards from PokeData for this set (basic card info only)
                 const apiStartTime = Date.now();
-                const pokeDataCards = await index_1.pokeDataApiService.getCardsInSetByCode(setCode);
+                const pokeDataCards = await index_1.pokeDataApiService.getCardsInSet(setId);
                 const apiTime = Date.now() - apiStartTime;
                 if (!pokeDataCards || pokeDataCards.length === 0) {
-                    context.log(`${correlationId} ERROR: No cards found in PokeData for set: ${setCode} (${apiTime}ms)`);
-                    const errorResponse = (0, errorUtils_1.createNotFoundError)("Cards for set", setCode, "GetCardsBySet");
+                    context.log(`${correlationId} ERROR: No cards found in PokeData for set: ${setId} (${apiTime}ms)`);
+                    const errorResponse = (0, errorUtils_1.createNotFoundError)("Cards for set", String(setId), "GetCardsBySet");
                     return {
                         jsonBody: errorResponse,
                         status: errorResponse.status
                     };
                 }
-                context.log(`${correlationId} PokeData API returned ${pokeDataCards.length} cards for set ${setCode} (${apiTime}ms)`);
+                context.log(`${correlationId} PokeData API returned ${pokeDataCards.length} cards for set ${setId} (${apiTime}ms)`);
                 // Step 2: For each card, get full details with pricing
                 const transformStartTime = Date.now();
                 const cardPromises = pokeDataCards.map(async (pokeDataCard) => {
@@ -126,12 +136,12 @@ async function getCardsBySet(request, context) {
                         if (!fullCardData) {
                             // If we can't get pricing, create card with basic info and empty pricing
                             return {
-                                id: `pokedata-${pokeDataCard.id}`,
+                                id: String(pokeDataCard.id),
                                 source: "pokedata",
                                 pokeDataId: pokeDataCard.id,
                                 setId: pokeDataCard.set_id,
                                 setName: pokeDataCard.set_name,
-                                setCode: pokeDataCard.set_code || setCode,
+                                setCode: pokeDataCard.set_code || '',
                                 cardName: pokeDataCard.name,
                                 cardNumber: pokeDataCard.num,
                                 secret: pokeDataCard.secret || false,
@@ -181,12 +191,12 @@ async function getCardsBySet(request, context) {
                             }
                         }
                         return {
-                            id: `pokedata-${pokeDataCard.id}`,
+                            id: String(pokeDataCard.id),
                             source: "pokedata",
                             pokeDataId: pokeDataCard.id,
                             setId: pokeDataCard.set_id,
                             setName: pokeDataCard.set_name,
-                            setCode: pokeDataCard.set_code || setCode,
+                            setCode: pokeDataCard.set_code || '',
                             cardName: pokeDataCard.name,
                             cardNumber: pokeDataCard.num,
                             secret: pokeDataCard.secret || false,
@@ -200,12 +210,12 @@ async function getCardsBySet(request, context) {
                         context.log(`${correlationId} Warning: Failed to get pricing for card ${pokeDataCard.id}: ${error.message}`);
                         // Return card with basic info and empty pricing
                         return {
-                            id: `pokedata-${pokeDataCard.id}`,
+                            id: String(pokeDataCard.id),
                             source: "pokedata",
                             pokeDataId: pokeDataCard.id,
                             setId: pokeDataCard.set_id,
                             setName: pokeDataCard.set_name,
-                            setCode: pokeDataCard.set_code || setCode,
+                            setCode: pokeDataCard.set_code || '',
                             cardName: pokeDataCard.name,
                             cardNumber: pokeDataCard.num,
                             secret: pokeDataCard.secret || false,

@@ -79,6 +79,20 @@ export class ImageEnhancementService {
     }
 
     /**
+     * Normalize card number by removing leading zeros
+     * Pokemon TCG API uses numbers without leading zeros (e.g., "2" not "002")
+     * @param cardNumber - The card number to normalize
+     * @returns Normalized card number without leading zeros
+     */
+    private normalizeCardNumber(cardNumber: string): string {
+        // Remove leading zeros but preserve the number
+        // "002" -> "2", "047" -> "47", "247" -> "247"
+        const normalized = parseInt(cardNumber, 10).toString();
+        console.log(`[ImageEnhancementService] Normalized card number: "${cardNumber}" -> "${normalized}"`);
+        return normalized;
+    }
+
+    /**
      * Enhance a PokeData card with Pokemon TCG images and metadata
      * @param pokeDataCard - The PokeData card to enhance
      * @param pokeDataSetId - The PokeData set ID (used for mapping)
@@ -98,8 +112,9 @@ export class ImageEnhancementService {
                 return { ...pokeDataCard };
             }
 
-            // Step 2: Construct Pokemon TCG card ID
-            const tcgCardId = `${tcgSetId}-${pokeDataCard.num}`;
+            // Step 2: Construct Pokemon TCG card ID with normalized card number
+            const normalizedCardNumber = this.normalizeCardNumber(pokeDataCard.num);
+            const tcgCardId = `${tcgSetId}-${normalizedCardNumber}`;
             console.log(`[ImageEnhancementService] Attempting to fetch TCG card: ${tcgCardId}`);
 
             // Step 3: Get Pokemon TCG card data
@@ -159,8 +174,9 @@ export class ImageEnhancementService {
                 return { ...pokeDataPricing };
             }
 
-            // Step 2: Construct Pokemon TCG card ID
-            const tcgCardId = `${tcgSetId}-${pokeDataPricing.num}`;
+            // Step 2: Construct Pokemon TCG card ID with normalized card number
+            const normalizedCardNumber = this.normalizeCardNumber(pokeDataPricing.num);
+            const tcgCardId = `${tcgSetId}-${normalizedCardNumber}`;
             console.log(`[ImageEnhancementService] Attempting to fetch TCG card: ${tcgCardId}`);
 
             // Step 3: Get Pokemon TCG card data

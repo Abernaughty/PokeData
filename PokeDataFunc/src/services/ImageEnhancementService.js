@@ -11,6 +11,19 @@ class ImageEnhancementService {
         this.pokemonTcgService = pokemonTcgService;
     }
     /**
+     * Normalize card number by removing leading zeros
+     * Pokemon TCG API uses numbers without leading zeros (e.g., "2" not "002")
+     * @param cardNumber - The card number to normalize
+     * @returns Normalized card number without leading zeros
+     */
+    normalizeCardNumber(cardNumber) {
+        // Remove leading zeros but preserve the number
+        // "002" -> "2", "047" -> "47", "247" -> "247"
+        const normalized = parseInt(cardNumber, 10).toString();
+        console.log(`[ImageEnhancementService] Normalized card number: "${cardNumber}" -> "${normalized}"`);
+        return normalized;
+    }
+    /**
      * Enhance a PokeData card with Pokemon TCG images and metadata
      * @param pokeDataCard - The PokeData card to enhance
      * @param pokeDataSetId - The PokeData set ID (used for mapping)
@@ -25,8 +38,9 @@ class ImageEnhancementService {
                 console.log(`[ImageEnhancementService] No TCG mapping found for PokeData set ID ${pokeDataSetId}`);
                 return { ...pokeDataCard };
             }
-            // Step 2: Construct Pokemon TCG card ID
-            const tcgCardId = `${tcgSetId}-${pokeDataCard.num}`;
+            // Step 2: Construct Pokemon TCG card ID with normalized card number
+            const normalizedCardNumber = this.normalizeCardNumber(pokeDataCard.num);
+            const tcgCardId = `${tcgSetId}-${normalizedCardNumber}`;
             console.log(`[ImageEnhancementService] Attempting to fetch TCG card: ${tcgCardId}`);
             // Step 3: Get Pokemon TCG card data
             const tcgCard = await this.pokemonTcgService.getCard(tcgCardId);
@@ -77,8 +91,9 @@ class ImageEnhancementService {
                 console.log(`[ImageEnhancementService] No TCG mapping found for PokeData set ID ${pokeDataPricing.set_id}`);
                 return { ...pokeDataPricing };
             }
-            // Step 2: Construct Pokemon TCG card ID
-            const tcgCardId = `${tcgSetId}-${pokeDataPricing.num}`;
+            // Step 2: Construct Pokemon TCG card ID with normalized card number
+            const normalizedCardNumber = this.normalizeCardNumber(pokeDataPricing.num);
+            const tcgCardId = `${tcgSetId}-${normalizedCardNumber}`;
             console.log(`[ImageEnhancementService] Attempting to fetch TCG card: ${tcgCardId}`);
             // Step 3: Get Pokemon TCG card data
             const tcgCard = await this.pokemonTcgService.getCard(tcgCardId);
