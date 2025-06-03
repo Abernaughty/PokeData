@@ -121,15 +121,8 @@ Examples:
     }
   };
   
-  // Initialize the debug panel with error handling
-  setTimeout(() => {
-    try {
-      panel.init();
-      console.log('Debug panel initialized successfully. Press Alt+D to toggle the panel.');
-    } catch (error) {
-      console.error('Error initializing debug panel:', error);
-    }
-  }, 1000);
+  // Don't auto-initialize the debug panel - it will be hidden by default
+  // Panel will only be shown when the keyboard shortcut is pressed
   
   // Add diagnostic logging
   console.log('Debug configuration initialized:', config);
@@ -137,11 +130,35 @@ Examples:
   
   loggerService.info('Debug controls available via window.pokeDataDebug');
   console.log('Debug tools available. Try window.pokeDataDebug.help() for a list of commands');
+  console.log('To show debug panel: window.pokeDataDebug.panel.show() or press Ctrl+Alt+D');
   
-  // Add keyboard shortcut for toggling debug panel
+  // Add a global function to easily show the debug panel
+  window.showDebugPanel = () => {
+    if (!document.getElementById('poke-data-debug-panel')) {
+      panel.init();
+      console.log('Debug panel initialized and shown.');
+    } else {
+      panel.show();
+      console.log('Debug panel shown.');
+    }
+  };
+  
+  // Add keyboard shortcut for toggling debug panel (Ctrl+Alt+D)
   document.addEventListener('keydown', (event) => {
-    if (event.altKey && event.key === 'd') {
-      panel.toggle();
+    // Check for both 'D' and 'd' to handle case sensitivity, and use multiple detection methods
+    if (event.ctrlKey && event.altKey && (event.key === 'D' || event.key === 'd' || event.code === 'KeyD' || event.keyCode === 68)) {
+      event.preventDefault(); // Prevent any default browser behavior
+      
+      console.log('Debug panel shortcut triggered! (Ctrl+Alt+D)');
+      
+      // Initialize panel if it doesn't exist, then toggle
+      if (!document.getElementById('poke-data-debug-panel')) {
+        panel.init();
+        console.log('Debug panel initialized. Press Ctrl+Alt+D to toggle or use window.showDebugPanel()');
+      } else {
+        panel.toggle();
+        console.log('Debug panel toggled.');
+      }
     }
   });
   

@@ -305,11 +305,12 @@ export function initDebugPanel() {
     return;
   }
   
-  // Create and append the panel
+  // Create and append the panel (hidden by default)
   const panel = createDebugPanel();
+  panel.style.display = 'none'; // Hide by default
   document.body.appendChild(panel);
   
-  loggerService.info('Debug panel initialized');
+  loggerService.info('Debug panel initialized (hidden by default)');
 }
 
 /**
