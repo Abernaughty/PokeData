@@ -15,6 +15,7 @@ exports.pokemonTcgApiService = new PokemonTcgApiService_1.PokemonTcgApiService(p
 exports.pokeDataApiService = new PokeDataApiService_1.PokeDataApiService(process.env.POKEDATA_API_KEY || "", process.env.POKEDATA_API_BASE_URL);
 // Import function handlers
 const GetSetList_1 = require("./functions/GetSetList");
+const index_pokedata_first_1 = require("./functions/GetSetList/index-pokedata-first");
 const GetCardInfo_1 = require("./functions/GetCardInfo");
 const GetCardsBySet_1 = require("./functions/GetCardsBySet");
 const RefreshData_1 = require("./functions/RefreshData");
@@ -36,6 +37,12 @@ functions_1.app.http('getCardsBySet', {
     authLevel: 'function',
     route: 'sets/{setCode}/cards',
     handler: GetCardsBySet_1.getCardsBySet
+});
+functions_1.app.http('getSetListPokeDataFirst', {
+    methods: ['GET'],
+    authLevel: 'function',
+    route: 'pokedata/sets',
+    handler: index_pokedata_first_1.getSetListPokeDataFirst
 });
 // Register timer-triggered function
 functions_1.app.timer('refreshData', {
