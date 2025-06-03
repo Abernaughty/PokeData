@@ -123,8 +123,8 @@ export async function getCardsBySet(request: HttpRequest, context: InvocationCon
         if (!cards) {
             context.log(`${correlationId} Checking Cosmos DB for set: ${setId}`);
             
-            // Query for cards by set ID in PokeData-first format
-            const dbCards = await cosmosDbService.getCardsBySetId(`pokedata-${setId}`);
+            // Query for cards by set ID (stored as number in database)
+            const dbCards = await cosmosDbService.getCardsBySetId(String(setId));
             
             const dbTime = Date.now() - dbStartTime;
             

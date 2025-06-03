@@ -90,18 +90,20 @@ export class CosmosDbService implements ICosmosDbService {
 
     async getCardsBySetId(setId: string): Promise<Card[]> {
         try {
-            console.log(`[CosmosDbService] Querying cards for setId: ${setId}`);
+            // Convert string to number for database query (database stores setId as number)
+            const setIdNumber = parseInt(setId);
+            console.log(`[CosmosDbService] Querying cards for setId: ${setIdNumber} (converted from "${setId}")`);
             
             // Query cards directly by setId (for PokeData-first approach)
             const cardsQuerySpec = {
                 query: "SELECT * FROM c WHERE c.setId = @setId",
                 parameters: [
-                    { name: "@setId", value: setId }
+                    { name: "@setId", value: setIdNumber }
                 ]
             };
             
             const { resources } = await this.cardContainer.items.query(cardsQuerySpec).fetchAll();
-            console.log(`[CosmosDbService] Found ${resources.length} cards for setId: ${setId}`);
+            console.log(`[CosmosDbService] Found ${resources.length} cards for setId: ${setIdNumber}`);
             
             return resources as Card[];
         } catch (error) {
