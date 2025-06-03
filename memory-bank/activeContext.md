@@ -1,6 +1,7 @@
 # Active Context
 
 ## Current Focus
+- 🔄 **🚨 URGENT PRIORITY: GETCARDSBYSET PERFORMANCE OPTIMIZATION**: Critical performance bottlenecks identified requiring immediate optimization
 - ✅ **🎉 DEBUG PANEL KEYBOARD SHORTCUT COMPLETE**: Successfully implemented hidden debug panel with Ctrl+Alt+D keyboard shortcut
 - ✅ **🔒 PRODUCTION-READY DEBUG SYSTEM**: Debug panel now hidden by default with multiple access methods for developers
 - ✅ **⌨️ KEYBOARD SHORTCUT IMPLEMENTED**: Ctrl+Alt+D toggles debug panel with robust key detection and browser compatibility
@@ -307,6 +308,40 @@
     - **✅ Test Scripts**: Comprehensive validation with real API authentication
     - **✅ Error Resolution**: Fixed 500 error investigation and authentication issues
   - **Ready for Next Steps**: Function is fully implemented and validated, ready for frontend integration
+
+### ✅ **🚨 CRITICAL PERFORMANCE ANALYSIS COMPLETED (2025-06-03)**:
+- **🔍 MAJOR PERFORMANCE BOTTLENECKS IDENTIFIED**: Comprehensive analysis of GetCardsBySet function reveals critical optimization opportunities
+  - **Real-World Performance Data**: Analyzed production logs for Set 549 (300 cards) showing 11.9 second response time
+    - **Expected Performance**: ~2-3 seconds total
+    - **Actual Performance**: 11,934ms (4x slower than expected)
+    - **User Impact**: Unacceptable first-time set loading experience
+  - **Root Cause Analysis**:
+    - **🚨 Data Transformation Bottleneck**: 2,752ms (expected ~500ms)
+      - **Problem**: 300 sequential API calls to `getFullCardDetailsById()` for pricing data
+      - **Impact**: ~9ms per card for individual pricing lookups
+      - **Solution Needed**: Batch API calls or parallel processing with concurrency limits
+    - **🚨 Database Storage Bottleneck**: 8,959ms (expected ~500ms)
+      - **Problem**: 300 sequential `saveCard()` calls to Cosmos DB
+      - **Impact**: ~30ms per card for individual database writes
+      - **Solution Needed**: Batch database operations using `saveCards()` method
+  - **Performance Breakdown Analysis**:
+    - **✅ Cache Operations**: 0ms (excellent)
+    - **✅ Database Reads**: 26ms (good)
+    - **✅ PokeData API Call**: 197ms for 300 cards (excellent - 0.66ms per card)
+    - **❌ Pricing Enhancement**: 2,752ms (5x slower than expected)
+    - **❌ Database Writes**: 8,959ms (18x slower than expected)
+    - **✅ Cache Writes**: 0ms (excellent)
+  - **Architecture Impact**:
+    - **Current Flow**: Returns cards AFTER storing in database (confirmed)
+    - **User Experience**: 12-second wait for first-time set loading
+    - **Scalability Issue**: Performance degrades linearly with set size
+    - **API Efficiency**: 600 total operations for 300 cards (2x overhead)
+  - **Optimization Opportunities Identified**:
+    1. **Batch Database Writes**: Use `cosmosDbService.saveCards()` instead of individual saves
+    2. **Parallel API Calls**: Use `Promise.all()` with concurrency limits for pricing data
+    3. **Background Processing**: Return response immediately, save to DB asynchronously
+    4. **Bulk Pricing API**: Investigate if PokeData API supports bulk pricing requests
+  - **Next Session Priority**: Implement performance optimizations to achieve target 2-3 second response times
 
 ### Previous API Integration Work:
 - Completely rebuilt PokeDataApiService with proper API workflow:

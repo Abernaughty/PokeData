@@ -495,11 +495,15 @@ The current state of the PokeData project includes the following working feature
 - **Error Handling**: Needs enhancement for PokeData API specific errors
 
 ### Next Session Priorities
-1. **Frontend Integration**: Update frontend to use consolidated `/api/sets` endpoint
-2. **Set Selection Update**: Modify set selection to use consolidated PokeData-first endpoint
-3. **Card Selection Update**: Modify card selection to use `/api/sets/{setCode}/cards`
-4. **On-Demand Image Loading**: Implement image loading in card display components
-5. **Performance Testing**: Validate complete user experience improvements
-6. **Production Deployment**: Deploy consolidated functions to production environment
+1. **🚨 URGENT: GetCardsBySet Performance Optimization**: Critical performance bottlenecks requiring immediate optimization
+   - **Root Cause**: 300 sequential API calls + 300 sequential database writes causing 12-second response times
+   - **Target**: Reduce first-time set loading from 11.9 seconds to 2-3 seconds (4x improvement needed)
+   - **Solutions**: Batch database writes, parallel API calls with concurrency limits, background processing
+2. **Frontend Integration**: Update frontend to use consolidated `/api/sets` endpoint
+3. **Set Selection Update**: Modify set selection to use consolidated PokeData-first endpoint
+4. **Card Selection Update**: Modify card selection to use `/api/sets/{setCode}/cards`
+5. **On-Demand Image Loading**: Implement image loading in card display components
+6. **Performance Testing**: Validate complete user experience improvements
+7. **Production Deployment**: Deploy consolidated functions to production environment
 
 The PokeData-first architecture backend is now completely consolidated with all temporary functions removed and clean production architecture deployed. The foundation provides 167x performance improvement and is ready for frontend integration to complete the transformation.
