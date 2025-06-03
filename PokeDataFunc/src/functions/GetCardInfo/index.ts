@@ -1,59 +1,102 @@
 import { HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
-import { Card } from "../../models/Card";
 import { ApiResponse } from "../../models/ApiResponse";
-import { ImageOptions, ImageSourceStrategy } from "../../models/Config";
 import { getCardCacheKey, formatCacheEntry, parseCacheEntry, getCacheAge } from "../../utils/cacheUtils";
-import { processImageUrls } from "../../utils/imageUtils";
-import { handleError, createNotFoundError } from "../../utils/errorUtils";
+import { handleError, createNotFoundError, createBadRequestError } from "../../utils/errorUtils";
 import { 
     cosmosDbService, 
     redisCacheService, 
-    blobStorageService, 
-    pokemonTcgApiService, 
     pokeDataApiService 
 } from "../../index";
-import { setMappingService } from "../../services/SetMappingService";
+import { pokeDataToTcgMappingService } from "../../services/PokeDataToTcgMappingService";
+import { PokemonTcgApiService } from "../../services/PokemonTcgApiService";
+import { ImageEnhancementService } from "../../services/ImageEnhancementService";
 
-// Helper function to extract card identifiers from card ID
-function extractCardIdentifiers(cardId: string): { setCode: string, number: string } {
-    // Extract the set code portion (before the dash) and the numeric portion (after the dash)
-    const match = cardId.match(/(.*)-(\d+.*)/);
-    
-    if (match) {
-        return {
-            setCode: match[1], // The set code (e.g., "sv8pt5")
-            number: match[2]   // The card number (e.g., "155")
-        };
-    }
-    
-    // Fallback if the format doesn't match
-    return {
-        setCode: '',
-        number: cardId
+// Initialize services for PokeData-first architecture
+const pokemonTcgApiService = new PokemonTcgApiService(process.env.POKEMON_TCG_API_KEY || '');
+const imageEnhancementService = new ImageEnhancementService(
+    pokeDataToTcgMappingService,
+    pokemonTcgApiService
+);
+
+// Enhanced card structure for PokeData-first approach
+interface PokeDataFirstCard {
+    id: string;                    // "pokedata-{cardId}"
+    source: "pokedata";
+    pokeDataId: number;
+    setId: number;
+    setName: string;
+    setCode: string;
+    cardName: string;
+    cardNumber: string;
+    secret: boolean;
+    language: string;
+    releaseDate: string;
+    pricing: {
+        psa?: { [grade: string]: number };
+        cgc?: { [grade: string]: number };
+        tcgPlayer?: number;
+        ebayRaw?: number;
+        pokeDataRaw?: number;
     };
+    images?: {
+        small: string;
+        large: string;
+    };
+    enhancement?: {
+        tcgSetId: string;
+        tcgCardId: string;
+        metadata?: {
+            hp?: string;
+            types?: string[];
+            rarity?: string;
+        };
+        enhancedAt: string;
+    };
+    lastUpdated: string;
 }
 
+/**
+ * PokeData-First GetCardInfo Function
+ * 
+ * This function implements the new PokeData-first architecture:
+ * 1. Expects PokeData card ID as input
+ * 2. Gets comprehensive pricing data from PokeData API (guaranteed)
+ * 3. Enhances with Pokemon TCG images when mapping exists (optional)
+ * 4. Returns complete card data with pricing always available
+ */
 export async function getCardInfo(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-    // Generate correlation ID for enhanced logging
     const timestamp = Date.now();
-    const correlationId = `[card-${request.params.cardId}-${timestamp}]`;
+    const correlationId = `[pokedata-card-${request.params.cardId}-${timestamp}]`;
     const startTime = Date.now();
     
     try {
-        // Get card ID from route parameters
-        const cardId = request.params.cardId;
+        // Get PokeData card ID from route parameters
+        const pokeDataCardId = request.params.cardId;
         
-        if (!cardId) {
-            context.log(`${correlationId} ERROR: Missing card ID in request`);
-            const errorResponse = createNotFoundError("Card ID", "missing", "GetCardInfo");
+        if (!pokeDataCardId) {
+            context.log(`${correlationId} ERROR: Missing PokeData card ID in request`);
+            const errorResponse = createNotFoundError("PokeData Card ID", "missing", "GetCardInfo");
             return {
                 jsonBody: errorResponse,
                 status: errorResponse.status
             };
         }
         
-        context.log(`${correlationId} Processing request for card: ${cardId}`);
-        context.log(`${correlationId} Environment configuration - Redis: ${process.env.ENABLE_REDIS_CACHE}, CDN: ${process.env.ENABLE_CDN_IMAGES}`);
+        // Validate that it's a numeric PokeData ID
+        const cardIdNum = parseInt(pokeDataCardId);
+        if (isNaN(cardIdNum)) {
+            context.log(`${correlationId} ERROR: Invalid PokeData card ID format: ${pokeDataCardId}`);
+            const errorResponse = createBadRequestError(
+                `Invalid PokeData card ID format. Expected numeric ID, got: ${pokeDataCardId}`,
+                "GetCardInfo"
+            );
+            return {
+                jsonBody: errorResponse,
+                status: errorResponse.status
+            };
+        }
+        
+        context.log(`${correlationId} Processing PokeData-first request for card ID: ${pokeDataCardId}`);
         
         // Parse query parameters
         const forceRefresh = request.query.get("forceRefresh") === "true";
@@ -61,26 +104,26 @@ export async function getCardInfo(request: HttpRequest, context: InvocationConte
         
         context.log(`${correlationId} Request parameters - forceRefresh: ${forceRefresh}, TTL: ${cardsTtl}`);
         
-        // Check Redis cache first (if enabled and not forcing refresh)
-        const cacheKey = getCardCacheKey(cardId);
-        let card: Card | null = null;
+        // Check cache first (if enabled and not forcing refresh)
+        const cacheKey = getCardCacheKey(`pokedata-${pokeDataCardId}`);
+        let card: PokeDataFirstCard | null = null;
         let cacheHit = false;
         let cacheAge = 0;
         let cacheStartTime = Date.now();
         
         if (!forceRefresh && process.env.ENABLE_REDIS_CACHE === "true") {
             context.log(`${correlationId} Checking Redis cache for key: ${cacheKey}`);
-            const cachedEntry = await redisCacheService.get<{ data: Card; timestamp: number; ttl: number }>(cacheKey);
-            card = parseCacheEntry<Card>(cachedEntry);
+            const cachedEntry = await redisCacheService.get<{ data: PokeDataFirstCard; timestamp: number; ttl: number }>(cacheKey);
+            card = parseCacheEntry<PokeDataFirstCard>(cachedEntry);
             
             const cacheTime = Date.now() - cacheStartTime;
             
             if (card) {
-                context.log(`${correlationId} Cache HIT for card: ${cardId} (${cacheTime}ms)`);
+                context.log(`${correlationId} Cache HIT for PokeData card: ${pokeDataCardId} (${cacheTime}ms)`);
                 cacheHit = true;
                 cacheAge = cachedEntry ? getCacheAge(cachedEntry.timestamp) : 0;
             } else {
-                context.log(`${correlationId} Cache MISS for card: ${cardId} (${cacheTime}ms)`);
+                context.log(`${correlationId} Cache MISS for PokeData card: ${pokeDataCardId} (${cacheTime}ms)`);
             }
         } else {
             context.log(`${correlationId} Skipping cache - forceRefresh: ${forceRefresh}, Redis enabled: ${process.env.ENABLE_REDIS_CACHE}`);
@@ -89,205 +132,186 @@ export async function getCardInfo(request: HttpRequest, context: InvocationConte
         // If not in cache, check Cosmos DB
         let dbStartTime = Date.now();
         if (!card) {
-            context.log(`${correlationId} Checking Cosmos DB for card: ${cardId}`);
-            card = await cosmosDbService.getCard(cardId);
+            context.log(`${correlationId} Checking Cosmos DB for PokeData card: ${pokeDataCardId}`);
+            const dbCard = await cosmosDbService.getCard(`pokedata-${pokeDataCardId}`);
             
             const dbTime = Date.now() - dbStartTime;
             
-            if (card) {
-                context.log(`${correlationId} Database HIT for card: ${cardId} (${dbTime}ms)`);
+            if (dbCard) {
+                // Convert from stored format to PokeDataFirstCard format if needed
+                card = dbCard as unknown as PokeDataFirstCard;
+                context.log(`${correlationId} Database HIT for PokeData card: ${pokeDataCardId} (${dbTime}ms)`);
             } else {
-                context.log(`${correlationId} Database MISS for card: ${cardId} (${dbTime}ms)`);
+                context.log(`${correlationId} Database MISS for PokeData card: ${pokeDataCardId} (${dbTime}ms)`);
             }
+        }
+        
+        // If not found anywhere, fetch from PokeData API
+        if (!card) {
+            context.log(`${correlationId} Fetching fresh data from PokeData API for card ID: ${pokeDataCardId}`);
             
-            // If not in database, fetch from external API
-            if (!card) {
-                context.log(`${correlationId} Card not found in database, fetching from Pokemon TCG API: ${cardId}`);
-                let apiStartTime = Date.now();
-                card = await pokemonTcgApiService.getCard(cardId);
+            try {
+                // Step 1: Get FULL card details from PokeData (PRIMARY GOAL)
+                const apiStartTime = Date.now();
+                const fullCardData = await pokeDataApiService.getFullCardDetailsById(cardIdNum);
                 const apiTime = Date.now() - apiStartTime;
                 
-                if (card) {
-                    context.log(`${correlationId} Pokemon TCG API SUCCESS for card: ${cardId} (${apiTime}ms)`);
-                    
-                    // Save new card to database (enrichment will happen in universal section)
-                    let saveStartTime = Date.now();
-                    await cosmosDbService.saveCard(card);
-                    const saveTime = Date.now() - saveStartTime;
-                    context.log(`${correlationId} New card saved to Cosmos DB (${saveTime}ms)`);
-                } else {
-                    context.log(`${correlationId} Pokemon TCG API FAILED for card: ${cardId} (${apiTime}ms)`);
+                if (!fullCardData) {
+                    context.log(`${correlationId} ERROR: No card data found in PokeData for card ID: ${pokeDataCardId} (${apiTime}ms)`);
+                    const errorResponse = createNotFoundError("PokeData Card", pokeDataCardId, "GetCardInfo");
+                    return {
+                        jsonBody: errorResponse,
+                        status: errorResponse.status
+                    };
                 }
+                
+                context.log(`${correlationId} PokeData full card data retrieved successfully (${apiTime}ms)`);
+                context.log(`${correlationId} Card: ${fullCardData.name} #${fullCardData.num} from ${fullCardData.set_name}`);
+                
+                // Step 2: Transform PokeData response to our format
+                const transformedPricing: any = {};
+                
+                // Process PSA grades
+                const psaGrades: { [grade: string]: number } = {};
+                for (let i = 1; i <= 10; i++) {
+                    const grade = i === 10 ? '10.0' : `${i}.0`;
+                    const key = `PSA ${grade}`;
+                    if (fullCardData.pricing[key] && fullCardData.pricing[key].value > 0) {
+                        psaGrades[String(i)] = fullCardData.pricing[key].value;
+                    }
+                }
+                if (Object.keys(psaGrades).length > 0) {
+                    transformedPricing.psa = psaGrades;
+                }
+                
+                // Process CGC grades
+                const cgcGrades: { [grade: string]: number } = {};
+                const cgcGradeValues = ['1.0', '2.0', '3.0', '4.0', '5.0', '6.0', '7.0', '7.5', '8.0', '8.5', '9.0', '9.5', '10.0'];
+                cgcGradeValues.forEach(grade => {
+                    const key = `CGC ${grade}`;
+                    if (fullCardData.pricing[key] && fullCardData.pricing[key].value > 0) {
+                        const gradeKey = grade.replace('.', '_');
+                        cgcGrades[gradeKey] = fullCardData.pricing[key].value;
+                    }
+                });
+                if (Object.keys(cgcGrades).length > 0) {
+                    transformedPricing.cgc = cgcGrades;
+                }
+                
+                // Process other pricing sources
+                if (fullCardData.pricing['TCGPlayer'] && fullCardData.pricing['TCGPlayer'].value > 0) {
+                    transformedPricing.tcgPlayer = fullCardData.pricing['TCGPlayer'].value;
+                }
+                if (fullCardData.pricing['eBay Raw'] && fullCardData.pricing['eBay Raw'].value > 0) {
+                    transformedPricing.ebayRaw = fullCardData.pricing['eBay Raw'].value;
+                }
+                if (fullCardData.pricing['Pokedata Raw'] && fullCardData.pricing['Pokedata Raw'].value > 0) {
+                    transformedPricing.pokeDataRaw = fullCardData.pricing['Pokedata Raw'].value;
+                }
+                
+                context.log(`${correlationId} Pricing transformed - ${Object.keys(transformedPricing).length} sources available`);
+                
+                // Step 3: Create base card structure
+                card = {
+                    id: `pokedata-${pokeDataCardId}`,
+                    source: "pokedata",
+                    pokeDataId: cardIdNum,
+                    setId: fullCardData.set_id,
+                    setName: fullCardData.set_name,
+                    setCode: fullCardData.set_code || '',
+                    cardName: fullCardData.name,
+                    cardNumber: fullCardData.num,
+                    secret: fullCardData.secret || false,
+                    language: fullCardData.language || 'ENGLISH',
+                    releaseDate: fullCardData.release_date || '',
+                    pricing: transformedPricing,
+                    lastUpdated: new Date().toISOString()
+                };
+                
+                context.log(`${correlationId} Base PokeData card structure created`);
+                
+            } catch (error: any) {
+                context.log(`${correlationId} ERROR: PokeData API failed: ${error.message}`);
+                const errorResponse = handleError(error, "GetCardInfo - PokeData API");
+                return {
+                    jsonBody: errorResponse,
+                    status: errorResponse.status
+                };
             }
+        }
+        
+        // Step 4: Enhance with Pokemon TCG images (OPTIONAL)
+        if (card) {
+            context.log(`${correlationId} Attempting image enhancement for card: ${card.cardName}`);
             
-            // Save to cache if found
-            if (card && process.env.ENABLE_REDIS_CACHE === "true") {
-                let cacheWriteStartTime = Date.now();
+            try {
+                const enhancementStartTime = Date.now();
+                
+                // Use the ImageEnhancementService to add images
+                const enhancedCard = await imageEnhancementService.enhancePricingCardWithImages({
+                    id: card.pokeDataId,
+                    language: card.language,
+                    name: card.cardName,
+                    num: card.cardNumber,
+                    release_date: card.releaseDate,
+                    secret: card.secret,
+                    set_code: card.setCode,
+                    set_id: card.setId,
+                    set_name: card.setName,
+                    pricing: {} // Not used in enhancement
+                });
+                
+                const enhancementTime = Date.now() - enhancementStartTime;
+                
+                // Update card with enhancement data
+                if (enhancedCard.images) {
+                    card.images = enhancedCard.images;
+                    card.enhancement = enhancedCard.enhancement;
+                    context.log(`${correlationId} Image enhancement successful (${enhancementTime}ms)`);
+                    if (card.enhancement) {
+                        context.log(`${correlationId} Enhanced with TCG card: ${card.enhancement.tcgCardId}`);
+                    }
+                } else {
+                    context.log(`${correlationId} Image enhancement skipped - no mapping available (${enhancementTime}ms)`);
+                }
+                
+            } catch (error: any) {
+                context.log(`${correlationId} Image enhancement failed (non-critical): ${error.message}`);
+                // Continue without images - pricing data is still available
+            }
+        }
+        
+        // Step 5: Save to database and cache (only if newly fetched)
+        if (card && !cacheHit) {
+            // Save to Cosmos DB
+            const saveStartTime = Date.now();
+            await cosmosDbService.saveCard(card as any); // Type assertion for compatibility
+            const saveTime = Date.now() - saveStartTime;
+            context.log(`${correlationId} Card saved to Cosmos DB (${saveTime}ms)`);
+            
+            // Save to cache if enabled
+            if (process.env.ENABLE_REDIS_CACHE === "true") {
+                const cacheWriteStartTime = Date.now();
                 await redisCacheService.set(cacheKey, formatCacheEntry(card, cardsTtl), cardsTtl);
                 const cacheWriteTime = Date.now() - cacheWriteStartTime;
                 context.log(`${correlationId} Card cached to Redis (${cacheWriteTime}ms)`);
             }
         }
         
-        if (!card) {
-            context.log(`${correlationId} ERROR: Card not found after all attempts: ${cardId}`);
-            const errorResponse = createNotFoundError("Card", cardId, "GetCardInfo");
-            return {
-                jsonBody: errorResponse,
-                status: errorResponse.status
-            };
-        }
-        
-        // Universal enrichment evaluation for ALL cards (regardless of source)
-        context.log(`${correlationId} Starting universal enrichment evaluation for card: ${cardId}`);
-        let cardWasModified = false;
-        
-        // Condition 1: TCG Player pricing enrichment (only for newly fetched cards)
-        let tcgEnrichmentTime = 0;
-        if (!card.tcgPlayerPrice && !cacheHit) {
-            context.log(`${correlationId} Enrichment Condition 1: TCG Player pricing missing - ENRICHING`);
-            let tcgStartTime = Date.now();
-            const tcgPlayerPrice = await pokemonTcgApiService.getCardPricing(cardId);
-            tcgEnrichmentTime = Date.now() - tcgStartTime;
-            
-            if (tcgPlayerPrice) {
-                card.tcgPlayerPrice = tcgPlayerPrice;
-                cardWasModified = true;
-                context.log(`${correlationId} Enrichment Condition 1: TCG Player pricing added (${tcgEnrichmentTime}ms)`);
-            } else {
-                context.log(`${correlationId} Enrichment Condition 1: TCG Player pricing unavailable (${tcgEnrichmentTime}ms)`);
-            }
-        } else if (card.tcgPlayerPrice) {
-            context.log(`${correlationId} Enrichment Condition 1: TCG Player pricing already present - SKIPPING`);
-        } else {
-            context.log(`${correlationId} Enrichment Condition 1: TCG Player pricing skipped for cached card - SKIPPING`);
-        }
-        
-        // Condition 2: Enhanced pricing data enrichment (for ALL cards)
-        let enhancedEnrichmentTime = 0;
-        if (!card.enhancedPricing) {
-            context.log(`${correlationId} Enrichment Condition 2: Enhanced pricing missing - ENRICHING`);
-            let enhancedStartTime = Date.now();
-            const enhancedPricing = await pokeDataApiService.getCardPricing(cardId, card.pokeDataId);
-            enhancedEnrichmentTime = Date.now() - enhancedStartTime;
-            
-            if (enhancedPricing) {
-                card.enhancedPricing = enhancedPricing;
-                cardWasModified = true;
-                context.log(`${correlationId} Enrichment Condition 2: Enhanced pricing added (${enhancedEnrichmentTime}ms)`);
-            } else {
-                context.log(`${correlationId} Enrichment Condition 2: Enhanced pricing unavailable (${enhancedEnrichmentTime}ms)`);
-            }
-        } else {
-            context.log(`${correlationId} Enrichment Condition 2: Enhanced pricing already present - SKIPPING`);
-        }
-        
-        // Condition 3: PokeData ID mapping enrichment (for ALL cards)
-        let pokeDataMappingTime = 0;
-        if (!card.pokeDataId) {
-            context.log(`${correlationId} Enrichment Condition 3: PokeData ID missing - attempting to map`);
-            let mappingStartTime = Date.now();
-            
-            try {
-                // Extract set code and card number from card ID
-                const identifiers = extractCardIdentifiers(cardId);
-                
-                if (identifiers.setCode && identifiers.number) {
-                    context.log(`${correlationId} Enrichment Condition 3: Attempting to map set ${identifiers.setCode} card ${identifiers.number}`);
-                    
-                    // Step 1: Try to get PokeData set ID from mapping service first (efficient)
-                    let setId = setMappingService.getPokeDataSetId(identifiers.setCode);
-                    
-                    if (setId) {
-                        context.log(`${correlationId} Enrichment Condition 3: Found mapped set ID ${setId} for set ${identifiers.setCode} (from mapping service)`);
-                    } else {
-                        // Fallback: Get the set ID from PokeData API (slower)
-                        context.log(`${correlationId} Enrichment Condition 3: No mapping found, querying PokeData API for set ${identifiers.setCode}`);
-                        setId = await pokeDataApiService.getSetIdByCode(identifiers.setCode);
-                        
-                        if (setId) {
-                            context.log(`${correlationId} Enrichment Condition 3: Found set ID ${setId} for set ${identifiers.setCode} (from API)`);
-                        }
-                    }
-                    
-                    if (setId) {
-                        // Step 2: Get the card ID using set ID and card number
-                        const pokeDataId = await pokeDataApiService.getCardIdBySetAndNumber(setId, identifiers.number);
-                        
-                        if (pokeDataId) {
-                            card.pokeDataId = pokeDataId;
-                            cardWasModified = true;
-                            pokeDataMappingTime = Date.now() - mappingStartTime;
-                            context.log(`${correlationId} Enrichment Condition 3: PokeData ID ${pokeDataId} mapped and stored (${pokeDataMappingTime}ms)`);
-                        } else {
-                            pokeDataMappingTime = Date.now() - mappingStartTime;
-                            context.log(`${correlationId} Enrichment Condition 3: No PokeData ID found for card ${identifiers.number} in set ${setId} (${pokeDataMappingTime}ms)`);
-                        }
-                    } else {
-                        pokeDataMappingTime = Date.now() - mappingStartTime;
-                        context.log(`${correlationId} Enrichment Condition 3: No set ID found for set code ${identifiers.setCode} (${pokeDataMappingTime}ms)`);
-                    }
-                } else {
-                    pokeDataMappingTime = Date.now() - mappingStartTime;
-                    context.log(`${correlationId} Enrichment Condition 3: Invalid card ID format for mapping: ${cardId} (${pokeDataMappingTime}ms)`);
-                }
-            } catch (error: any) {
-                pokeDataMappingTime = Date.now() - mappingStartTime;
-                context.log(`${correlationId} Enrichment Condition 3: Error during PokeData ID mapping: ${error.message} (${pokeDataMappingTime}ms)`);
-            }
-        } else {
-            context.log(`${correlationId} Enrichment Condition 3: PokeData ID already present (${card.pokeDataId}) - SKIPPING`);
-        }
-        
-        const totalEnrichmentTime = tcgEnrichmentTime + enhancedEnrichmentTime;
-        context.log(`${correlationId} Universal enrichment complete - Total time: ${totalEnrichmentTime}ms, Modified: ${cardWasModified}`);
-        
-        // Save card to database if it was modified during enrichment
-        if (cardWasModified) {
-            let saveStartTime = Date.now();
-            await cosmosDbService.saveCard(card);
-            const saveTime = Date.now() - saveStartTime;
-            context.log(`${correlationId} Enriched card saved to Cosmos DB (${saveTime}ms)`);
-            
-            // Update cache if Redis is enabled
-            if (process.env.ENABLE_REDIS_CACHE === "true") {
-                let cacheWriteStartTime = Date.now();
-                await redisCacheService.set(cacheKey, formatCacheEntry(card, cardsTtl), cardsTtl);
-                const cacheWriteTime = Date.now() - cacheWriteStartTime;
-                context.log(`${correlationId} Enriched card cached to Redis (${cacheWriteTime}ms)`);
-            }
-        }
-        
-        // Process image URLs
-        let imageStartTime = Date.now();
-        const imageOptions: ImageOptions = {
-            cdnEndpoint: process.env.CDN_ENDPOINT || "",
-            sourceStrategy: (process.env.IMAGE_SOURCE_STRATEGY || "hybrid") as ImageSourceStrategy,
-            enableCdn: process.env.ENABLE_CDN_IMAGES === "true"
-        };
-        
-        card = await processImageUrls(card, {
-            ...imageOptions,
-            blobStorageService
-        });
-        
-        const imageTime = Date.now() - imageStartTime;
-        context.log(`${correlationId} Image processing complete (${imageTime}ms)`);
-        
         // Calculate total operation time
         const totalTime = Date.now() - startTime;
-        context.log(`${correlationId} Request complete - Total time: ${totalTime}ms`);
+        context.log(`${correlationId} PokeData-first request complete - Total time: ${totalTime}ms`);
         
-        // Return the card data
-        const response: ApiResponse<Card> = {
+        // Return the enhanced card data
+        const response: ApiResponse<PokeDataFirstCard> = {
             status: 200,
-            data: card,
+            data: card!,
             timestamp: new Date().toISOString(),
             cached: cacheHit,
             cacheAge: cacheHit ? cacheAge : undefined
         };
         
-        context.log(`${correlationId} Returning response - cached: ${cacheHit}, cacheAge: ${cacheAge}s`);
+        context.log(`${correlationId} Returning PokeData-first response - cached: ${cacheHit}, pricing sources: ${Object.keys(card!.pricing).length}, images: ${!!card!.images}`);
         
         return { 
             jsonBody: response,
@@ -296,10 +320,11 @@ export async function getCardInfo(request: HttpRequest, context: InvocationConte
                 "Cache-Control": `public, max-age=${cardsTtl}`
             }
         };
+        
     } catch (error: any) {
         const totalTime = Date.now() - startTime;
         context.log(`${correlationId} ERROR after ${totalTime}ms: ${error.message}`);
-        const errorResponse = handleError(error, "GetCardInfo");
+        const errorResponse = handleError(error, "GetCardInfo - PokeData-First");
         return {
             jsonBody: errorResponse,
             status: errorResponse.status

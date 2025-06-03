@@ -187,7 +187,59 @@ class PokeDataApiService {
         return null;
     }
     /**
-     * Get pricing data using PokeData's numeric ID
+     * Find a card's numeric ID using its set code and card number
+     * This is a convenience method that handles the set ID lookup internally
+     * @param setCode The set code (e.g., "PRE")
+     * @param cardNumber The card number within the set
+     */
+    async getCardIdBySetCodeAndNumber(setCode, cardNumber) {
+        console.log(`[PokeDataApiService] Looking for card with number ${cardNumber} in set code ${setCode}`);
+        // First get the set ID
+        const setId = await this.getSetIdByCode(setCode);
+        if (setId === null) {
+            console.log(`[PokeDataApiService] Couldn't find set ID for code: ${setCode}`);
+            return null;
+        }
+        // Then get the card ID using the numeric set ID
+        return this.getCardIdBySetAndNumber(setId, cardNumber);
+    }
+    /**
+     * Get full card details with pricing using PokeData's numeric ID
+     * This returns the complete response including card details AND pricing
+     * @param pokeDataId The numeric ID of the card in PokeData's system
+     */
+    async getFullCardDetailsById(pokeDataId) {
+        console.log(`[PokeDataApiService] Getting full card details for PokeData ID: ${pokeDataId}`);
+        try {
+            const url = `${this.baseUrl}/pricing`;
+            const params = {
+                id: pokeDataId,
+                asset_type: 'CARD'
+            };
+            console.log(`[PokeDataApiService] Making request to: ${url}`);
+            console.log(`[PokeDataApiService] With params:`, params);
+            const response = await axios_1.default.get(url, {
+                params,
+                headers: this.getHeaders()
+            });
+            if (response.data && response.data.pricing) {
+                console.log(`[PokeDataApiService] Successfully retrieved full card details for ID ${pokeDataId}`);
+                return response.data; // Return the FULL response, not just pricing
+            }
+            console.log(`[PokeDataApiService] No card data found for ID ${pokeDataId}`);
+            return null;
+        }
+        catch (error) {
+            console.error(`[PokeDataApiService] Error getting full card details for ID ${pokeDataId}: ${error.message}`);
+            if (error.response) {
+                console.error(`[PokeDataApiService] Response status: ${error.response.status}`);
+                console.error(`[PokeDataApiService] Response data:`, error.response.data);
+            }
+            return null;
+        }
+    }
+    /**
+     * Get pricing data using PokeData's numeric ID (legacy method)
      * @param pokeDataId The numeric ID of the card in PokeData's system
      */
     async getCardPricingById(pokeDataId) {

@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 import { EnhancedPriceData } from '../models/Card';
 
@@ -47,9 +48,6 @@ export interface IPokeDataApiService {
     // Pricing methods
     getCardPricingById(pokeDataId: number): Promise<any>;
     getCardPricing(cardId: string, pokeDataId?: number): Promise<EnhancedPriceData | null>;
-    
-    // NEW: Full card details with pricing
-    getFullCardDetailsById(pokeDataId: number): Promise<any>;
 }
 
 export class PokeDataApiService implements IPokeDataApiService {
@@ -310,47 +308,7 @@ export class PokeDataApiService implements IPokeDataApiService {
     }
     
     /**
-     * Get full card details with pricing using PokeData's numeric ID
-     * This returns the complete response including card details AND pricing
-     * @param pokeDataId The numeric ID of the card in PokeData's system
-     */
-    async getFullCardDetailsById(pokeDataId: number): Promise<any> {
-        console.log(`[PokeDataApiService] Getting full card details for PokeData ID: ${pokeDataId}`);
-        
-        try {
-            const url = `${this.baseUrl}/pricing`;
-            const params = {
-                id: pokeDataId,
-                asset_type: 'CARD'
-            };
-            
-            console.log(`[PokeDataApiService] Making request to: ${url}`);
-            console.log(`[PokeDataApiService] With params:`, params);
-            
-            const response = await axios.get(url, { 
-                params,
-                headers: this.getHeaders() 
-            });
-            
-            if (response.data && response.data.pricing) {
-                console.log(`[PokeDataApiService] Successfully retrieved full card details for ID ${pokeDataId}`);
-                return response.data; // Return the FULL response, not just pricing
-            }
-            
-            console.log(`[PokeDataApiService] No card data found for ID ${pokeDataId}`);
-            return null;
-        } catch (error: any) {
-            console.error(`[PokeDataApiService] Error getting full card details for ID ${pokeDataId}: ${error.message}`);
-            if (error.response) {
-                console.error(`[PokeDataApiService] Response status: ${error.response.status}`);
-                console.error(`[PokeDataApiService] Response data:`, error.response.data);
-            }
-            return null;
-        }
-    }
-    
-    /**
-     * Get pricing data using PokeData's numeric ID (legacy method)
+     * Get pricing data using PokeData's numeric ID
      * @param pokeDataId The numeric ID of the card in PokeData's system
      */
     async getCardPricingById(pokeDataId: number): Promise<any> {

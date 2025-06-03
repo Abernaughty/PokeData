@@ -29,6 +29,7 @@ import { getSetListPokeDataFirst } from './functions/GetSetList/index-pokedata-f
 import { getCardInfo } from './functions/GetCardInfo';
 import { getCardsBySet } from './functions/GetCardsBySet';
 import { refreshData } from './functions/RefreshData';
+import { debugPokeData } from './functions/DebugPokeData';
 
 // Register functions
 app.http('getSetList', {
@@ -57,6 +58,13 @@ app.http('getSetListPokeDataFirst', {
     authLevel: 'function',
     route: 'pokedata/sets',
     handler: getSetListPokeDataFirst
+});
+
+app.http('debugPokeData', {
+    methods: ['GET'],
+    authLevel: 'function',
+    route: 'debug/pokedata',
+    handler: debugPokeData
 });
 
 // Register timer-triggered function
