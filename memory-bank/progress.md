@@ -7,6 +7,40 @@ This document tracks what works, what's left to build, current status, known iss
 
 The current state of the PokeData project includes the following working features:
 
+### ✅ **🎉 Azure Static Web Apps Deployment Crisis Resolved (2025-06-04)**:
+- **🚀 MAJOR DEPLOYMENT SUCCESS**: Successfully resolved critical deployment failures and created new working Static Web App
+  - **Root Cause Identified**: Mixed configuration state from previous workflow cleanup caused invalid deployment token
+    - **Problem**: Old deployment token (ending in `01008040579a9c10`) was permanently linked to deleted workflow file (`azure-static-web-apps-orange-ocean-0579a9c10.yml`)
+    - **Azure Behavior**: Static Web Apps creates permanent binding between deployment token and specific workflow file name
+    - **Impact**: Even refreshing token didn't fix underlying configuration mismatch between expected and actual workflow files
+  - **Solution Implemented**: Created new Static Web App with clean configuration
+    - **✅ New Resource**: `Pokedata-SWA` created with hostname `calm-mud-07a7f7a10.6.azurestaticapps.net`
+    - **✅ Clean Configuration**: Fresh GitHub integration with proper workflow file (`azure-static-web-apps-calm-mud-07a7f7a10.yml`)
+    - **✅ Valid Deployment Token**: New token properly linked to current workflow configuration
+    - **✅ Automatic Workflow Creation**: Azure automatically generated working workflow file with valid API token
+    - **✅ CORS Configuration**: Added new Static Web App origin to Azure Functions CORS settings for API access
+  - **Systematic Debugging Process**:
+    - **✅ Azure CLI Investigation**: Used `az staticwebapp show` to identify mixed configuration state
+    - **✅ Token Validation**: Used curl to confirm old token was invalid (`InvalidAuthenticationToken`)
+    - **✅ Disconnect/Reconnect Attempt**: Tried Azure CLI disconnect/reconnect but configuration remained mixed
+    - **✅ Filename Test**: Renamed workflow to old expected name to verify Azure's workflow file binding behavior
+    - **✅ Clean Slate Solution**: Created new resource when configuration repair proved unreliable
+  - **Technical Insights Gained**:
+    - **Azure Static Web Apps Architecture**: Deployment tokens are permanently bound to specific workflow file names
+    - **Configuration State Persistence**: Mixed states from workflow cleanup can persist even through reconnect operations
+    - **Portal UI Limitations**: Azure Portal UI couldn't resolve the configuration mismatch that Azure CLI revealed
+    - **Clean Resource Strategy**: Creating new resources is more reliable than repairing mixed configuration states
+  - **Architecture Benefits Achieved**:
+    - **✅ Deployment Success**: Static Web Apps now deploys successfully with GitHub Actions workflow
+    - **✅ Clean Configuration**: No legacy configuration artifacts causing deployment failures
+    - **✅ Frontend/Backend Integration**: CORS properly configured for seamless API communication
+    - **✅ Production Ready**: New Static Web App fully functional with proper domain and SSL
+  - **Files and Resources Updated**:
+    - **✅ New Workflow File**: `azure-static-web-apps-calm-mud-07a7f7a10.yml` automatically created by Azure
+    - **✅ Valid API Token**: Embedded in new workflow file, properly linked to new Static Web App
+    - **✅ CORS Configuration**: Azure Functions updated to allow new Static Web App origin
+    - **✅ Domain Ready**: New hostname working and ready for custom domain configuration
+
 ### ✅ **PNPM Migration Successfully Completed (2025-06-04)**:
 - **Critical Infrastructure Improvement**: Successfully migrated entire project to use pnpm@10.9.0 consistently, eliminating workflow conflicts
 - **Package Manager Standardization**: Both frontend and backend now use identical pnpm@10.9.0 for consistent development environment

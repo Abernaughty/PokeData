@@ -417,9 +417,26 @@ For the cloud-based architecture, we've implemented the following dependencies:
   - Feature flags
   - API endpoints
 
+### Azure Static Web Apps Architecture Insights
+- **🔑 CRITICAL DISCOVERY**: Static Web Apps create permanent binding between deployment tokens and workflow file names
+  - **Token-Workflow Binding**: Each deployment token is tied to the specific workflow file name that was active during creation
+  - **Configuration Persistence**: Mixed configuration states can persist even through Azure CLI disconnect/reconnect operations
+  - **Portal UI Limitations**: Azure Portal UI cannot resolve configuration mismatches that Azure CLI can detect and analyze
+  - **Clean Resource Strategy**: Creating new resources is more reliable than repairing mixed configuration states
+- **📋 SYSTEMATIC DEBUGGING APPROACH**: 
+  - **Azure CLI Investigation**: Use `az staticwebapp show` to identify configuration state mismatches
+  - **Token Validation**: Use REST API calls to validate deployment token authenticity and binding
+  - **Filename Testing**: Temporarily rename workflow files to verify Azure's workflow file expectations
+  - **Clean Slate Solution**: Create new resources when configuration repair proves unreliable
+- **🛠️ TECHNICAL ARCHITECTURE**: 
+  - **Deployment Process**: Azure automatically generates workflow files with embedded API tokens during resource creation
+  - **CORS Integration**: Static Web Apps require explicit CORS configuration in connected Azure Functions for API access
+  - **GitHub Integration**: Fresh GitHub repository connections create clean, working deployment workflows
+  - **Domain Management**: New resources support custom domain configuration and SSL certificates
+
 ### Cloud Deployment
 - **Frontend**: 
-  - Azure Static Web Apps for hosting (planned)
+  - Azure Static Web Apps for hosting (✅ implemented - Pokedata-SWA with clean configuration)
   - CDN for static assets and images (planned)
   - Environment-specific configuration (planned)
 
