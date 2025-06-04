@@ -45,20 +45,6 @@ jobs:
       - name: Build application
         run: pnpm run build
 
-      # Install OIDC Client from Core Package
-      - name: Install OIDC Client from Core Package
-        run: npm install @actions/core@1.6.0 @actions/http-client
-
-      # Get GitHub ID Token for OIDC authentication
-      - name: Get Id Token
-        uses: actions/github-script@v6
-        id: idtoken
-        with:
-           script: |
-               const coredemo = require('@actions/core')
-               return await coredemo.getIDToken()
-           result-encoding: string
-
       # Deploy to Azure Static Web Apps
       - name: Build And Deploy
         id: builddeploy
@@ -69,7 +55,6 @@ jobs:
           app_location: "/"
           output_location: "public"
           skip_app_build: true  # We already built with pnpm
-          github_id_token: ${{ steps.idtoken.outputs.result }}
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
