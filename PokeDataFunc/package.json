@@ -2,15 +2,16 @@
   "name": "pokedatafunc",
   "version": "1.0.0",
   "main": "src/index.js",
+  "packageManager": "pnpm@10.9.0",
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
-    "prestart": "npm run build",
+    "prestart": "pnpm run build",
     "start": "func start",
     "test": "node test-api.js",
     "test:azure": "node test-azure.js",
     "test:cosmos": "node test-cosmos.js",
-    "import": "npx ts-node import-data.ts",
+    "import": "pnpm exec ts-node import-data.ts",
     "build:deploy": "build-and-deploy.bat",
     "deploy": "func azure functionapp publish pokedata-func",
     "deploy:staging": "func azure functionapp publish pokedata-func --slot staging"
