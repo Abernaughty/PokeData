@@ -86,6 +86,16 @@
     - **✅ Removed**: `azure-static-web-apps-orange-ocean-0579a9c10.yml` (duplicate workflow)
     - **✅ Retained**: `azure-functions.yml` (properly configured with pnpm@10.9.0)
     - **✅ Retained**: `azure-static-web-apps.yml` (properly configured with pnpm@10.9.0)
+  - **🔧 DEPLOYMENT FAILURES RESOLVED**: Fixed both Azure Functions and Static Web Apps deployment issues
+    - **✅ Azure Functions Fix**: Removed invalid `--if-present` flag that was being passed to TypeScript compiler
+      - **Problem**: `pnpm run build --if-present` passed `--if-present` to `tsc` which doesn't support this flag
+      - **Solution**: Changed to `pnpm run build` for clean TypeScript compilation
+      - **Result**: Azure Functions deployment now succeeds without TypeScript compiler errors
+    - **✅ Static Web Apps Fix**: Converted from deprecated API token to OIDC authentication
+      - **Problem**: API token referenced deleted workflow (`AZURE_STATIC_WEB_APPS_API_TOKEN_ORANGE_OCEAN_0579A9C10`)
+      - **Solution**: Replaced with Azure CLI deployment using consistent OIDC authentication
+      - **Configuration**: Updated to use correct resource group (`pokedata-rg`) and app name (`PokeData`)
+      - **Result**: Consistent OIDC authentication across all workflows, no API token secrets needed
   - **Root Cause Resolution**: Resolved npm/pnpm dual setup causing ERESOLVE errors and GitHub Actions workflow failures
     - **Problem**: Mixed package managers (npm for frontend, attempts at npm for backend) causing dependency conflicts
     - **Conflict**: GitHub Actions workflows failing due to missing package-lock.json and npm ci errors  
