@@ -345,11 +345,12 @@ For the cloud-based architecture, we've implemented the following dependencies:
    - Update Considerations: Configuration changes required for v4
 
 3. **PNPM**:
-   - Current Version: 8.15.4
+   - Current Version: 10.9.0 ✅ MIGRATED
    - Latest Version: 10.9.0
    - Purpose: Fast, disk space efficient package manager
    - Features Used: Package installation, script running, dependency management
-   - Update Considerations: Command behavior changes, lockfile format changes
+   - Migration Status: Successfully migrated entire project to pnpm@10.9.0 (2025-06-04)
+   - Update Considerations: Migration complete - both frontend and backend now use consistent pnpm@10.9.0
 
 4. **sirv-cli**:
    - Current Version: 1.0.0
