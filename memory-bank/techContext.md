@@ -238,7 +238,7 @@ This document outlines the technologies used, development setup, technical const
 ## Dependencies
 
 ### Current Dependency Status
-The project uses fixed dependency versions to ensure stability. As of May 2, 2025, the dependency status is as follows:
+The project uses fixed dependency versions to ensure stability. As of June 4, 2025, the dependency status is as follows:
 
 | Package | Current Version | Latest Version | Status |
 |---------|----------------|----------------|--------|
@@ -304,6 +304,8 @@ For the cloud-based architecture, we've implemented the following dependencies:
 ```json
 {
   "dependencies": {
+    "axios": "1.9.0",
+    "node-fetch": "3.3.2",
     "sirv-cli": "1.0.0"
   }
 }
@@ -313,17 +315,17 @@ For the cloud-based architecture, we've implemented the following dependencies:
 ```json
 {
   "devDependencies": {
-    "@rollup/plugin-commonjs": "17.0.0",
-    "@rollup/plugin-node-resolve": "11.0.0",
+    "@rollup/plugin-commonjs": "21.1.0",
+    "@rollup/plugin-node-resolve": "13.3.0",
     "@rollup/plugin-replace": "6.0.2",
     "dotenv": "16.5.0",
     "rimraf": "3.0.2",
-    "rollup": "2.30.0",
+    "rollup": "2.79.2",
     "rollup-plugin-css-only": "3.1.0",
-    "rollup-plugin-livereload": "2.0.0",
-    "rollup-plugin-svelte": "7.0.0",
-    "rollup-plugin-terser": "7.0.0",
-    "svelte": "3.38.3"
+    "rollup-plugin-livereload": "2.0.5",
+    "rollup-plugin-svelte": "7.2.2",
+    "rollup-plugin-terser": "7.0.2",
+    "svelte": "4.2.19"
   }
 }
 ```

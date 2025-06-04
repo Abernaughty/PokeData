@@ -5,33 +5,8 @@ This document outlines the system architecture, key technical decisions, design 
 
 ## System Architecture
 
-### Current Client-Side Architecture
-The current PokeData application follows a client-side architecture with a focus on offline capabilities and efficient data retrieval:
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                                                         │
-│                     Svelte App                          │
-│                                                         │
-│  ┌─────────────┐     ┌─────────────┐     ┌───────────┐  │
-│  │             │     │             │     │           │  │
-│  │  Components │◀───▶│   Services  │◀───▶│ External  │  │
-│  │             │     │             │     │   APIs    │  │
-│  └─────────────┘     └─────────────┘     └───────────┘  │
-│         │                   │                  │        │
-│         ▼                   ▼                  ▼        │
-│  ┌─────────────┐     ┌─────────────┐     ┌───────────┐  │
-│  │             │     │             │     │           │  │
-│  │    UI       │     │   Storage   │     │ CORS      │  │
-│  │  Rendering  │     │  (IndexedDB)│     │  Proxy    │  │
-│  │             │     │             │     │           │  │
-│  └─────────────┘     └─────────────┘     └───────────┘  │
-│                                                         │
-└─────────────────────────────────────────────────────────┘
-```
-
-### Current Cloud-Based Architecture (Default)
-The application now uses a cloud-first architecture with Azure services as the default behavior:
+### Current Architecture: Cloud-First with Client-Side Fallback
+The PokeData application now uses a cloud-first architecture with Azure services as the default behavior, while maintaining client-side capabilities as a fallback:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -86,68 +61,74 @@ PokeData/
 │   ├── projectbrief.md
 │   ├── systemPatterns.md
 │   └── techContext.md
+├── PokeDataFunc/          # Azure Functions backend
+│   ├── src/               # TypeScript source code
+│   │   ├── functions/     # Azure Function implementations
+│   │   ├── services/      # Backend services
+│   │   └── models/        # Data models
+│   ├── data/              # Set mapping and reference data
+│   ├── package.json       # Backend dependencies
+│   └── tsconfig.json      # TypeScript configuration
 ├── public/                # Static assets and build output
 │   ├── build/             # Compiled JS/CSS
 │   ├── data/              # Static data files
 │   ├── images/            # Image assets
-│   ├── mock/              # Mock data for testing
 │   ├── debug-api.js       # Debugging utilities
 │   ├── global.css         # Global styles
 │   ├── index.html         # Main HTML file
 │   └── staticwebapp.config.json  # Azure config
-├── src/                   # Source code
+├── src/                   # Frontend source code
 │   ├── components/        # UI components
 │   ├── data/              # Data utilities
 │   ├── services/          # Business logic services
+│   ├── stores/            # Svelte stores
+│   ├── debug/             # Debug tools and panels
 │   ├── App.svelte         # Main application component
-│   ├── corsProxy.js       # CORS proxy utility
-│   ├── debug-env.js       # Debug environment setup
 │   └── main.js            # Application entry point
 ├── .env.example           # Environment variables template
 ├── .gitignore             # Git ignore file
 ├── .npmrc                 # NPM configuration
-├── build.bat              # Build script
-├── build.js               # Build configuration
-├── dev.bat                # Development script
-├── diagnose-env.bat       # Environment diagnostics
-├── fix-node-path.bat      # Node path fix utility
-├── node-test.js           # Node environment test
-├── package.json           # Dependencies and scripts
+├── package.json           # Frontend dependencies and scripts
 ├── pnpm-lock.yaml         # PNPM lock file
 ├── README.md              # Project documentation
 ├── rollup.config.cjs      # Rollup config (CommonJS)
-├── rollup.config.js       # Rollup config (ES modules)
-├── setup.bat              # Setup script
-├── start.bat              # Start script
+├── build-app.bat          # Build script
+├── dev-server.bat         # Development server script
+├── prod-server.bat        # Production server script
+├── run-app.bat            # Quick start launcher
+├── tools.bat              # Consolidated utility tools
 └── TASKS.md               # Task tracking
 ```
 
-### Current Component Layer
+### Current Implementation Layers
+
+#### Cloud Service Layer (Primary - Default Enabled)
+- **Azure Cosmos DB**: Primary database for card metadata and pricing information (✅ implemented)
+- **Azure Blob Storage**: Storage for card images (✅ configured)
+- **Azure Cache for Redis**: Cache for frequently accessed data (✅ implemented)
+- **Azure Functions**: Serverless API endpoints and background processing (✅ implemented)
+- **Azure API Management**: API gateway and external API proxy (✅ implemented)
+- **Azure Static Web Apps**: Frontend hosting with CDN (✅ implemented)
+
+#### Frontend Service Layer
+- **hybridDataService**: Intelligent service that chooses between cloud and local APIs based on feature flags
+- **cloudDataService**: Service for communicating with Azure Functions API
+- **featureFlagService**: Service managing cloud vs local behavior (defaults to cloud-enabled)
+- **pokeDataService**: Legacy service for local API calls (fallback when cloud disabled)
+
+#### Data Layer Architecture
+- **Cloud-First Data Flow**: Redis → Cosmos DB → External APIs (PokeData + Pokemon TCG)
+- **Client-Side Fallback**: IndexedDB caching for offline/local mode
+- **Hybrid Caching**: Both cloud (Redis) and local (IndexedDB) caching strategies
+
+#### Component Layer
 - **UI Components**: Svelte components for user interface elements
-- **Form Controls**: Specialized input components like SearchableSelect
-- **Results Display**: Components for showing pricing data
-- **Modal Dialogs**: Components like CardVariantSelector for additional interactions
+- **Form Controls**: Specialized input components like SearchableSelect with grouping support
+- **Results Display**: Components for showing pricing data with cloud-enhanced information
+- **Debug Tools**: Hidden debug panel (Ctrl+Alt+D) for development and troubleshooting
 
-### Current Service Layer
-- **pokeDataService**: Core service for fetching and processing card data
-- **dbService**: Service for managing local storage and caching
-- **corsProxy**: Utility for handling CORS issues with external APIs
-
-### Current Data Layer
-- **IndexedDB**: Browser-based database for persistent storage
-- **API Integration**: Connection to external pricing APIs
-- **Mock Data**: Fallback data for development and offline use
-
-### Planned Cloud Service Layer
-- **Azure Cosmos DB**: Primary database for card metadata and pricing information
-- **Azure Blob Storage**: Storage for card images
-- **Azure CDN**: Fast delivery of card images
-- **Azure Cache for Redis**: Cache for frequently accessed data
-- **Azure Functions**: Serverless API endpoints and background processing
-- **Azure API Management**: API gateway and external API proxy
-
-### Planned Data Layer
-- **Cosmos DB Document Structure**: JSON documents for card data with the following schema:
+#### Cosmos DB Document Structure
+Card data is stored in Cosmos DB with the following schema:
   ```json
   {
     "id": "sv8pt5-161",

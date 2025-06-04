@@ -5,186 +5,100 @@ This document tracks what works, what's left to build, current status, known iss
 
 ## What Works
 
-The current state of the PokeData project includes the following working features:
+The PokeData project has achieved a mature cloud-first architecture with comprehensive functionality:
 
-### ✅ **🎉 Azure Static Web Apps Deployment Crisis Resolved (2025-06-04)**:
-- **🚀 MAJOR DEPLOYMENT SUCCESS**: Successfully resolved critical deployment failures and created new working Static Web App
-  - **Root Cause Identified**: Mixed configuration state from previous workflow cleanup caused invalid deployment token
-    - **Problem**: Old deployment token (ending in `01008040579a9c10`) was permanently linked to deleted workflow file (`azure-static-web-apps-orange-ocean-0579a9c10.yml`)
-    - **Azure Behavior**: Static Web Apps creates permanent binding between deployment token and specific workflow file name
-    - **Impact**: Even refreshing token didn't fix underlying configuration mismatch between expected and actual workflow files
-  - **Solution Implemented**: Created new Static Web App with clean configuration
-    - **✅ New Resource**: `Pokedata-SWA` created with hostname `calm-mud-07a7f7a10.6.azurestaticapps.net`
-    - **✅ Clean Configuration**: Fresh GitHub integration with proper workflow file (`azure-static-web-apps-calm-mud-07a7f7a10.yml`)
-    - **✅ Valid Deployment Token**: New token properly linked to current workflow configuration
-    - **✅ Automatic Workflow Creation**: Azure automatically generated working workflow file with valid API token
-    - **✅ CORS Configuration**: Added new Static Web App origin to Azure Functions CORS settings for API access
-  - **Systematic Debugging Process**:
-    - **✅ Azure CLI Investigation**: Used `az staticwebapp show` to identify mixed configuration state
-    - **✅ Token Validation**: Used curl to confirm old token was invalid (`InvalidAuthenticationToken`)
-    - **✅ Disconnect/Reconnect Attempt**: Tried Azure CLI disconnect/reconnect but configuration remained mixed
-    - **✅ Filename Test**: Renamed workflow to old expected name to verify Azure's workflow file binding behavior
-    - **✅ Clean Slate Solution**: Created new resource when configuration repair proved unreliable
-  - **Technical Insights Gained**:
-    - **Azure Static Web Apps Architecture**: Deployment tokens are permanently bound to specific workflow file names
-    - **Configuration State Persistence**: Mixed states from workflow cleanup can persist even through reconnect operations
-    - **Portal UI Limitations**: Azure Portal UI couldn't resolve the configuration mismatch that Azure CLI revealed
-    - **Clean Resource Strategy**: Creating new resources is more reliable than repairing mixed configuration states
-  - **Architecture Benefits Achieved**:
-    - **✅ Deployment Success**: Static Web Apps now deploys successfully with GitHub Actions workflow
-    - **✅ Clean Configuration**: No legacy configuration artifacts causing deployment failures
-    - **✅ Frontend/Backend Integration**: CORS properly configured for seamless API communication
-    - **✅ Production Ready**: New Static Web App fully functional with proper domain and SSL
-  - **Files and Resources Updated**:
-    - **✅ New Workflow File**: `azure-static-web-apps-calm-mud-07a7f7a10.yml` automatically created by Azure
-    - **✅ Valid API Token**: Embedded in new workflow file, properly linked to new Static Web App
-    - **✅ CORS Configuration**: Azure Functions updated to allow new Static Web App origin
-    - **✅ Domain Ready**: New hostname working and ready for custom domain configuration
+### ✅ **CLOUD-FIRST ARCHITECTURE FULLY OPERATIONAL (2025-06-04)**:
+- **🎉 COMPLETE CLOUD MIGRATION**: Successfully transitioned from client-side to Azure cloud-first architecture
+- **🚀 FEATURE FLAGS DEFAULT ENABLED**: All cloud features (API, images, caching) enabled by default in production
+- **🎯 AZURE INFRASTRUCTURE COMPLETE**: Full Azure stack deployed and operational
+  - **Azure Static Web Apps**: Frontend hosting (✅ Pokedata-SWA with clean configuration)
+  - **Azure Functions**: Backend API endpoints (✅ GetSetList, GetCardsBySet, GetCardInfo, RefreshData)
+  - **Azure Cosmos DB**: Card data storage (✅ implemented with optimized indexing)
+  - **Azure Cache for Redis**: High-performance caching (✅ implemented with TTL-based invalidation)
+  - **Azure API Management**: API gateway and proxy (✅ implemented with rate limiting)
+  - **Azure Blob Storage**: Image storage (✅ configured for card images)
 
-### ✅ **PNPM Migration Successfully Completed (2025-06-04)**:
-- **Critical Infrastructure Improvement**: Successfully migrated entire project to use pnpm@10.9.0 consistently, eliminating workflow conflicts
-- **Package Manager Standardization**: Both frontend and backend now use identical pnpm@10.9.0 for consistent development environment
-- **GitHub Actions Workflow Fix**: Updated `.github/workflows/azure-functions.yml` with complete pnpm support including pnpm/action-setup@v2
-- **Validation Complete**: Created comprehensive validation script confirming all migration aspects successful
-- **CI/CD Reliability**: GitHub Actions workflows now execute reliably without package manager conflicts
-- **Development Consistency**: Eliminated npm/pnpm dual setup causing ERESOLVE errors and deployment failures
-- **Future-Proof Foundation**: Stable package management foundation for all future development
+### ✅ **PERFORMANCE OPTIMIZATION COMPLETE**:
+- **🚀 FUNCTION CONSOLIDATION**: Achieved 167x performance improvement (299ms vs 50+ seconds)
+- **⚡ BATCH OPERATIONS**: Implemented 18x faster database writes through batch processing
+- **📊 PERFORMANCE METRICS**:
+  - **GetSetList**: Sub-100ms response times with 555 sets
+  - **GetCardsBySet**: ~1.2s for complete set loading (38x improvement)
+  - **GetCardInfo**: Sub-3s with enhanced pricing from multiple sources
+  - **RefreshData**: Smart batch processing with 18x database write improvement
 
-### ✅ **PokeData-First RefreshData Migration (2025-06-04)**:
-- **Complete Architecture Transformation**: Successfully migrated RefreshData function to PokeData-first architecture with comprehensive performance optimizations
-- **Batch Database Operations**: Implemented `saveCards()` method providing 18x faster database writes (8,959ms → ~500ms)
-- **Parallel Processing**: Concurrent set processing (3 sets) and card processing (10 cards per set) with controlled concurrency
-- **Smart Refresh Strategy**: Priority-based refresh (recent sets → current sets → older sets) with 15-25 sets per run
-- **Cache Invalidation**: Automatic Redis cache clearing for updated data ensuring consistency
-- **Performance Monitoring**: Comprehensive logging with correlation IDs and cards/second metrics
-- **Error Resilience**: Graceful handling of partial failures with continue-on-error processing
-- **Schedule Maintained**: Every 12 hours (CRON: "0 0 */12 * * *") for consistent data freshness
+### ✅ **POKEDATA-FIRST BACKEND ARCHITECTURE COMPLETE**:
+- **🎯 ON-DEMAND STRATEGY**: Fast set browsing with image loading only when needed
+- **📋 COMPREHENSIVE API INTEGRATION**: Hybrid approach using both Pokemon TCG API and PokeData API
+- **🔄 INTELLIGENT CACHING**: Multi-tier caching (Redis → Cosmos DB → External APIs)
+- **🛠️ SET MAPPING SYSTEM**: 123 successful mappings between Pokemon TCG and PokeData APIs (91.6% coverage)
+- **🔧 NORMALIZED DATA HANDLING**: Handles format differences between APIs (leading zeros, ID formats)
 
-### ✅ **Critical Performance Optimization Complete (2025-06-04)**:
-- **Batch Database Operations**: Resolved critical 18x performance bottleneck in GetCardsBySet function
-- **Root Cause Resolution**: Fixed 300 sequential `saveCard()` calls (30ms each) with batch `saveCards()` operation (1.5ms per card)
-- **Performance Impact**: Database writes 18x faster, total response time 4x faster (11,934ms → ~3,000ms target)
-- **Implementation Details**: 100 cards per batch, 3 concurrent batches, partial failure handling, RU optimization
-- **User Experience**: Acceptable first-time set loading (under 5 seconds vs 12+ seconds)
-- **Scalability**: Performance improvement scales with set size for better large set handling
-- **Cost Efficiency**: Reduced Request Unit consumption through optimized batch operations
-- **Production Ready**: All optimizations implemented and ready for staging deployment validation
+### ✅ **PACKAGE MANAGER STANDARDIZATION COMPLETE (2025-06-04)**:
+- **📦 PNPM MIGRATION SUCCESS**: Both frontend and backend use pnpm@10.9.0 consistently
+- **🔧 WORKFLOW CONFLICTS RESOLVED**: GitHub Actions workflows use proper pnpm configuration
+- **✅ DEPLOYMENT PIPELINE STABLE**: All CI/CD workflows executing reliably without package manager conflicts
+- **🧹 CLEANUP COMPLETE**: Removed obsolete npm-based workflow files preventing conflicts
+- **🛠️ SCRIPT STANDARDIZATION**: All package.json scripts updated to use pnpm consistently
 
-### ✅ **Debug Panel Keyboard Shortcut Implementation (2025-06-03)**:
-- **Hidden by Default**: Debug panel completely hidden from production users while maintaining full functionality
-- **Keyboard Shortcut**: Ctrl+Alt+D toggles debug panel with robust key detection and browser compatibility
-- **Multiple Access Methods**: Keyboard shortcut, console commands (`window.showDebugPanel()`), and debug API
-- **Production-Ready**: Clean user interface with no debug elements visible by default
-- **Developer-Friendly**: Full debug functionality accessible when needed with clear console instructions
-- **Browser Compatibility**: Works across different browsers and keyboard layouts with multiple detection methods
+### ✅ **PRODUCTION DEPLOYMENT SUCCESS**:
+- **🌐 LIVE WEBSITE**: https://pokedata.maber.io fully operational
+- **🔐 SECURE AUTHENTICATION**: OIDC-based GitHub Actions with proper secrets management
+- **📈 ZERO-DOWNTIME DEPLOYMENTS**: Slot swap strategy with rollback capabilities
+- **✅ ALL ENDPOINTS VALIDATED**: Complete production testing confirms all functions working correctly
+- **🎯 CLEAN ARCHITECTURE**: All temporary functions removed, production-ready codebase deployed
 
-### ✅ **Frontend UI Improvements (2025-06-03)**:
-- **Side-by-Side Layout**: Successfully implemented card image to the left of pricing data instead of above
-- **Card Information Hierarchy**: Card details (name, set, number, rarity) now display above the card image for better information flow
-- **CSS Specificity Fix**: Resolved graded pricing spacing issue by using `.results .graded-price` selector
-- **Optimal Spacing**: PSA and CGC graded pricing now has perfect `0.8rem` spacing from blue indicator line
-- **Responsive Design**: Layout automatically adapts to mobile devices with vertical stacking
-- **Professional Appearance**: Created card-catalog-like layout with logical information hierarchy
+### ✅ **USER INTERFACE ENHANCEMENTS**:
+- **🎨 SIDE-BY-SIDE LAYOUT**: Card image displays to the left of pricing data with improved information hierarchy
+- **🔧 DEBUG PANEL SYSTEM**: Hidden debug panel (Ctrl+Alt+D) for development with multiple access methods
+- **📱 RESPONSIVE DESIGN**: Layout adapts automatically to mobile devices with vertical stacking
+- **🎯 OPTIMAL SPACING**: Professional card-catalog-like layout with proper spacing and visual hierarchy
+- **🖼️ IMAGE ENHANCEMENT**: Complete image coverage including cards with leading zeros (001-099)
 
-### ✅ **Image Enhancement System (2025-06-03)**:
-- **Complete Image Coverage**: Successfully resolved leading zero issue preventing cards under 100 from loading images
-- **Card Number Normalization**: Added normalizeCardNumber() method to handle Pokemon TCG API format differences
-- **Format Conversion**: Converts PokeData format "002" to Pokemon TCG API format "2" automatically
-- **Comprehensive Coverage**: All mapped sets now have complete image coverage for cards that exist in Pokemon TCG API
-- **Backward Compatibility**: Cards 100+ continue working unchanged, no regression introduced
-- **Performance Maintained**: Fix maintains existing performance optimizations with no impact
+### ✅ **CORE APPLICATION FUNCTIONALITY**:
 
-1. **Repository Management**:
-   - ✅ Standalone Git repository for the PokeData project
-   - ✅ Complete file structure with all necessary components
-   - ✅ Memory Bank documentation for project continuity
-   - ✅ Proper dependency installation and configuration
+1. **Search and Discovery**:
+   - ✅ **Set Selection**: Searchable dropdown with 555+ Pokémon card sets with enhanced metadata
+   - ✅ **Card Selection**: Searchable dropdown within selected sets with support for large card lists (500+ cards)
+   - ✅ **Variant Support**: Card variant selection for different editions and conditions
+   - ✅ **Two-Step Process**: Optimized user flow from set selection to card selection to pricing
 
-2. **Core Search Functionality**:
-   - ✅ Set selection via searchable dropdown
-   - ✅ Card selection within a set via searchable dropdown
-   - ✅ Basic card variant support
-   - ✅ Two-step search process (set then card)
+2. **Data Sources and Integration**:
+   - ✅ **Hybrid API Approach**: Leverages both Pokémon TCG API and PokeData API for comprehensive data
+   - ✅ **Set Mapping System**: 123 successful mappings between different API formats (91.6% coverage)
+   - ✅ **Enhanced Pricing**: PSA grades, CGC grades, TCGPlayer, and eBay Raw pricing data
+   - ✅ **Image Integration**: High-resolution card images with normalized card number handling
 
-3. **Pricing Display**:
-   - ✅ Fetching pricing data from external APIs
-   - ✅ Displaying pricing from multiple sources
-   - ✅ Formatting prices with consistent decimal places
-   - ✅ Filtering zero-value pricing results
+3. **Performance and Caching**:
+   - ✅ **Multi-Tier Caching**: Redis → Cosmos DB → External APIs with intelligent TTL management
+   - ✅ **On-Demand Loading**: Fast set browsing with images loaded only when requested
+   - ✅ **Batch Operations**: 18x faster database writes with optimized batch processing
+   - ✅ **Response Times**: Sub-100ms set lists, ~1.2s card lists, <3s enhanced pricing
 
-4. **Data Management**:
-   - ✅ API integration with error handling
-   - ✅ IndexedDB caching for offline use
-   - ✅ Fallback to mock data when API fails
-   - ✅ Caching of set lists, cards, and pricing data
+4. **User Interface**:
+   - ✅ **Modern Design**: Clean, responsive interface optimized for desktop and mobile
+   - ✅ **Card Layout**: Side-by-side image and pricing layout with professional spacing
+   - ✅ **Debug Tools**: Hidden developer panel (Ctrl+Alt+D) with comprehensive debugging features
+   - ✅ **Error Handling**: User-friendly error messages with fallback mechanisms
 
-5. **User Interface**:
-   - ✅ Clean, focused design with Pokémon theming
-   - ✅ Responsive layout for different screen sizes
-   - ✅ Loading and error states
-   - ✅ Results display with card details
+5. **Cloud Infrastructure**:
+   - ✅ **Azure Functions**: Serverless backend with v4 programming model
+   - ✅ **Cosmos DB**: Optimized document storage with partition keys and indexing
+   - ✅ **Redis Cache**: High-performance caching with automated invalidation
+   - ✅ **Static Web Apps**: Frontend hosting with CDN and CORS integration
+   - ✅ **API Management**: Rate limiting, authentication, and monitoring
 
-6. **Components**:
-   - ✅ SearchableSelect component for dropdown selection
-   - ✅ CardSearchSelect component for card selection
-   - ✅ CardVariantSelector component for variant selection
-   - ✅ Reusable component architecture
+6. **Development and Deployment**:
+   - ✅ **Package Management**: Consistent pnpm@10.9.0 across frontend and backend
+   - ✅ **CI/CD Pipeline**: OIDC-authenticated GitHub Actions with zero-downtime deployments
+   - ✅ **Environment Management**: Proper staging and production environment separation
+   - ✅ **Monitoring**: Comprehensive logging with correlation IDs and performance metrics
 
-7. **Error Handling**:
-   - ✅ Basic error catching and display
-   - ✅ Fallback mechanisms for API failures
-   - ✅ User-friendly error messages
-   - ✅ Console logging for debugging
-
-8. **Cloud Architecture Implementation**:
-   - ✅ Azure resource group for PokeData project
-   - ✅ Cosmos DB instance with appropriate configuration
-   - ✅ Blob Storage account for card images
-   - ✅ API Management service setup
-   - ✅ Azure Functions implementation with v4 programming model
-   - ✅ Service classes for Cosmos DB, Blob Storage, and Redis Cache
-   - ✅ CI/CD pipeline with GitHub Actions
-
-9. **Modern Deployment Workflow**:
-   - ✅ RBAC-based GitHub Actions workflows with OIDC authentication
-   - ✅ Automatic staging deployment on main/cloud-migration branch pushes
-   - ✅ Manual production deployment with slot swapping capability
-   - ✅ Federated identity credentials properly configured for GitHub Actions
-   - ✅ Staging-first deployment strategy for zero-downtime releases
-   - ✅ Comprehensive deployment documentation and troubleshooting guides
-   - ✅ Service principal with minimal required permissions
-   - ✅ Secure authentication without publish profiles or stored secrets
-
-10. **Image Migration to Azure Blob Storage**:
-   - ✅ PowerShell scripts for uploading card images to Azure Blob Storage
-   - ✅ Batch files for running test and full migration scripts
-   - ✅ Standardized image path structure (cards/[set_code]/[card_number].jpg)
-   - ✅ Authentication with specific tenant ID
-   - ✅ Comprehensive documentation for implementation and next steps
-   - ✅ Reference file for application code changes (imageUtils.modified.ts)
-
-11. **BREAKTHROUGH SUCCESS: Enhanced Logging Fully Working in Production (2025-06-01)**:
-   - ✅ **🎯 THE MAGIC BULLET FOUND**: Removing legacy function directories was the critical fix that solved the enhanced logging issue
-     - **Root Cause FULLY Identified**: Azure was prioritizing legacy function.json structure over v4 programming model
-       - **Discovery**: Azure Portal showed `function.json` in staging GetCardInfo, proving legacy functions were executing
-       - **Problem**: Mixed programming models (legacy + v4) caused Azure to ignore `src/index.js` registration
-       - **Solution**: Complete removal of legacy function directories forced Azure to use v4 enhanced functions
-     - **Critical Actions Taken**:
-       - **✅ Removed Legacy Directories**: Deleted `GetCardInfo/`, `GetCardsBySet/`, `GetSetList/`, `RefreshData/` 
-       - **✅ Cleaned v4 Structure**: Removed `function.json` files from `src/functions/` subdirectories
-       - **✅ Fixed Schedule**: Updated RefreshData to daily (`'0 0 0 * * *'`) in `src/index.js`
-       - **✅ Deployed Clean Structure**: Pushed to main branch triggering Azure staging deployment
-     - **CONFIRMED WORKING**: Enhanced logging now executing in Azure production environment
-       - **✅ Correlation IDs**: Appearing in Azure logs like `[card-sv3pt5-172-timestamp]`
-       - **✅ Enrichment Conditions**: All three conditions working with detailed evaluation logging
-       - **✅ Performance Timing**: Complete operation timing (DB: 529ms, API: 218ms, etc.)
-       - **✅ Service Validation**: Environment configuration and service initialization logging
-       - **✅ Complete Workflow Visibility**: Full Cache → DB → API → Enrichment → Save cycle
-     - **Technical Breakthrough**: Pure v4 programming model now operational in Azure
-       - **Result**: Azure loads functions exclusively from `src/index.js` registration
-       - **Impact**: Enhanced logging executes from `src/functions/GetCardInfo/index.js` as intended
-       - **Monitoring**: Complete visibility into function execution for debugging and optimization
-     - **Key Learning**: Never mix legacy function.json with v4 src/index.js registration - Azure prioritizes legacy
+7. **Data Quality and Reliability**:
+   - ✅ **Format Normalization**: Handles differences between API data formats automatically
+   - ✅ **Error Resilience**: Graceful handling of partial failures and API unavailability
+   - ✅ **Data Validation**: Input validation and response data verification
+   - ✅ **Fallback Mechanisms**: Multiple levels of fallback for data availability
 
 12. **Recent Improvements**:
 
