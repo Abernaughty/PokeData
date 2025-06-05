@@ -24,10 +24,10 @@ export const pokeDataApiService = new PokeDataApiService(
 );
 
 // Import function handlers
-import { getSetList } from './functions/GetSetList';
-import { getCardInfo } from './functions/GetCardInfo';
-import { getCardsBySet } from './functions/GetCardsBySet';
-import { refreshData } from './functions/RefreshData';
+import { getSetList } from './functions/GetSetList/index';
+import { getCardInfo } from './functions/GetCardInfo/index';
+import { getCardsBySet } from './functions/GetCardsBySet/index';
+import { refreshData } from './functions/RefreshData/index';
 
 // Register functions
 app.http('getSetList', {
