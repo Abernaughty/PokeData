@@ -294,7 +294,7 @@ export const dbService = {
         transaction.onerror = (event) => reject(event.target.error);
       });
     } catch (error) {
-      console.error(`Error saving pricing data for card ${cardId}:`, error);
+      dbLogger.error('Error saving pricing data for card', { cardId, error });
       throw error;
     }
   },
@@ -314,11 +314,9 @@ export const dbService = {
       
       return new Promise((resolve, reject) => {
         request.onsuccess = () => {
-          // If we have the data in the cache, return it
           if (request.result && request.result.data) {
             resolve(request.result);
           } else {
-            // No data found
             resolve(null);
           }
         };
@@ -326,7 +324,7 @@ export const dbService = {
         request.onerror = (event) => reject(event.target.error);
       });
     } catch (error) {
-      console.error(`Error getting pricing data for card ${cardId}:`, error);
+      dbLogger.error('Error getting pricing data for card', { cardId, error });
       throw error;
     }
   },
@@ -338,13 +336,11 @@ export const dbService = {
    */
   async hasCardsForSet(setCode) {
     try {
-      // Use a fallback key if setCode is null or undefined
       const storageKey = setCode || 'unknown-set';
-      
       const cards = await this.getCardsForSet(storageKey);
       return cards !== null;
     } catch (error) {
-      console.error(`Error checking if we have cards for set ${setCode}:`, error);
+      dbLogger.error('Error checking if we have cards for set', { setCode, error });
       return false;
     }
   },
@@ -356,7 +352,6 @@ export const dbService = {
    */
   async clearSetData(setCode) {
     try {
-      // Use a fallback key if setCode is null or undefined
       const storageKey = setCode || 'unknown-set';
       
       const db = await openDatabase();
@@ -366,14 +361,11 @@ export const dbService = {
       const request = store.delete(storageKey);
       
       return new Promise((resolve, reject) => {
-        request.onsuccess = () => {
-          console.log(`Cleared cache for set ${setCode}`);
-          resolve();
-        };
+        request.onsuccess = () => resolve();
         request.onerror = (event) => reject(event.target.error);
       });
     } catch (error) {
-      console.error(`Error clearing data for set ${setCode}:`, error);
+      dbLogger.error('Error clearing data for set', { setCode, error });
       throw error;
     }
   },
@@ -392,14 +384,11 @@ export const dbService = {
       const request = store.delete(cardId);
       
       return new Promise((resolve, reject) => {
-        request.onsuccess = () => {
-          console.log(`Cleared pricing cache for card ${cardId}`);
-          resolve();
-        };
+        request.onsuccess = () => resolve();
         request.onerror = (event) => reject(event.target.error);
       });
     } catch (error) {
-      console.error(`Error clearing pricing data for card ${cardId}:`, error);
+      dbLogger.error('Error clearing pricing data for card', { cardId, error });
       throw error;
     }
   },
@@ -418,14 +407,11 @@ export const dbService = {
       transaction.objectStore(STORES.cardPricing).clear();
       
       return new Promise((resolve, reject) => {
-        transaction.oncomplete = () => {
-          console.log('All cache data cleared successfully');
-          resolve();
-        };
+        transaction.oncomplete = () => resolve();
         transaction.onerror = (event) => reject(event.target.error);
       });
     } catch (error) {
-      console.error('Error clearing all data:', error);
+      dbLogger.error('Error clearing all data', { error });
       throw error;
     }
   },
@@ -438,18 +424,14 @@ export const dbService = {
     return new Promise((resolve, reject) => {
       const request = indexedDB.deleteDatabase(DB_NAME);
       
-      request.onsuccess = () => {
-        console.log(`Database ${DB_NAME} deleted successfully`);
-        resolve();
-      };
+      request.onsuccess = () => resolve();
       
       request.onerror = (event) => {
-        console.error('Error deleting database:', event.target.error);
+        dbLogger.error('Error deleting database', { error: event.target.error });
         reject(event.target.error);
       };
       
       request.onblocked = () => {
-        console.warn('Database deletion blocked - may have open connections');
         // Still attempt to continue
         resolve();
       };
@@ -464,7 +446,6 @@ export const dbService = {
   async saveCurrentSet(set) {
     try {
       if (!set || !set.code) {
-        console.error('Set code is required to save current set');
         return;
       }
       
@@ -483,7 +464,7 @@ export const dbService = {
         transaction.onerror = (event) => reject(event.target.error);
       });
     } catch (error) {
-      console.error(`Error saving current set ${set.code}:`, error);
+      dbLogger.error('Error saving current set', { setCode: set?.code, error });
       throw error;
     }
   },
@@ -496,7 +477,6 @@ export const dbService = {
   async getCurrentSet(setCode) {
     try {
       if (!setCode) {
-        console.error('Set code is required to get current set');
         return null;
       }
       
@@ -517,7 +497,7 @@ export const dbService = {
         request.onerror = (event) => reject(event.target.error);
       });
     } catch (error) {
-      console.error(`Error getting current set ${setCode}:`, error);
+      dbLogger.error('Error getting current set', { setCode, error });
       throw error;
     }
   },
@@ -545,7 +525,7 @@ export const dbService = {
         request.onerror = (event) => reject(event.target.error);
       });
     } catch (error) {
-      console.error('Error getting all current sets:', error);
+      dbLogger.error('Error getting all current sets', { error });
       throw error;
     }
   },
@@ -559,7 +539,6 @@ export const dbService = {
   async saveCurrentSetCards(setCode, cards) {
     try {
       if (!setCode) {
-        console.error('Set code is required to save current set cards');
         return;
       }
       
@@ -578,7 +557,7 @@ export const dbService = {
         transaction.onerror = (event) => reject(event.target.error);
       });
     } catch (error) {
-      console.error(`Error saving cards for current set ${setCode}:`, error);
+      dbLogger.error('Error saving cards for current set', { setCode, error });
       throw error;
     }
   },
@@ -591,7 +570,6 @@ export const dbService = {
   async getCurrentSetCards(setCode) {
     try {
       if (!setCode) {
-        console.error('Set code is required to get current set cards');
         return null;
       }
       
@@ -612,7 +590,7 @@ export const dbService = {
         request.onerror = (event) => reject(event.target.error);
       });
     } catch (error) {
-      console.error(`Error getting cards for current set ${setCode}:`, error);
+      dbLogger.error('Error getting cards for current set', { setCode, error });
       throw error;
     }
   },
@@ -639,7 +617,7 @@ export const dbService = {
         transaction.onerror = (event) => reject(event.target.error);
       });
     } catch (error) {
-      console.error('Error saving current sets config:', error);
+      dbLogger.error('Error saving current sets config', { error });
       throw error;
     }
   },
@@ -667,7 +645,7 @@ export const dbService = {
         request.onerror = (event) => reject(event.target.error);
       });
     } catch (error) {
-      console.error('Error getting current sets config:', error);
+      dbLogger.error('Error getting current sets config', { error });
       throw error;
     }
   },
@@ -698,13 +676,12 @@ export const dbService = {
             }
           }
           
-          console.log(`Cleaned up ${deletedCount} expired pricing records`);
           resolve(deletedCount);
         };
         request.onerror = (event) => reject(event.target.error);
       });
     } catch (error) {
-      console.error('Error cleaning up expired pricing data:', error);
+      dbLogger.error('Error cleaning up expired pricing data', { error });
       throw error;
     }
   },
@@ -730,7 +707,7 @@ export const dbService = {
         transaction.onerror = (event) => reject(event.target.error);
       });
     } catch (error) {
-      console.error('Error saving set list timestamp:', error);
+      dbLogger.error('Error saving set list timestamp', { error });
       throw error;
     }
   },
@@ -759,7 +736,7 @@ export const dbService = {
         request.onerror = (event) => reject(event.target.error);
       });
     } catch (error) {
-      console.error('Error getting set list timestamp:', error);
+      dbLogger.error('Error getting set list timestamp', { error });
       throw error;
     }
   },
@@ -836,7 +813,7 @@ export const dbService = {
       
       return stats;
     } catch (error) {
-      console.error('Error getting cache stats:', error);
+      dbLogger.error('Error getting cache stats', { error });
       throw error;
     }
   }

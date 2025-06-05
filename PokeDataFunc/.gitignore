@@ -62,8 +62,18 @@ typings/
 local.settings.json
 
 # Build output
-dist
-out
+dist/
+out/
+
+# TypeScript compiled artifacts
+*.js
+*.js.map
+!scripts/*.js
+!*.config.js
+!test-*.js
+!batch-*.js
+!fix-*.js
+!copy-*.js
 
 # Azure Functions artifacts
 bin

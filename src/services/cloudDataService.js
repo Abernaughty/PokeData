@@ -1,4 +1,5 @@
 import { API_CONFIG } from '../data/cloudApiConfig';
+import { apiLogger } from './loggerService';
 
 /**
  * Service for Pokémon data operations using cloud-based Azure Functions
@@ -12,7 +13,7 @@ export const cloudDataService = {
    */
   async getSetList(forceRefresh = false, groupByExpansion = true) {
     try {
-      console.log('Getting set list from cloud API...');
+      apiLogger.info('Getting set list from cloud API', { forceRefresh, groupByExpansion });
       
       const url = new URL(API_CONFIG.buildSetsUrl());
       
@@ -31,12 +32,12 @@ export const cloudDataService = {
       
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unable to get error details');
-        console.error(`API error: ${response.status} - ${errorText}`);
+        apiLogger.error('Cloud API error for sets', { status: response.status, error: errorText });
         throw new Error(`API error: ${response.status}. Details: ${errorText}`);
       }
       
       const apiResponse = await response.json();
-      console.log('API response for sets:', apiResponse);
+      apiLogger.debug('API response for sets', { status: response.status, cached: apiResponse.cached });
       
       // Handle PokeData-first response structure
       let setsArray = [];
@@ -53,7 +54,7 @@ export const cloudDataService = {
         // Direct array response (fallback)
         setsArray = apiResponse;
       } else {
-        console.warn('Unexpected API response format:', apiResponse);
+        apiLogger.warn('Unexpected API response format', { responseType: typeof apiResponse, hasData: !!apiResponse });
         // Return empty array as fallback
         return [];
       }
@@ -74,7 +75,7 @@ export const cloudDataService = {
       
       // Check if the response contains grouped sets (objects with type: 'group')
       if (groupByExpansion && setsArray.length > 0 && setsArray[0].type === 'group') {
-        console.log('Transforming grouped sets format from backend to frontend format...');
+        apiLogger.debug('Transforming grouped sets format from backend to frontend');
         
         // Transform from backend format to frontend format
         // Backend: [{type: 'group', name: 'X', items: [...]}, ...]
@@ -84,21 +85,21 @@ export const cloudDataService = {
         setsArray.forEach(group => {
           if (group.type === 'group' && group.name && Array.isArray(group.items)) {
             transformedGroups[group.name] = group.items;
-            console.log(`Transformed group "${group.name}" with ${group.items.length} sets`);
+            apiLogger.debug('Transformed group', { groupName: group.name, setCount: group.items.length });
           } else {
-            console.warn('Skipping invalid group in API response:', group);
+            apiLogger.warn('Skipping invalid group in API response', { group });
           }
         });
         
-        console.log('Transformation complete. Returning grouped sets object.');
+        apiLogger.success('Transformation complete, returning grouped sets object', { groupCount: Object.keys(transformedGroups).length });
         return transformedGroups;
       }
       
       // Return the data as-is if not grouped
-      console.log(`Returning set list as array with ${setsArray.length} sets`);
+      apiLogger.success('Returning set list as array', { setCount: setsArray.length });
       return setsArray;
     } catch (error) {
-      console.error('Error fetching sets from cloud API:', error);
+      apiLogger.error('Error fetching sets from cloud API', { error });
       throw error;
     }
   },
@@ -116,11 +117,11 @@ export const cloudDataService = {
   async getCardsForSet(setId, options = {}) {
     try {
       if (!setId) {
-        console.error('Set ID is required to fetch cards');
+        apiLogger.error('Set ID is required to fetch cards');
         return { items: [], totalCount: 0, pageNumber: 1, pageSize: 100, totalPages: 0 };
       }
       
-      console.log(`Fetching cards for set ${setId} from cloud API...`);
+      apiLogger.info('Fetching cards for set from cloud API', { setId, options });
       
       // Default options
       const fetchAllPages = options.fetchAllPages !== false; // Default to true unless explicitly set to false
@@ -140,7 +141,7 @@ export const cloudDataService = {
       let totalPages = 1; // Will be updated after first request
       let totalCount = 0;
       
-      console.log(`Fetching all pages for set ${setId}...`);
+      apiLogger.debug('Fetching all pages for set', { setId, pageSize });
       
       // Fetch first page to get total pages
       const firstPageResult = await this.fetchCardsPage(setId, currentPage, pageSize, options.forceRefresh);
@@ -152,19 +153,32 @@ export const cloudDataService = {
       // Add cards from first page
       allCards = [...allCards, ...firstPageResult.items];
       
-      console.log(`Retrieved page ${currentPage}/${totalPages} with ${firstPageResult.items.length} cards. Total: ${totalCount} cards.`);
+      apiLogger.debug('Retrieved first page', { 
+        setId, 
+        currentPage, 
+        totalPages, 
+        cardsInPage: firstPageResult.items.length, 
+        totalCount 
+      });
       
       // Fetch remaining pages if any
       while (currentPage < totalPages) {
         currentPage++;
-        console.log(`Fetching page ${currentPage}/${totalPages}...`);
+        apiLogger.debug('Fetching additional page', { setId, currentPage, totalPages });
         
         const pageResult = await this.fetchCardsPage(setId, currentPage, pageSize, options.forceRefresh);
         
         // Add cards from this page
         allCards = [...allCards, ...pageResult.items];
         
-        console.log(`Retrieved page ${currentPage}/${totalPages} with ${pageResult.items.length} cards. Running total: ${allCards.length}/${totalCount} cards.`);
+        apiLogger.debug('Retrieved additional page', { 
+          setId, 
+          currentPage, 
+          totalPages, 
+          cardsInPage: pageResult.items.length, 
+          runningTotal: allCards.length, 
+          totalCount 
+        });
       }
       
       // Return all cards with pagination metadata
@@ -176,10 +190,10 @@ export const cloudDataService = {
         totalPages: 1
       };
       
-      console.log(`Successfully retrieved all ${allCards.length} cards for set ${setId}`);
+      apiLogger.success('Successfully retrieved all cards for set', { setId, totalCards: allCards.length });
       return result;
     } catch (error) {
-      console.error(`Error fetching cards for set ${setId} from cloud API:`, error);
+      apiLogger.error('Error fetching cards for set from cloud API', { setId, error });
       throw error;
     }
   },
@@ -213,7 +227,7 @@ export const cloudDataService = {
       
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unable to get error details');
-        console.error(`API error for set ${setId} page ${page}: ${response.status} - ${errorText}`);
+        apiLogger.error('API error for set page', { setId, page, status: response.status, error: errorText });
         throw new Error(`API error: ${response.status}. Details: ${errorText}`);
       }
       
@@ -267,7 +281,7 @@ export const cloudDataService = {
       
       return cardsData;
     } catch (error) {
-      console.error(`Error fetching cards for set ${setId} page ${page}:`, error);
+      apiLogger.error('Error fetching cards for set page', { setId, page, error });
       throw error;
     }
   },
@@ -284,7 +298,7 @@ export const cloudDataService = {
         throw new Error('Card ID is required to fetch pricing data');
       }
 
-      console.log(`[cloudDataService] Getting pricing data for card ID: ${cardId} from cloud API`);
+      apiLogger.info('Getting pricing data for card from cloud API', { cardId, forceRefresh });
       
       const url = new URL(API_CONFIG.buildCardInfoUrl(cardId));
       
@@ -293,8 +307,7 @@ export const cloudDataService = {
         url.searchParams.append('forceRefresh', 'true');
       }
       
-      console.log(`[cloudDataService] Making request to: ${url.toString()}`);
-      console.log(`[cloudDataService] Headers:`, API_CONFIG.getHeaders());
+      apiLogger.debug('Making pricing request', { url: url.toString() });
       
       const response = await fetch(url.toString(), {
         headers: API_CONFIG.getHeaders()
@@ -302,12 +315,12 @@ export const cloudDataService = {
       
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unable to get error details');
-        console.error(`[cloudDataService] API error for card ${cardId}: ${response.status} - ${errorText}`);
+        apiLogger.error('API error for card pricing', { cardId, status: response.status, error: errorText });
         throw new Error(`API error: ${response.status}. Details: ${errorText}`);
       }
       
       const apiResponse = await response.json();
-      console.log(`[cloudDataService] Pricing API response for card ${cardId}:`, apiResponse);
+      apiLogger.debug('Pricing API response received', { cardId, cached: apiResponse.cached });
       
       // Extract the card data from the response
       let cardData = null;
@@ -326,7 +339,7 @@ export const cloudDataService = {
       }
       
       if (!cardData) {
-        console.warn(`No valid card data found in API response for card ${cardId}`);
+        apiLogger.warn('No valid card data found in API response', { cardId });
         return null;
       }
       
@@ -338,7 +351,7 @@ export const cloudDataService = {
       
       // Handle PokeData-first pricing structure
       if (cardData.pricing) {
-        console.log('Transforming PokeData-first pricing structure:', cardData.pricing);
+        apiLogger.debug('Transforming PokeData-first pricing structure', { cardId, pricingKeys: Object.keys(cardData.pricing) });
         
         // Transform PSA grades: psa: {9: 1059} → "psa-9": {value: 1059, currency: "USD"}
         if (cardData.pricing.psa) {
@@ -374,7 +387,7 @@ export const cloudDataService = {
       
       // Fallback: Handle legacy enhancedPricing structure (if still present)
       else if (cardData.enhancedPricing) {
-        console.log('Using legacy enhancedPricing structure:', cardData.enhancedPricing);
+        apiLogger.debug('Using legacy enhancedPricing structure', { cardId, enhancedPricingKeys: Object.keys(cardData.enhancedPricing) });
         
         // Add PSA graded prices if they exist
         if (cardData.enhancedPricing.psaGrades) {
@@ -396,7 +409,7 @@ export const cloudDataService = {
       
       // Final fallback: Use TCG Player pricing if no other pricing data is available
       else if (cardData.tcgPlayerPrice) {
-        console.log('Using TCGPlayer pricing as fallback:', cardData.tcgPlayerPrice);
+        apiLogger.debug('Using TCGPlayer pricing as fallback', { cardId, tcgPlayerKeys: Object.keys(cardData.tcgPlayerPrice) });
         
         // Map TCG Player pricing values to the expected format
         if (cardData.tcgPlayerPrice.market) {
@@ -416,7 +429,7 @@ export const cloudDataService = {
       // Transform image structure: images: {small: "...", large: "..."} → image_url: "..."
       if (cardData.images) {
         transformedCard.image_url = cardData.images.small || cardData.images.large;
-        console.log('Transformed image URL:', transformedCard.image_url);
+        apiLogger.debug('Transformed image URL', { cardId, imageUrl: transformedCard.image_url });
       }
       
       // Ensure card name is available
@@ -434,11 +447,10 @@ export const cloudDataService = {
         transformedCard.set_name = cardData.setName;
       }
       
-      console.log(`Successfully processed pricing data for card ${cardId}`);
-      console.log('Transformed pricing format:', transformedCard.pricing);
+      apiLogger.success('Successfully processed pricing data for card', { cardId, pricingKeys: Object.keys(transformedCard.pricing) });
       return transformedCard;
     } catch (error) {
-      console.error(`Error fetching pricing for card ${cardId} from cloud API:`, error);
+      apiLogger.error('Error fetching pricing for card from cloud API', { cardId, error });
       throw error;
     }
   },
@@ -455,7 +467,7 @@ export const cloudDataService = {
         throw new Error('Card ID is required to fetch pricing data');
       }
 
-      console.log(`Getting pricing data with metadata for card ID: ${cardId} from cloud API${forceRefresh ? ' (force refresh)' : ''}`);
+      apiLogger.info('Getting pricing data with metadata for card from cloud API', { cardId, forceRefresh });
       
       const url = new URL(API_CONFIG.buildCardInfoUrl(cardId));
       
@@ -470,12 +482,12 @@ export const cloudDataService = {
       
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unable to get error details');
-        console.error(`API error for card ${cardId}: ${response.status} - ${errorText}`);
+        apiLogger.error('API error for card pricing with metadata', { cardId, status: response.status, error: errorText });
         throw new Error(`API error: ${response.status}. Details: ${errorText}`);
       }
       
       const apiResponse = await response.json();
-      console.log(`Pricing API response for card ${cardId}:`, apiResponse);
+      apiLogger.debug('Pricing API response for card with metadata', { cardId, cached: apiResponse.cached });
       
       // Extract the card data from the response
       let cardData = null;
@@ -494,7 +506,7 @@ export const cloudDataService = {
       }
       
       if (!cardData) {
-        console.warn(`No valid card data found in API response for card ${cardId}`);
+        apiLogger.warn('No valid card data found in API response for card with metadata', { cardId });
         return {
           data: null,
           timestamp: Date.now(),
@@ -508,7 +520,6 @@ export const cloudDataService = {
       const fromCache = apiResponse.cached || false;
       const cacheAge = apiResponse.cacheAge || 0;
       
-      console.log(`Successfully processed pricing data for card ${cardId}`);
       // Add stale indicator logic for consistency with local API
       const now = Date.now();
       const dataAge = now - timestamp;
@@ -522,7 +533,7 @@ export const cloudDataService = {
       
       // Handle PokeData-first pricing structure
       if (cardData.pricing) {
-        console.log('Transforming PokeData-first pricing structure (with metadata):', cardData.pricing);
+        apiLogger.debug('Transforming PokeData-first pricing structure with metadata', { cardId, pricingKeys: Object.keys(cardData.pricing) });
         
         // Transform PSA grades: psa: {9: 1059} → "psa-9": {value: 1059, currency: "USD"}
         if (cardData.pricing.psa) {
@@ -557,7 +568,7 @@ export const cloudDataService = {
       
       // Fallback: Handle legacy enhancedPricing structure (if still present)
       else if (cardData.enhancedPricing) {
-        console.log('Using legacy enhancedPricing structure (with metadata):', cardData.enhancedPricing);
+        apiLogger.debug('Using legacy enhancedPricing structure with metadata', { cardId, enhancedPricingKeys: Object.keys(cardData.enhancedPricing) });
         
         // Add PSA graded prices if they exist
         if (cardData.enhancedPricing.psaGrades) {
@@ -579,7 +590,7 @@ export const cloudDataService = {
       
       // Final fallback: Use TCG Player pricing if no other pricing data is available
       else if (cardData.tcgPlayerPrice) {
-        console.log('Using TCGPlayer pricing as fallback (with metadata):', cardData.tcgPlayerPrice);
+        apiLogger.debug('Using TCGPlayer pricing as fallback with metadata', { cardId, tcgPlayerKeys: Object.keys(cardData.tcgPlayerPrice) });
         
         // Map TCG Player pricing values to the expected format
         if (cardData.tcgPlayerPrice.market) {
@@ -599,7 +610,7 @@ export const cloudDataService = {
       // Transform image structure: images: {small: "...", large: "..."} → image_url: "..."
       if (cardData.images) {
         transformedCard.image_url = cardData.images.small || cardData.images.large;
-        console.log('Transformed image URL (with metadata):', transformedCard.image_url);
+        apiLogger.debug('Transformed image URL with metadata', { cardId, imageUrl: transformedCard.image_url });
       }
       
       // Ensure card name is available
@@ -617,7 +628,12 @@ export const cloudDataService = {
         transformedCard.set_name = cardData.setName;
       }
       
-      console.log('Transformed pricing data for with-metadata response');
+      apiLogger.success('Successfully processed pricing data for card with metadata', { 
+        cardId, 
+        pricingKeys: Object.keys(transformedCard.pricing),
+        fromCache,
+        isStale
+      });
       
       return {
         data: transformedCard,
@@ -627,7 +643,7 @@ export const cloudDataService = {
         isStale: isStale
       };
     } catch (error) {
-      console.error(`Error fetching pricing for card ${cardId} from cloud API:`, error);
+      apiLogger.error('Error fetching pricing for card from cloud API with metadata', { cardId, error });
       throw error;
     }
   }

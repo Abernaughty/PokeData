@@ -1,5 +1,6 @@
 <script>
   import { createEventDispatcher, onMount } from 'svelte';
+  import { uiLogger } from '../services/loggerService';
   
   // Props
   export let cards = [];  // This will be the list of cards from the selected set
@@ -30,8 +31,6 @@
   
   // Update filtered cards when cards or searchText changes
   $: {
-    console.log(`Filtering ${cards.length} cards with search: "${searchText}"`);
-    
     if (searchText && searchText.trim() !== '') {
       const search = searchText.toLowerCase().trim();
       
@@ -59,18 +58,14 @@
     
     // Reset highlight when results change
     highlightedIndex = -1;
-    
-    console.log(`Filtered to ${filteredCards.length} cards`);
   }
   
   // Handle input changes
   function handleInput() {
-    console.log("Input changed:", searchText);
     showDropdown = true;
     
     // If text no longer matches the selected card, clear the selection immediately
     if (selectedCard && searchText !== getCardDisplayText(selectedCard)) {
-      console.log("Text doesn't match selected card, clearing selection");
       selectedCard = null;
       dispatch('select', null);
     }
@@ -78,14 +73,11 @@
   
   // Handle focus on the input
   function handleFocus() {
-    console.log("Input focused");
     showDropdown = true;
   }
   
   // Handle selection of a card
   function handleSelect(card) {
-    console.log("Card selected:", card?.name);
-    
     if (!card) return;
     
     selectedCard = card;
@@ -94,6 +86,9 @@
     // Close dropdown
     closeDropdown();
     dispatch('select', card);
+    
+    // Log user interaction for analytics
+    uiLogger.logInteraction('card_selected', { cardName: card.name, cardNum: card.num });
   }
   
   // Close the dropdown
@@ -151,7 +146,6 @@
   
   // Function to clear the current selection (to be called from parent)
   export function clearSelection() {
-    console.log("Clearing card selection");
     selectedCard = null;
     searchText = '';
     dispatch('select', null);

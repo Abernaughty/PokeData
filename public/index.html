@@ -40,7 +40,6 @@
         // Override WebSocket to prevent livereload connections
         window.WebSocket = function(url, protocols) {
           if (url && url.indexOf('livereload') > -1) {
-            console.log('LiveReload connection blocked in production');
             return {};
           }
           return new window.OriginalWebSocket(url, protocols);
@@ -62,7 +61,6 @@
           
           // Get the stored version from localStorage as a backup
           const storedVersion = localStorage.getItem(VERSION_KEY);
-          console.log(`Stored version in localStorage: ${storedVersion}`);
           
           // First try to open the database to check its version
           const openRequest = indexedDB.open(DB_NAME);
@@ -72,20 +70,15 @@
             const existingVersion = db.version;
             db.close();
             
-            console.log(`Existing database version: ${existingVersion}, Current version: ${CURRENT_VERSION}`);
-            
             // Store the current version in localStorage for backup
             localStorage.setItem(VERSION_KEY, existingVersion.toString());
             
             // Only delete the database if there's a version mismatch AND the stored version is also different
             // This adds an extra safety check to prevent unnecessary resets
             if (existingVersion < CURRENT_VERSION && (!storedVersion || parseInt(storedVersion) < CURRENT_VERSION)) {
-              console.log('Database version mismatch confirmed, resetting database...');
-              
               const deleteRequest = indexedDB.deleteDatabase(DB_NAME);
               
               deleteRequest.onsuccess = () => {
-                console.log(`Database ${DB_NAME} deleted successfully due to version update`);
                 // Update the stored version after successful deletion
                 localStorage.setItem(VERSION_KEY, CURRENT_VERSION.toString());
                 resolve();
@@ -97,28 +90,21 @@
               };
               
               deleteRequest.onblocked = () => {
-                console.warn('Database deletion blocked - may have open connections in other tabs');
                 // Add a delay to allow connections to close
                 setTimeout(resolve, 1000);
               };
             } else {
-              console.log('Database version is current or localStorage backup indicates no reset needed');
               resolve();
             }
           };
           
           openRequest.onerror = (event) => {
             console.error('Error opening database for version check:', event.target.error);
-            // If we can't open the database but have a stored version, use that
-            if (storedVersion && parseInt(storedVersion) >= CURRENT_VERSION) {
-              console.log('Using stored version from localStorage as fallback');
-            }
             resolve();
           };
           
           // If the database doesn't exist yet, this will be called
           openRequest.onupgradeneeded = (event) => {
-            console.log('Database does not exist yet or needs upgrade');
             const db = event.target.result;
             db.close();
             // Store the new version in localStorage
@@ -134,7 +120,7 @@
 
     // Check database version before loading app
     checkDatabaseVersion().then(() => {
-      console.log('Database check complete, app will now load');
+      // Database check complete - continue silently
     });
   </script>
 
@@ -155,8 +141,6 @@
         // Function to check if all stylesheets are loaded
         function checkAllLoaded() {
           if (globalLoaded && bundleLoaded && fontLoaded) {
-            console.log('All CSS files loaded successfully');
-            
             // Add a small delay to ensure CSS is applied before resolving
             setTimeout(() => {
               // Verify CSS is actually applied by checking a known property
@@ -167,7 +151,6 @@
               // Force a reflow to ensure styles are applied
               document.body.offsetHeight;
               
-              console.log('CSS application verified');
               resolve();
               
               // Clean up test element
@@ -181,19 +164,14 @@
           const checkGlobalCSS = () => {
             try {
               if (globalCSS.sheet && globalCSS.sheet.cssRules.length > 0) {
-                console.log('global.css loaded and parsed');
                 globalLoaded = true;
                 checkAllLoaded();
               } else if (globalCSS.sheet) {
-                console.log('global.css loaded but empty or blocked by CORS');
                 globalLoaded = true;
                 checkAllLoaded();
-              } else {
-                console.log('Waiting for global.css to load...');
               }
             } catch (e) {
               // CORS error when accessing cssRules, but CSS is loaded
-              console.log('global.css loaded (CORS exception on cssRules)');
               globalLoaded = true;
               checkAllLoaded();
             }
@@ -221,19 +199,14 @@
           const checkBundleCSS = () => {
             try {
               if (bundleCSS.sheet && bundleCSS.sheet.cssRules.length > 0) {
-                console.log('bundle.css loaded and parsed');
                 bundleLoaded = true;
                 checkAllLoaded();
               } else if (bundleCSS.sheet) {
-                console.log('bundle.css loaded but empty or blocked by CORS');
                 bundleLoaded = true;
                 checkAllLoaded();
-              } else {
-                console.log('Waiting for bundle.css to load...');
               }
             } catch (e) {
               // CORS error when accessing cssRules, but CSS is loaded
-              console.log('bundle.css loaded (CORS exception on cssRules)');
               bundleLoaded = true;
               checkAllLoaded();
             }
@@ -261,19 +234,14 @@
           const checkFontCSS = () => {
             try {
               if (fontCSS.sheet && fontCSS.sheet.cssRules.length > 0) {
-                console.log('font CSS loaded and parsed');
                 fontLoaded = true;
                 checkAllLoaded();
               } else if (fontCSS.sheet) {
-                console.log('font CSS loaded but empty or blocked by CORS');
                 fontLoaded = true;
                 checkAllLoaded();
-              } else {
-                console.log('Waiting for font CSS to load...');
               }
             } catch (e) {
               // CORS error when accessing cssRules, but CSS is loaded
-              console.log('font CSS loaded (CORS exception on cssRules)');
               fontLoaded = true;
               checkAllLoaded();
             }
@@ -299,7 +267,6 @@
         // Set a timeout to resolve anyway after 5 seconds (increased from 3)
         // This prevents the app from being blocked if CSS loading fails
         setTimeout(() => {
-          console.warn('CSS loading timeout reached, continuing anyway');
           resolve();
         }, 5000);
       });
@@ -381,13 +348,11 @@
           
           // First check database version
           checkDatabaseVersion().then(() => {
-            console.log('Database check complete');
             updateLoadingMessage('Loading styles...');
             
             // Then check CSS loading
             return checkCSSLoaded();
           }).then(() => {
-            console.log('All initialization complete, loading app...');
             updateLoadingMessage('Starting application...');
             
             // Create script element dynamically to ensure it loads after initialization
@@ -401,8 +366,6 @@
             
             // Set up load and error handlers
             script.onload = () => {
-              console.log('App script loaded successfully');
-              
               // Remove loading indicator after a short delay to ensure app is rendered
               setTimeout(() => {
                 if (loadingElement.parentNode) {

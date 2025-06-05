@@ -3,6 +3,8 @@
  * Provides functionality to manage feature flags for gradual migration
  */
 
+import { loggerService } from './loggerService';
+
 // Feature flag names
 const FEATURE_FLAGS = {
   USE_CLOUD_API: 'useCloudApi',
@@ -40,7 +42,7 @@ export const featureFlagService = {
       // Fall back to default
       return defaultValue;
     } catch (error) {
-      console.error(`Error getting feature flag ${flagName}:`, error);
+      loggerService.error('Error getting feature flag', { flagName, error });
       return defaultValue;
     }
   },
@@ -54,7 +56,7 @@ export const featureFlagService = {
     try {
       localStorage.setItem(`feature_${flagName}`, value.toString());
     } catch (error) {
-      console.error(`Error setting feature flag ${flagName}:`, error);
+      loggerService.error('Error setting feature flag', { flagName, value, error });
     }
   },
   
@@ -91,7 +93,7 @@ export const featureFlagService = {
         localStorage.removeItem(`feature_${flag}`);
       });
     } catch (error) {
-      console.error('Error resetting feature flags:', error);
+      loggerService.error('Error resetting feature flags', { error });
     }
   }
 };

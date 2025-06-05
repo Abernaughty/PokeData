@@ -2,6 +2,7 @@ import { writable, derived } from 'svelte/store';
 import { hybridDataService } from '../services/hybridDataService';
 import { selectedSet } from './setStore';
 import { error } from './uiStore';
+import { uiLogger } from '../services/loggerService';
 
 // Create stores for state
 export const cardsInSet = writable([]);
@@ -16,7 +17,7 @@ export const cardName = derived(
 
 // Actions
 export function selectCard(card) {
-    console.log('Card selection changed:', card);
+    uiLogger.logInteraction('cardStore', 'cardSelected', { cardName: card?.name, cardId: card?.id });
     selectedCard.set(card);
     error.set(null); // Clear any errors when a new card is selected
 }
@@ -24,7 +25,7 @@ export function selectCard(card) {
 export async function loadCardsForSet(set) {
     if (!set) return;
     if (!set.id) {
-        console.error('Set ID is required but not available:', set);
+        uiLogger.error('Set ID is required but not available', { set });
         error.set("Selected set is missing required data.");
         return;
     }
@@ -38,22 +39,16 @@ export async function loadCardsForSet(set) {
         isLoadingCards.set(true);
         error.set(null);
         
-        console.log(`Loading cards for set ${set.name} (code: ${set.code}, id: ${set.id})...`);
+        uiLogger.info('Loading cards for set', { setName: set.name, setCode: set.code });
         
         // Get cards for the selected set using the hybridDataService
         let cards = await hybridDataService.getCardsForSet(set.code, set.id);
         
-        console.log(`Received ${cards ? cards.length : 0} cards from API/cache`);
-        
         if (!cards || cards.length === 0) {
-            console.log('No cards returned for this set');
+            uiLogger.warn('No cards returned for set', { setName: set.name });
             error.set(`No cards found for set "${set.name}". Please try another set or check your connection.`);
             return;
         }
-        
-        // Check if cards have the expected properties
-        const sampleCard = cards[0];
-        console.log('Sample card structure:', sampleCard);
         
         // Transform the cards into a format suitable for the SearchableSelect component
         const transformedCards = cards.map(card => ({
@@ -74,16 +69,15 @@ export async function loadCardsForSet(set) {
         });
         
         cardsInSet.set(transformedCards);
-        console.log(`Transformed and sorted ${transformedCards.length} cards for display`);
+        uiLogger.success('Cards loaded and processed', { cardCount: transformedCards.length, setName: set.name });
         
         // Check if any cards lack name property
         const invalidCards = cards.filter(card => !card.name);
         if (invalidCards.length > 0) {
-            console.warn(`Found ${invalidCards.length} cards without names!`);
-            console.warn('Sample invalid card:', invalidCards[0]);
+            uiLogger.warn('Found cards without names', { invalidCardCount: invalidCards.length });
         }
     } catch (err) {
-        console.error('Error loading cards for set:', err);
+        uiLogger.error('Error loading cards for set', { setName: set.name, error: err });
         error.set(`Failed to load cards: ${err.message}`);
         cardsInSet.set([]); // Reset to empty array in case of error
     } finally {
@@ -95,7 +89,7 @@ export async function loadCardsForSet(set) {
 selectedSet.subscribe(set => {
     if (!set) {
         // User cleared the selection - this is valid, just clear card-related state
-        console.log('Set selection cleared, resetting card state');
+        uiLogger.debug('Set selection cleared, resetting card state');
         selectedCard.set(null);
         cardsInSet.set([]);
     } else if (set.id) {
@@ -103,7 +97,7 @@ selectedSet.subscribe(set => {
         loadCardsForSet(set);
     } else {
         // Set selected but missing ID - show error
-        console.error('Selected set does not have an ID property:', set);
+        uiLogger.error('Selected set does not have an ID property', { set });
         error.set('Invalid set data. Please select a different set.');
     }
 });

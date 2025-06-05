@@ -12,8 +12,6 @@ import * as utils from './utils';
 import { loggerService } from '../services/loggerService';
 import { featureFlagService } from '../services/featureFlagService';
 
-// Log which panel is being used
-console.log('Debug panel module:', panel);
 
 /**
  * Initialize the debug system and create the global pokeDataDebug object
@@ -124,13 +122,7 @@ Examples:
   // Don't auto-initialize the debug panel - it will be hidden by default
   // Panel will only be shown when the keyboard shortcut is pressed
   
-  // Add diagnostic logging
-  console.log('Debug configuration initialized:', config);
-  console.log('Logger service configuration:', loggerService.config);
-  
   loggerService.info('Debug controls available via window.pokeDataDebug');
-  console.log('Debug tools available. Try window.pokeDataDebug.help() for a list of commands');
-  console.log('To show debug panel: window.pokeDataDebug.panel.show() or press Ctrl+Alt+D');
   
   // Add a global function to easily show the debug panel
   window.showDebugPanel = () => {

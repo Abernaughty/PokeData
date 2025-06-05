@@ -54,6 +54,6 @@ app.http('getCardsBySet', {
 
 // Register timer-triggered function
 app.timer('refreshData', {
-    schedule: '0 0 */12 * * *',
+    schedule: '0 0 * * *', // Daily at midnight
     handler: refreshData
 });

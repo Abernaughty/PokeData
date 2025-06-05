@@ -1,6 +1,7 @@
 import { writable } from 'svelte/store';
 import { hybridDataService } from '../services/hybridDataService';
 import { dbService } from '../services/storage/db';
+import { uiLogger } from '../services/loggerService';
 
 // Create stores for state
 export const error = writable(null);
@@ -45,15 +46,21 @@ function startBackgroundSync() {
     
     syncInterval = setInterval(async () => {
         if (navigator.onLine) {
-            console.log('Running background sync for current sets...');
-            await hybridDataService.preloadCurrentSets();
+            try {
+                await hybridDataService.preloadCurrentSets();
+            } catch (error) {
+                uiLogger.error('Background sync failed', { error });
+            }
         }
     }, 24 * 60 * 60 * 1000); // 24 hours
     
     if (navigator.onLine) {
         setTimeout(async () => {
-            console.log('Running initial background sync for current sets...');
-            await hybridDataService.preloadCurrentSets();
+            try {
+                await hybridDataService.preloadCurrentSets();
+            } catch (error) {
+                uiLogger.error('Initial background sync failed', { error });
+            }
         }, 5000);
     }
 }
@@ -62,13 +69,19 @@ function startCleanupInterval() {
     if (cleanupInterval) clearInterval(cleanupInterval);
     
     cleanupInterval = setInterval(async () => {
-        console.log('Running cleanup for expired pricing data...');
-        await dbService.cleanupExpiredPricingData();
+        try {
+            await dbService.cleanupExpiredPricingData();
+        } catch (error) {
+            uiLogger.error('Background cleanup failed', { error });
+        }
     }, 12 * 60 * 60 * 1000); // 12 hours
     
     setTimeout(async () => {
-        console.log('Running initial cleanup for expired pricing data...');
-        await dbService.cleanupExpiredPricingData();
+        try {
+            await dbService.cleanupExpiredPricingData();
+        } catch (error) {
+            uiLogger.error('Initial cleanup failed', { error });
+        }
     }, 10000);
 }
 
@@ -77,15 +90,21 @@ function startConfigUpdateInterval() {
     
     configUpdateInterval = setInterval(async () => {
         if (navigator.onLine) {
-            console.log('Running scheduled update of current sets configuration...');
-            await hybridDataService.updateCurrentSetsConfiguration();
+            try {
+                await hybridDataService.updateCurrentSetsConfiguration();
+            } catch (error) {
+                uiLogger.error('Background config update failed', { error });
+            }
         }
     }, 7 * 24 * 60 * 60 * 1000); // 7 days
     
     if (navigator.onLine) {
         setTimeout(async () => {
-            console.log('Running initial update of current sets configuration...');
-            await hybridDataService.updateCurrentSetsConfiguration();
+            try {
+                await hybridDataService.updateCurrentSetsConfiguration();
+            } catch (error) {
+                uiLogger.error('Initial config update failed', { error });
+            }
         }, 15000);
     }
 }

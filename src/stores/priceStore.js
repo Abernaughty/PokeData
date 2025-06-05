@@ -1,6 +1,7 @@
 import { writable } from 'svelte/store';
 import { hybridDataService } from '../services/hybridDataService';
 import { error, isOnline } from './uiStore';
+import { uiLogger } from '../services/loggerService';
 
 // Create stores for state
 export const priceData = writable(null);
@@ -38,7 +39,7 @@ function filterValidPrices(pricing) {
             }
         });
     } catch (err) {
-        console.error('Error filtering prices:', err);
+        uiLogger.error('Error filtering prices', { error: err });
         return {}; // Return empty object on error
     }
     
@@ -81,7 +82,7 @@ export async function fetchCardPrice(cardId, forceRefresh = false) {
     priceData.set(null);
     
     try {
-        console.log(`Fetching price data for card ID: ${cardId}${forceRefresh ? ' (force refresh)' : ''}`);
+        uiLogger.info('Fetching price data for card', { cardId, forceRefresh });
         
         // Load pricing data with metadata using the card ID
         const result = await hybridDataService.getCardPricingWithMetadata(cardId, forceRefresh);
@@ -91,21 +92,25 @@ export async function fetchCardPrice(cardId, forceRefresh = false) {
         pricingFromCache.set(result.fromCache || false);
         pricingIsStale.set(result.isStale || false);
         
-        console.log('Received price data:', rawPriceData);
-        console.log('Pricing timestamp:', result.timestamp ? new Date(result.timestamp).toLocaleString() : 'none');
-        console.log('From cache:', result.fromCache || false);
+        uiLogger.debug('Received price data', { 
+            cardId, 
+            hasPricing: !!(rawPriceData && rawPriceData.pricing),
+            timestamp: result.timestamp ? new Date(result.timestamp).toLocaleString() : 'none',
+            fromCache: result.fromCache || false,
+            isStale: result.isStale || false
+        });
         
         // Filter out zero or null price values
         if (rawPriceData && rawPriceData.pricing) {
             rawPriceData.pricing = filterValidPrices(rawPriceData.pricing);
-            console.log('Filtered pricing data:', rawPriceData.pricing);
+            uiLogger.debug('Filtered pricing data', { cardId, pricingKeys: Object.keys(rawPriceData.pricing) });
         } else {
-            console.warn('No pricing data found in the response:', rawPriceData);
+            uiLogger.warn('No pricing data found in response', { cardId, rawPriceData });
         }
         
         priceData.set(rawPriceData);
     } catch (err) {
-        console.error('API Error:', err);
+        uiLogger.error('API Error fetching card price', { cardId, error: err });
         error.set(err.message);
     } finally {
         isLoading.set(false);

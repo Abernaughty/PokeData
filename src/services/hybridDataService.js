@@ -1,6 +1,7 @@
 import { pokeDataService } from './pokeDataService';
 import { cloudDataService } from './cloudDataService';
 import { featureFlagService } from './featureFlagService';
+import { apiLogger } from './loggerService';
 
 /**
  * Hybrid service that can use either local or cloud implementation
@@ -14,10 +15,8 @@ export const hybridDataService = {
    */
   async getSetList(forceRefresh = false) {
     if (featureFlagService.useCloudApi()) {
-      console.log('Using cloud API for set list');
       return cloudDataService.getSetList(forceRefresh, true);
     } else {
-      console.log('Using local API for set list');
       return pokeDataService.getSetList(forceRefresh);
     }
   },
@@ -30,13 +29,11 @@ export const hybridDataService = {
    */
   async getCardsForSet(setCode, setId) {
     if (featureFlagService.useCloudApi()) {
-      console.log(`Using cloud API for cards in set ${setCode} (ID: ${setId})`);
       // Use setId for PokeData-first backend, fallback to setCode if setId not available
       const identifier = setId || setCode;
       const result = await cloudDataService.getCardsForSet(identifier);
       return result.items || [];
     } else {
-      console.log(`Using local API for cards in set ${setCode}`);
       return pokeDataService.getCardsForSet(setCode, setId);
     }
   },
@@ -48,10 +45,8 @@ export const hybridDataService = {
    */
   async getCardPricing(cardId) {
     if (featureFlagService.useCloudApi()) {
-      console.log(`Using cloud API for pricing of card ${cardId}`);
       return cloudDataService.getCardPricing(cardId);
     } else {
-      console.log(`Using local API for pricing of card ${cardId}`);
       return pokeDataService.getCardPricing(cardId);
     }
   },
@@ -64,10 +59,8 @@ export const hybridDataService = {
    */
   async getCardPricingWithMetadata(cardId, forceRefresh = false) {
     if (featureFlagService.useCloudApi()) {
-      console.log(`Using cloud API for pricing with metadata of card ${cardId}${forceRefresh ? ' (force refresh)' : ''}`);
       return cloudDataService.getCardPricingWithMetadata(cardId, forceRefresh);
     } else {
-      console.log(`Using local API for pricing with metadata of card ${cardId}${forceRefresh ? ' (force refresh)' : ''}`);
       return pokeDataService.getCardPricingWithMetadata(cardId, forceRefresh);
     }
   },
@@ -78,10 +71,8 @@ export const hybridDataService = {
    */
   async preloadCurrentSets() {
     if (featureFlagService.useCloudApi()) {
-      console.log('Cloud API does not require preloading current sets');
-      return true;
+      return true; // Cloud API does not require preloading
     } else {
-      console.log('Using local API to preload current sets');
       return pokeDataService.preloadCurrentSets();
     }
   },
@@ -92,10 +83,8 @@ export const hybridDataService = {
    */
   async updateCurrentSetsConfiguration() {
     if (featureFlagService.useCloudApi()) {
-      console.log('Cloud API does not require updating current sets configuration');
-      return true;
+      return true; // Cloud API does not require updating configuration
     } else {
-      console.log('Using local API to update current sets configuration');
       return pokeDataService.updateCurrentSetsConfiguration();
     }
   }

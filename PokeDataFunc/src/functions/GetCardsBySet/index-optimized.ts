@@ -34,7 +34,7 @@ interface PokeDataFirstCardBasic {
  * 3. Ultra-fast response times (no individual API calls during set browsing)
  * 4. Massive API efficiency improvement (254 API calls → 1 API call)
  */
-export async function getCardsBySet(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+export async function getCardsBySetOptimized(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
     const timestamp = Date.now();
     const setIdParam = request.params.setId;
     const correlationId = `[pokedata-set-${setIdParam || 'unknown'}-${timestamp}]`;
@@ -42,7 +42,6 @@ export async function getCardsBySet(request: HttpRequest, context: InvocationCon
     
     try {
         // Get set ID from route parameters
-        
         if (!setIdParam) {
             context.log(`${correlationId} ERROR: Missing set ID in request`);
             const errorResponse = createBadRequestError("Set ID is required", "GetCardsBySet");
@@ -87,7 +86,7 @@ export async function getCardsBySet(request: HttpRequest, context: InvocationCon
         context.log(`${correlationId} Request parameters - setId: ${setId}, page: ${page}, pageSize: ${pageSize}, forceRefresh: ${forceRefresh}`);
         
         // Check cache first (if enabled and not forcing refresh)
-        const cacheKey = getCardsForSetCacheKey(`pokedata-${setId}`);
+        const cacheKey = getCardsForSetCacheKey(`pokedata-basic-${setId}`); // Different cache key for basic data
         let cards: PokeDataFirstCardBasic[] | null = null;
         let cacheHit = false;
         let cacheAge = 0;
@@ -268,7 +267,7 @@ export async function getCardsBySet(request: HttpRequest, context: InvocationCon
     } catch (error: any) {
         const totalTime = Date.now() - startTime;
         context.log(`${correlationId} ERROR after ${totalTime}ms: ${error.message}`);
-        const errorResponse = handleError(error, "GetCardsBySet - PokeData-First");
+        const errorResponse = handleError(error, "GetCardsBySet - Optimized PokeData-First");
         return {
             jsonBody: errorResponse,
             status: errorResponse.status

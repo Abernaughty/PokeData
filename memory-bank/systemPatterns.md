@@ -690,6 +690,37 @@ App.svelte
 
 ## Performance Considerations
 
+### Major Performance Optimization Breakthrough (2025-06-05)
+
+#### GetCardsBySet Optimization Achievement
+- **Root Cause Identified**: Individual pricing API calls for each card (254 calls × 82ms = 20,847ms)
+- **Solution Implemented**: On-demand pricing strategy with basic card data only
+- **Performance Results**:
+  - **OLD TIME**: 20,847ms (20+ seconds) with pricing enhancement
+  - **NEW TIME**: 844ms (<1 second) basic data only
+  - **IMPROVEMENT**: 25x faster response times
+  - **API EFFICIENCY**: 254x reduction in API calls (254 → 1)
+
+#### On-Demand Architecture Pattern
+- **Progressive Disclosure**: Users only wait for data they actually need
+- **Set Browsing**: Returns basic card metadata (name, number, set info) without pricing
+- **Individual Card Enhancement**: Pricing loaded only when user selects specific card
+- **Scalable Performance**: Response time independent of set size
+
+#### Performance Data Analysis
+- **Cached Sets (Set 98 - 254 cards)**:
+  - Cache Check: 0ms (Redis HIT)
+  - Total Time: 844ms
+  - User Experience: Instant browsing
+- **New Sets (Set 510 - 444 cards)**:
+  - Cache Check: 1ms (Redis MISS)
+  - Database Check: 25ms (Cosmos DB MISS)
+  - PokeData API Call: 404ms (444 cards)
+  - Data Transformation: 3ms (NO PRICING - 6,949x improvement!)
+  - Database Save: 4,439ms (batch save - one-time cost)
+  - Total Time: 4,874ms (~4.9 seconds)
+  - Subsequent Loads: <1 second (cache hits)
+
 ### Current Performance Considerations
 1. **Caching Strategy**:
    - Set list cached for extended periods
