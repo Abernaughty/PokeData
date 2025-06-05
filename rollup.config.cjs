@@ -11,6 +11,14 @@ const dotenv = require('dotenv');
 // Load environment variables from .env file
 dotenv.config();
 
+// Debug: Log environment variables
+console.log('=== ROLLUP BUILD DEBUG ===');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('APIM_SUBSCRIPTION_KEY:', process.env.APIM_SUBSCRIPTION_KEY ? 'SET' : 'NOT SET');
+console.log('APIM_SUBSCRIPTION_KEY length:', process.env.APIM_SUBSCRIPTION_KEY?.length || 0);
+console.log('USE_API_MANAGEMENT:', process.env.USE_API_MANAGEMENT);
+console.log('=========================');
+
 const production = !process.env.ROLLUP_WATCH;
 
 // Get environment variables with fallbacks
@@ -22,7 +30,7 @@ function serve() {
     let server;
 
     function toExit() {
-        if (server) server.kill(0);
+        if (server) server.kill('SIGTERM');
     }
 
     return {
@@ -57,10 +65,25 @@ module.exports = {
 replace({
     preventAssignment: true,
     values: {
-        // Always use 'development' for now
-        'process.env.NODE_ENV': JSON.stringify('development'),
+        // Environment configuration
+        'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
+        
+        // API Management configuration
+        'process.env.APIM_BASE_URL': JSON.stringify(process.env.APIM_BASE_URL || 'https://maber-apim-test.azure-api.net/pokedata-api'),
+        'process.env.APIM_SUBSCRIPTION_KEY': JSON.stringify(process.env.APIM_SUBSCRIPTION_KEY || ''),
+        
+        // Azure Functions configuration
+        'process.env.AZURE_FUNCTIONS_BASE_URL': JSON.stringify(process.env.AZURE_FUNCTIONS_BASE_URL || 'https://pokedata-func.azurewebsites.net/api'),
+        'process.env.AZURE_FUNCTION_KEY': JSON.stringify(process.env.AZURE_FUNCTION_KEY || ''),
+        
+        // Feature flags
+        'process.env.USE_API_MANAGEMENT': JSON.stringify(process.env.USE_API_MANAGEMENT || 'true'),
+        'process.env.DEBUG_API': JSON.stringify(process.env.DEBUG_API || 'false'),
+        
+        // Legacy environment variables (for backward compatibility)
         'process.env.API_BASE_URL': JSON.stringify(API_BASE_URL),
-        // Add a timestamp for cache busting in development
+        
+        // Build metadata
         'process.env.BUILD_TIME': JSON.stringify(new Date().toISOString())
     }
 }),

@@ -48,3 +48,25 @@ Thumbs.db
 init-git.bat
 stage-and-commit.bat
 push-to-github.bat
+
+# Python environment (should not be in repository)
+Lib/
+Scripts/
+pyvenv.cfg
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/

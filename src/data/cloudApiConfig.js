@@ -1,34 +1,54 @@
-// Cloud API Configuration - Updated for PokeData-First Architecture
+// Cloud API Configuration - Updated to use environment variables
+import { getApiConfig } from '../config/environment.js';
+
+// Get configuration from environment
+const envConfig = getApiConfig();
+
 export const API_CONFIG = {
-  // Base URL for the consolidated Azure Functions (PokeData-first endpoints)
-  baseUrl: 'https://pokedata-func.azurewebsites.net/api',
+  // Base URL for the API (from environment)
+  baseUrl: envConfig.baseUrl,
   
-  // Function key for Azure Functions authentication
-  functionKey: '7dq8aHEWt4ngfLOX6p1tL7-c9Dy6B4-ip3up0cNMl07mAzFuKESTuA==',
+  // Subscription key for API Management (from environment)
+  subscriptionKey: envConfig.subscriptionKey,
+  
+  // Function key for Azure Functions (from environment, if applicable)
+  functionKey: envConfig.functionKey,
+  
+  // Authentication type
+  authType: envConfig.authType,
   
   // Headers function to get standard headers
   getHeaders() {
-    return {
-      'Content-Type': 'application/json'
-      // Note: Azure Functions use query parameter authentication, not headers
-    };
+    return envConfig.getHeaders();
   },
   
-  // URL builder functions for consolidated PokeData-first endpoints
+  // URL builder functions for API Management endpoints
   buildSetsUrl() {
-    return `${this.baseUrl}/sets?code=${encodeURIComponent(this.functionKey)}`;
+    if (this.authType === 'function') {
+      return `${this.baseUrl}/sets?code=${encodeURIComponent(this.functionKey)}`;
+    }
+    return `${this.baseUrl}/sets`;
   },
   
   buildCardsForSetUrl(setId) {
-    return `${this.baseUrl}/sets/${encodeURIComponent(setId)}/cards?code=${encodeURIComponent(this.functionKey)}`;
+    if (this.authType === 'function') {
+      return `${this.baseUrl}/sets/${encodeURIComponent(setId)}/cards?code=${encodeURIComponent(this.functionKey)}`;
+    }
+    return `${this.baseUrl}/sets/${encodeURIComponent(setId)}/cards`;
   },
   
   buildCardInfoUrl(cardId) {
-    return `${this.baseUrl}/cards/${encodeURIComponent(cardId)}?code=${encodeURIComponent(this.functionKey)}`;
+    if (this.authType === 'function') {
+      return `${this.baseUrl}/cards/${encodeURIComponent(cardId)}?code=${encodeURIComponent(this.functionKey)}`;
+    }
+    return `${this.baseUrl}/cards/${encodeURIComponent(cardId)}`;
   },
   
   // Added for compatibility with existing code
   buildPricingUrl(id) {
-    return `${this.baseUrl}/cards/${encodeURIComponent(id)}?code=${encodeURIComponent(this.functionKey)}`;
+    if (this.authType === 'function') {
+      return `${this.baseUrl}/cards/${encodeURIComponent(id)}?code=${encodeURIComponent(this.functionKey)}`;
+    }
+    return `${this.baseUrl}/cards/${encodeURIComponent(id)}`;
   }
 };
