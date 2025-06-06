@@ -1,7 +1,5 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
-
-export async function getSetList(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-    context.log(`GetSetList function processed request for url "${request.url}"`);
+export default async function (context: any, req: any): Promise<void> {
+    context.log('GetSetList function processed a request.');
     
     // Simple response for now - this will be replaced with actual logic
     const responseMessage = {
@@ -14,8 +12,8 @@ export async function getSetList(request: HttpRequest, context: InvocationContex
         timestamp: new Date().toISOString()
     };
 
-    return {
+    context.res = {
         status: 200,
-        jsonBody: responseMessage
+        body: responseMessage
     };
 }

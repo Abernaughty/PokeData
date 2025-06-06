@@ -1,15 +1,14 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
-
-export async function getCardsBySet(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-    context.log(`GetCardsBySet function processed request for url "${request.url}"`);
+export default async function (context: any, req: any): Promise<void> {
+    context.log('GetCardsBySet function processed a request.');
     
-    const setId = request.params.setId;
+    const setId = req.params.setId;
     
     if (!setId) {
-        return {
+        context.res = {
             status: 400,
-            jsonBody: { error: "Set ID is required" }
+            body: { error: "Set ID is required" }
         };
+        return;
     }
     
     // Simple response for now - this will be replaced with actual logic
@@ -19,8 +18,8 @@ export async function getCardsBySet(request: HttpRequest, context: InvocationCon
         timestamp: new Date().toISOString()
     };
 
-    return {
+    context.res = {
         status: 200,
-        jsonBody: responseMessage
+        body: responseMessage
     };
 }

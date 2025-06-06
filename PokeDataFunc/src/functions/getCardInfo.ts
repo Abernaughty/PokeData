@@ -1,15 +1,14 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
-
-export async function getCardInfo(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-    context.log(`GetCardInfo function processed request for url "${request.url}"`);
+export default async function (context: any, req: any): Promise<void> {
+    context.log('GetCardInfo function processed a request.');
     
-    const cardId = request.params.cardId;
+    const cardId = req.params.cardId;
     
     if (!cardId) {
-        return {
+        context.res = {
             status: 400,
-            jsonBody: { error: "Card ID is required" }
+            body: { error: "Card ID is required" }
         };
+        return;
     }
     
     // Simple response for now - this will be replaced with actual logic
@@ -19,8 +18,8 @@ export async function getCardInfo(request: HttpRequest, context: InvocationConte
         timestamp: new Date().toISOString()
     };
 
-    return {
+    context.res = {
         status: 200,
-        jsonBody: responseMessage
+        body: responseMessage
     };
 }

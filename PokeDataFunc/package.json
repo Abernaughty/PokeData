@@ -1,7 +1,7 @@
 {
   "name": "pokedatafunc",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "dist/src/functions/*.js",
   "packageManager": "pnpm@10.9.0",
   "scripts": {
     "build": "tsc",
@@ -28,7 +28,7 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "@azure/functions": "^4.7.0",
+    "@azure/functions": "^3.5.1",
     "@azure/cosmos": "^4.3.0",
     "@azure/storage-blob": "^12.27.0",
     "axios": "^1.9.0",

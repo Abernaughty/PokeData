@@ -1,13 +1,12 @@
-import { app, InvocationContext, Timer } from "@azure/functions";
-
-export async function refreshData(myTimer: Timer, context: InvocationContext): Promise<void> {
+export default async function (context: any, myTimer: any): Promise<void> {
     context.log('RefreshData timer function processed a request.');
     
-    if (myTimer.isPastDue) {
-        context.log('Timer function is running late!');
-    }
-    
-    // Simple logging for now - this will be replaced with actual logic
-    context.log('RefreshData function executed at:', new Date().toISOString());
-    context.log('Next timer occurrence:', myTimer.scheduleStatus?.next);
+    // Simple response for now - this will be replaced with actual logic
+    const responseMessage = {
+        message: "RefreshData timer function working!",
+        timestamp: new Date().toISOString(),
+        timerInfo: myTimer
+    };
+
+    context.log('RefreshData completed:', responseMessage);
 }
