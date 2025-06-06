@@ -40,10 +40,6 @@ jobs:
         run: pnpm install --frozen-lockfile
         working-directory: ./PokeDataFunc
 
-      - name: 'Build TypeScript and Copy Files'
-        run: pnpm run prepare
-        working-directory: ./PokeDataFunc
-
       - name: 'Login to Azure'
         uses: azure/login@v2
         with:
@@ -57,7 +53,12 @@ jobs:
         with:
           app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
           slot-name: 'staging'
-          package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/dist
+          package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+          respect-pom-xml: false
+          respect-funcignore: false
+          scm-do-build-during-deployment: false
+          enable-oryx-build: false
+          remote-build: false
 
   deploy-production:
     runs-on: ubuntu-latest
