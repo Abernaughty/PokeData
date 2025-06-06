@@ -1,7 +1,6 @@
 {
   "name": "pokedatafunc",
   "version": "1.0.0",
-  "main": "dist/src/functions/*.js",
   "packageManager": "pnpm@10.9.0",
   "scripts": {
     "build": "tsc",
