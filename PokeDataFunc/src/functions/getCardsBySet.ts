@@ -24,11 +24,3 @@ export async function getCardsBySet(request: HttpRequest, context: InvocationCon
         jsonBody: responseMessage
     };
 }
-
-// Register the function with Azure Functions runtime
-app.http('getCardsBySet', {
-    methods: ['GET'],
-    authLevel: 'function',
-    route: 'sets/{setId}/cards',
-    handler: getCardsBySet,
-});

@@ -24,11 +24,3 @@ export async function getCardInfo(request: HttpRequest, context: InvocationConte
         jsonBody: responseMessage
     };
 }
-
-// Register the function with Azure Functions runtime
-app.http('getCardInfo', {
-    methods: ['GET'],
-    authLevel: 'function',
-    route: 'cards/{cardId}',
-    handler: getCardInfo,
-});

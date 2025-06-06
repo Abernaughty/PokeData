@@ -19,11 +19,3 @@ export async function getSetList(request: HttpRequest, context: InvocationContex
         jsonBody: responseMessage
     };
 }
-
-// Register the function with Azure Functions runtime
-app.http('getSetList', {
-    methods: ['GET'],
-    authLevel: 'function',
-    route: 'sets',
-    handler: getSetList,
-});
