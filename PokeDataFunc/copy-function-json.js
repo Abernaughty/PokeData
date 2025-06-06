@@ -28,7 +28,7 @@ function copyFunctionJsonFiles(sourceDir, targetDir) {
 }
 
 // Source and target directories
-const sourceDir = path.join(__dirname, 'dist', 'functions');
+const sourceDir = path.join(__dirname, 'src', 'functions');
 const targetDir = path.join(__dirname, 'functions');
 
 // Copy function.json files
