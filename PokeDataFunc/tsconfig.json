@@ -3,7 +3,7 @@
     "target": "ES2019",
     "module": "commonjs",
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": "./",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -13,11 +13,12 @@
     "sourceMap": true
   },
   "include": [
-    "src/**/*"
+    "**/*.ts"
   ],
   "exclude": [
     "node_modules",
     "dist",
-    "**/*.test.ts"
+    "**/*.test.ts",
+    "import-data.ts"
   ]
 }
