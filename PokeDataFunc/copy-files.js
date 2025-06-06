@@ -19,11 +19,11 @@ if (!fs.existsSync(distDir)) {
     console.log('✅ Created dist/ directory');
 }
 
-// Azure Functions v4 doesn't need function.json files - they're defined in src/index.ts
+// Azure Functions v4 programming model doesn't need function.json files - they're defined in src/index.ts
 // This function is kept for compatibility but does nothing
 function copyFunctionJsonFiles(sourceDir, targetDir) {
-    console.log('ℹ️  Azure Functions v4: function.json files not needed (defined in src/index.ts)');
-    // No-op: Azure Functions v4 uses programmatic registration in index.ts
+    console.log('ℹ️  Azure Functions v4 programming model: function.json files not needed (defined in src/index.ts)');
+    // No-op: Azure Functions v4 programming model uses programmatic registration in index.ts
 }
 
 // Function to copy a single file
