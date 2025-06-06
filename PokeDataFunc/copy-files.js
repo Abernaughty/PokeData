@@ -2,11 +2,11 @@ const fs = require('fs');
 const path = require('path');
 
 /**
- * File copy script for traditional Azure Functions structure
- * Copies function.json files to the corresponding dist directories
+ * File copy script for Azure Functions v4 programming model
+ * Only copies essential files - NO function.json files needed in v4!
  */
 
-console.log('🔧 Starting traditional Azure Functions file copy process...');
+console.log('🔧 Starting Azure Functions v4 programming model file copy process...');
 
 // Directories
 const distDir = path.join(__dirname, 'dist');
@@ -29,58 +29,21 @@ function copyFile(source, target, description) {
     }
 }
 
-// Function to copy function.json files for traditional Azure Functions
-function copyFunctionJsonFiles() {
-    console.log('\n📁 Step 1: Copying function.json files...');
-    
-    // Get all function directories at root level
-    const functionDirs = fs.readdirSync(__dirname, { withFileTypes: true })
-        .filter(item => item.isDirectory() && 
-                item.name !== 'node_modules' && 
-                item.name !== 'dist' && 
-                item.name !== 'data' && 
-                item.name !== 'docs' && 
-                item.name !== 'functions' &&
-                item.name !== 'models' &&
-                item.name !== 'services' &&
-                item.name !== 'utils' &&
-                item.name !== 'scripts')
-        .map(item => item.name);
-    
-    console.log(`   📂 Found function directories: ${functionDirs.join(', ')}`);
-    
-    let copiedCount = 0;
-    for (const funcDir of functionDirs) {
-        const sourceFunctionJson = path.join(__dirname, funcDir, 'function.json');
-        const targetFunctionJson = path.join(distDir, funcDir, 'function.json');
-        
-        if (copyFile(sourceFunctionJson, targetFunctionJson, `${funcDir}/function.json`)) {
-            copiedCount++;
-        }
-    }
-    
-    console.log(`   ✅ Copied ${copiedCount} function.json files`);
-    return copiedCount > 0;
-}
-
 try {
-    // 1. Copy function.json files
-    const functionJsonCopied = copyFunctionJsonFiles();
-
-    // 2. Copy host.json to dist/
-    console.log('\n📁 Step 2: Copying host.json...');
+    // 1. Copy host.json to dist/
+    console.log('\n📁 Step 1: Copying host.json...');
     const hostJsonSource = path.join(__dirname, 'host.json');
     const hostJsonTarget = path.join(distDir, 'host.json');
     copyFile(hostJsonSource, hostJsonTarget, 'host.json');
 
-    // 3. Copy package.json to dist/
-    console.log('\n📁 Step 3: Copying package.json...');
+    // 2. Copy package.json to dist/
+    console.log('\n📁 Step 2: Copying package.json...');
     const packageJsonSource = path.join(__dirname, 'package.json');
     const packageJsonTarget = path.join(distDir, 'package.json');
     copyFile(packageJsonSource, packageJsonTarget, 'package.json');
 
-    // 4. Copy .env file if it exists (for local development)
-    console.log('\n📁 Step 4: Copying .env file (if exists)...');
+    // 3. Copy .env file if it exists (for local development)
+    console.log('\n📁 Step 3: Copying .env file (if exists)...');
     const envSource = path.join(__dirname, '.env');
     const envTarget = path.join(distDir, '.env');
     if (fs.existsSync(envSource)) {
@@ -89,8 +52,8 @@ try {
         console.log('ℹ️  No .env file found (this is normal for production)');
     }
 
-    // 5. Verify the structure
-    console.log('\n🔍 Step 5: Verifying traditional Azure Functions structure...');
+    // 4. Verify the Azure Functions v4 structure
+    console.log('\n🔍 Step 4: Verifying Azure Functions v4 structure...');
     
     // Check for required files
     const requiredFiles = ['host.json', 'package.json'];
@@ -106,44 +69,47 @@ try {
         }
     }
     
-    // Check function directories in dist
-    if (fs.existsSync(distDir)) {
-        const distItems = fs.readdirSync(distDir, { withFileTypes: true })
-            .filter(item => item.isDirectory() && 
-                    item.name !== 'functions' && 
-                    item.name !== 'models' && 
-                    item.name !== 'services' && 
-                    item.name !== 'utils')
-            .map(item => item.name);
+    // Check for main entry point
+    const mainEntryPoint = path.join(distDir, 'index.js');
+    if (fs.existsSync(mainEntryPoint)) {
+        console.log(`✅ Main entry point exists: index.js`);
+    } else {
+        console.log(`❌ Main entry point missing: index.js`);
+        allGood = false;
+    }
+    
+    // Check for individual function files
+    const functionFiles = ['getCardInfo.js', 'getCardsBySet.js', 'getSetList.js', 'refreshData.js'];
+    const functionsDir = path.join(distDir, 'functions');
+    
+    if (fs.existsSync(functionsDir)) {
+        console.log(`✅ Functions directory exists: functions/`);
         
-        console.log(`✅ Function directories in dist/: ${distItems.join(', ')}`);
-        
-        // Verify each function has both index.js and function.json
-        for (const funcDir of distItems) {
-            const funcPath = path.join(distDir, funcDir);
-            const hasIndexJs = fs.existsSync(path.join(funcPath, 'index.js'));
-            const hasFunctionJson = fs.existsSync(path.join(funcPath, 'function.json'));
-            
-            if (hasIndexJs && hasFunctionJson) {
-                console.log(`   ✅ ${funcDir}: index.js + function.json`);
+        for (const funcFile of functionFiles) {
+            const funcPath = path.join(functionsDir, funcFile);
+            if (fs.existsSync(funcPath)) {
+                console.log(`   ✅ ${funcFile} (compiled)`);
             } else {
-                console.log(`   ❌ ${funcDir}: missing ${!hasIndexJs ? 'index.js' : ''} ${!hasFunctionJson ? 'function.json' : ''}`);
+                console.log(`   ❌ ${funcFile} missing`);
                 allGood = false;
             }
         }
+    } else {
+        console.log(`❌ Functions directory missing: src/functions/`);
+        allGood = false;
     }
 
     console.log('\n' + '='.repeat(60));
-    if (allGood && functionJsonCopied) {
-        console.log('🎉 SUCCESS! Traditional Azure Functions deployment structure ready');
+    if (allGood) {
+        console.log('🎉 SUCCESS! Azure Functions v4 programming model deployment ready');
         console.log('✅ dist/ directory contains all required files');
+        console.log('✅ NO function.json files needed (v4 programming model)');
+        console.log('✅ Functions registered in index.js using app.http() and app.timer()');
         console.log('✅ Ready for Azure deployment');
         console.log('\n📦 Deploy from: ./PokeDataFunc/dist');
+        console.log('\n🔧 Entry point: dist/index.js (as specified in package.json main field)');
     } else {
         console.log('❌ ISSUES FOUND! Please check the errors above');
-        if (!functionJsonCopied) {
-            console.log('❌ No function.json files were copied');
-        }
         process.exit(1);
     }
 
@@ -152,4 +118,4 @@ try {
     process.exit(1);
 }
 
-console.log('\n🚀 File copy process completed successfully!');
+console.log('\n🚀 Azure Functions v4 file copy process completed successfully!');

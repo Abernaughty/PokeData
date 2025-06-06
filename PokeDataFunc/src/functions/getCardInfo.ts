@@ -1,9 +1,9 @@
 import { HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 
-export default async function (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-    context.log('GetCardInfo function processed a request.');
+export async function getCardInfo(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+    context.log(`GetCardInfo function processed request for url "${request.url}"`);
     
-    const cardId = req.params.cardId;
+    const cardId = request.params.cardId;
     
     if (!cardId) {
         return {
