@@ -1,7 +1,9 @@
 # Active Context
 
 ## Current Focus
-**🚨 CRITICAL DEPLOYMENT CRISIS**: Azure Functions deployment currently failing due to function.json file location issues preventing backend API from functioning.
+**🚨 CRITICAL AZURE FUNCTIONS V4 DEPLOYMENT FAILURE**: Azure Functions deployment completely broken due to programming model conflicts preventing all backend functionality.
+
+**CURRENT STATUS**: **COMPLETE BACKEND FAILURE** - All Azure Functions returning 404 errors, functions not appearing in Azure Portal, backend API completely non-functional.
 
 The PokeData project has achieved a mature cloud-first architecture with the following completed major milestones:
 
@@ -43,6 +45,49 @@ The PokeData project has achieved a mature cloud-first architecture with the fol
 - **✅ ALL ENDPOINTS VALIDATED**: Complete production testing confirms all functions working correctly
 
 ## Recent Changes
+
+### ❌ **🚨 AZURE FUNCTIONS V4 PROGRAMMING MODEL DEPLOYMENT CRISIS (2025-06-06)**:
+- **🔥 CRITICAL BACKEND FAILURE**: Azure Functions deployment completely broken due to programming model implementation conflicts
+  - **Root Cause Analysis**: Attempted to implement true Azure Functions v4 programming model but created deployment incompatibility
+    - **Problem**: Mixed programming model approach causing Azure runtime confusion
+      - **Legacy Structure**: Old function.json files still present in various directories
+      - **v4 Implementation**: New src/index.ts with app.http() registrations
+      - **Conflict**: Azure prioritizes function.json over v4 programming model when both exist
+    - **Current State**: Functions compile successfully but don't appear in Azure Portal
+      - **Build Success**: TypeScript compilation works correctly
+      - **Deployment Success**: GitHub Actions deployment completes without errors
+      - **Runtime Failure**: Functions return 404 errors and don't register with Azure runtime
+      - **Portal Status**: No functions visible in Azure Functions portal
+  - **Technical Analysis**:
+    - **True v4 Model Attempted**: Implemented single entry point (src/index.ts) with app.http() registrations
+      - **✅ Package.json**: Updated main field to "dist/index.js"
+      - **✅ Function Registration**: All functions registered via app.http() and app.timer()
+      - **✅ TypeScript Structure**: Clean v4 programming model implementation
+      - **❌ Legacy Conflicts**: Old function.json files still present causing conflicts
+    - **Azure Runtime Behavior**: Azure Functions runtime prioritizes legacy function.json over v4 registrations
+      - **Detection Logic**: If function.json exists, Azure ignores v4 programming model
+      - **Mixed Model Issue**: Cannot have both function.json and v4 registrations simultaneously
+      - **Runtime Confusion**: Azure doesn't know which programming model to use
+  - **Current Impact**:
+    - **🚨 Complete Backend Failure**: All API endpoints returning 404 errors
+    - **🚨 Production Down**: Website frontend loads but no data available
+    - **🚨 Development Blocked**: Cannot test or deploy backend changes
+    - **🚨 User Experience**: Application appears broken to end users
+  - **Immediate Resolution Required**:
+    - **Decision Point**: Choose between true v4 model or traditional model
+      - **Option 1**: Complete v4 implementation (remove ALL function.json files)
+      - **Option 2**: Revert to traditional model (keep function.json, remove v4 registrations)
+      - **Option 3**: Hybrid approach (use v4 but maintain function.json compatibility)
+    - **Critical Files Involved**:
+      - **Legacy Directories**: PokeDataFunc/src/functions/*/function.json files
+      - **v4 Entry Point**: PokeDataFunc/src/index.ts with app registrations
+      - **Build Output**: dist/ directory structure and file placement
+      - **Package Configuration**: package.json main field and build scripts
+  - **Architecture Decision Required**:
+    - **Programming Model Choice**: Must commit to single programming model approach
+    - **Deployment Strategy**: Ensure clean deployment without model conflicts
+    - **Testing Validation**: Comprehensive testing in clean environment
+    - **Production Recovery**: Immediate fix needed to restore backend functionality
 
 ### ✅ **🎉 LOGGING STANDARDIZATION PROJECT COMPLETE (2025-06-05)**:
 - **🚀 ENTERPRISE-GRADE LOGGING SYSTEM IMPLEMENTED**: Successfully completed comprehensive logging standardization across the entire PokeData project, transforming it from having 300+ scattered console statements to a professional-grade structured logging system
