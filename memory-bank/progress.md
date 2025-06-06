@@ -102,6 +102,34 @@ The PokeData project has achieved a mature cloud-first architecture with compreh
 
 12. **Recent Improvements**:
 
+   - ❌ **🚨 CRITICAL AZURE FUNCTIONS DEPLOYMENT FAILURE (2025-06-05)**:
+     - **🔥 ACTIVE DEPLOYMENT CRISIS**: Azure Functions deployment currently failing due to function.json file location issues preventing backend API from functioning
+       - **Root Cause Identified**: function.json files missing from compiled output directories during GitHub Actions deployment
+         - **Problem**: Copy script expects `dist/functions/` directory but it doesn't exist in clean CI environment
+         - **Impact**: Functions deploy successfully but return 404 errors and don't appear in Azure portal
+         - **GitHub Actions Error**: `ENOENT: no such file or directory, scandir '/home/runner/work/PokeData/PokeData/PokeDataFunc/dist/functions'`
+       - **Current Status**:
+         - **❌ Production Functions**: All functions returning 404 errors
+         - **❌ Azure Portal**: No functions visible in function app
+         - **❌ Backend API**: Complete backend failure
+         - **✅ Local Development**: Works correctly with existing dist/functions structure
+         - **❌ CI/CD Pipeline**: Build fails during function.json copy step
+       - **Technical Analysis**:
+         - **Local Environment**: Has both `dist/functions/` (with function.json) and `functions/` (compiled JS)
+         - **GitHub Actions**: Clean environment only creates `functions/` directory from TypeScript compilation
+         - **Copy Script Issue**: `copy-function-json.js` tries to copy from non-existent `dist/functions/` to `functions/`
+         - **Azure Functions v4**: Requires both JS files and function.json in same directory
+       - **Immediate Impact**:
+         - **🚨 Production Down**: Backend API completely non-functional
+         - **🚨 User Experience**: Website frontend works but no data loading
+         - **🚨 Development Blocked**: Cannot deploy fixes until resolved
+         - **🚨 Architecture Broken**: All PokeData-first optimizations non-functional
+       - **Solution Required**:
+         - **Fix Copy Script**: Make script resilient to missing source directory
+         - **Alternative Approach**: Store function.json files in source control in correct location
+         - **Build Process**: Ensure function.json files are available during CI/CD
+         - **Testing**: Validate deployment works in clean environment
+
    - ✅ **🎉 AZURE FUNCTIONS V4 COMPILATION ISSUE RESOLVED (2025-06-05)**:
      - **🚀 CRITICAL INFRASTRUCTURE FIX COMPLETE**: Successfully resolved Azure Functions compilation and loading issues that were preventing backend API functionality
        - **Root Cause Identified**: TypeScript compilation configuration was incompatible with Azure Functions v4 runtime

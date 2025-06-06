@@ -1,6 +1,8 @@
 # Active Context
 
 ## Current Focus
+**🚨 CRITICAL DEPLOYMENT CRISIS**: Azure Functions deployment currently failing due to function.json file location issues preventing backend API from functioning.
+
 The PokeData project has achieved a mature cloud-first architecture with the following completed major milestones:
 
 ### ✅ **CLOUD-FIRST ARCHITECTURE FULLY OPERATIONAL (2025-06-04)**:
