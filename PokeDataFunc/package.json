@@ -4,7 +4,7 @@
   "main": "index.js",
   "packageManager": "pnpm@10.9.0",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node copy-function-json.js",
     "watch": "tsc -w",
     "prestart": "pnpm run build",
     "start": "func start",
