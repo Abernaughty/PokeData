@@ -19,35 +19,11 @@ if (!fs.existsSync(distDir)) {
     console.log('✅ Created dist/ directory');
 }
 
-// Function to copy function.json files
+// Azure Functions v4 doesn't need function.json files - they're defined in src/index.ts
+// This function is kept for compatibility but does nothing
 function copyFunctionJsonFiles(sourceDir, targetDir) {
-    if (!fs.existsSync(sourceDir)) {
-        console.log(`⚠️  Source directory not found: ${sourceDir}`);
-        return;
-    }
-
-    // Create the target directory if it doesn't exist
-    if (!fs.existsSync(targetDir)) {
-        fs.mkdirSync(targetDir, { recursive: true });
-    }
-
-    // Read the source directory
-    const items = fs.readdirSync(sourceDir, { withFileTypes: true });
-
-    // Process each item in the directory
-    for (const item of items) {
-        const sourcePath = path.join(sourceDir, item.name);
-        const targetPath = path.join(targetDir, item.name);
-
-        if (item.isDirectory()) {
-            // Recursively copy directories
-            copyFunctionJsonFiles(sourcePath, targetPath);
-        } else if (item.name === 'function.json') {
-            // Copy function.json files
-            console.log(`📄 Copying ${sourcePath} to ${targetPath}`);
-            fs.copyFileSync(sourcePath, targetPath);
-        }
-    }
+    console.log('ℹ️  Azure Functions v4: function.json files not needed (defined in src/index.ts)');
+    // No-op: Azure Functions v4 uses programmatic registration in index.ts
 }
 
 // Function to copy a single file
@@ -87,8 +63,8 @@ try {
         console.log('ℹ️  No .env file found (this is normal for production)');
     }
 
-    // 5. Verify the structure
-    console.log('\n🔍 Step 5: Verifying dist/ structure...');
+    // 5. Verify the structure (Azure Functions v4)
+    console.log('\n🔍 Step 5: Verifying Azure Functions v4 dist/ structure...');
     
     // Check for required files
     const requiredFiles = ['host.json', 'package.json', 'index.js'];
@@ -118,16 +94,15 @@ try {
             
             console.log(`   📂 Functions found: ${functionDirs.join(', ')}`);
             
-            // Verify each function has both index.js and function.json
+            // Azure Functions v4: Only verify index.js exists (no function.json needed)
             for (const funcDir of functionDirs) {
                 const funcPath = path.join(dirPath, funcDir);
                 const hasIndexJs = fs.existsSync(path.join(funcPath, 'index.js'));
-                const hasFunctionJson = fs.existsSync(path.join(funcPath, 'function.json'));
                 
-                if (hasIndexJs && hasFunctionJson) {
-                    console.log(`   ✅ ${funcDir}: index.js + function.json`);
+                if (hasIndexJs) {
+                    console.log(`   ✅ ${funcDir}: index.js (v4 - no function.json needed)`);
                 } else {
-                    console.log(`   ❌ ${funcDir}: missing ${!hasIndexJs ? 'index.js' : ''} ${!hasFunctionJson ? 'function.json' : ''}`);
+                    console.log(`   ❌ ${funcDir}: missing index.js`);
                     allGood = false;
                 }
             }
