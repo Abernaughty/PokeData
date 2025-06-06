@@ -21,10 +21,10 @@ const packageJsonPath = 'PokeDataFunc/package.json';
 if (fs.existsSync(packageJsonPath)) {
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
     
-    if (packageJson.main === 'dist/functions/*.js') {
-        console.log('✅ package.json main field correctly set to "dist/functions/*.js"');
+    if (packageJson.main === 'functions/*.js') {
+        console.log('✅ package.json main field correctly set to "functions/*.js"');
     } else {
-        console.log(`❌ package.json main field is "${packageJson.main}", should be "dist/functions/*.js"`);
+        console.log(`❌ package.json main field is "${packageJson.main}", should be "functions/*.js"`);
         issues.push('Incorrect package.json main field for individual files pattern');
         allTestsPassed = false;
     }
