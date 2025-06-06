@@ -1,4 +1,4 @@
-import { HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 
 export async function getSetList(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
     context.log(`GetSetList function processed request for url "${request.url}"`);
@@ -19,3 +19,11 @@ export async function getSetList(request: HttpRequest, context: InvocationContex
         jsonBody: responseMessage
     };
 }
+
+// Register the function with Azure Functions runtime
+app.http('getSetList', {
+    methods: ['GET'],
+    authLevel: 'function',
+    route: 'sets',
+    handler: getSetList,
+});

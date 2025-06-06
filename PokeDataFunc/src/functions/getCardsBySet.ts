@@ -1,4 +1,4 @@
-import { HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 
 export async function getCardsBySet(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
     context.log(`GetCardsBySet function processed request for url "${request.url}"`);
@@ -24,3 +24,11 @@ export async function getCardsBySet(request: HttpRequest, context: InvocationCon
         jsonBody: responseMessage
     };
 }
+
+// Register the function with Azure Functions runtime
+app.http('getCardsBySet', {
+    methods: ['GET'],
+    authLevel: 'function',
+    route: 'sets/{setId}/cards',
+    handler: getCardsBySet,
+});
