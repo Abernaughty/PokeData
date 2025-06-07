@@ -1,18 +1,16 @@
 {
   "name": "pokedatafunc",
   "version": "1.0.0",
-  "packageManager": "pnpm@10.9.0",
+  "main": "src/index.js",
   "scripts": {
-    "build": "echo 'No build needed for v3 - functions are already JavaScript'",
-    "copy": "echo 'No copy needed for v3 - functions are in correct structure'",
-    "prepare": "echo 'Azure Functions v3 ready'",
-    "watch": "echo 'No watch needed for v3'",
-    "prestart": "echo 'Starting Azure Functions v3'",
+    "build": "tsc",
+    "watch": "tsc -w",
+    "prestart": "npm run build",
     "start": "func start",
     "test": "node test-api.js",
     "test:azure": "node test-azure.js",
     "test:cosmos": "node test-cosmos.js",
-    "import": "pnpm exec ts-node import-data.ts",
+    "import": "npx ts-node import-data.ts",
     "build:deploy": "build-and-deploy.bat",
     "deploy": "func azure functionapp publish pokedata-func",
     "deploy:staging": "func azure functionapp publish pokedata-func --slot staging"
@@ -27,7 +25,7 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "@azure/functions": "^3.5.1",
+    "@azure/functions": "^4.7.0",
     "@azure/cosmos": "^4.3.0",
     "@azure/storage-blob": "^12.27.0",
     "axios": "^1.9.0",

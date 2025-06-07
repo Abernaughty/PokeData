@@ -5,6 +5,8 @@ on:
     branches:
       - main
       - cloud-migration
+    paths:
+      - 'PokeDataFunc/**'
   workflow_dispatch:
 
 permissions:
@@ -24,20 +26,19 @@ jobs:
       - name: 'Checkout GitHub Action'
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 10.9.0
-
       - name: Setup Node ${{ env.NODE_VERSION }} Environment
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-          cache-dependency-path: './PokeDataFunc/pnpm-lock.yaml'
+          cache: 'npm'
+          cache-dependency-path: './PokeDataFunc/package-lock.json'
 
       - name: 'Install dependencies'
-        run: pnpm install --frozen-lockfile
+        run: npm ci
+        working-directory: ./PokeDataFunc
+
+      - name: 'Build TypeScript'
+        run: npm run build --if-present
         working-directory: ./PokeDataFunc
 
       - name: 'Login to Azure'
@@ -54,11 +55,6 @@ jobs:
           app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
           slot-name: 'staging'
           package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
-          respect-pom-xml: false
-          respect-funcignore: false
-          scm-do-build-during-deployment: false
-          enable-oryx-build: false
-          remote-build: false
 
   deploy-production:
     runs-on: ubuntu-latest
@@ -77,6 +73,6 @@ jobs:
         run: |
           az functionapp deployment slot swap \
             --name ${{ env.AZURE_FUNCTIONAPP_NAME }} \
-            --resource-group pokedata-rg \
+            --resource-group pokemon-card-pricing \
             --slot staging \
             --target-slot production
