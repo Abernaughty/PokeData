@@ -98,6 +98,86 @@ class CosmosDbService {
             throw error;
         }
     }
+    async saveCards(cards) {
+        try {
+            console.log(`[CosmosDbService] Starting batch save of ${cards.length} cards`);
+            const startTime = Date.now();
+            if (cards.length === 0) {
+                console.log(`[CosmosDbService] No cards to save`);
+                return;
+            }
+            // Process cards in batches to avoid overwhelming Cosmos DB
+            const BATCH_SIZE = 100; // Cosmos DB recommended batch size
+            const batches = [];
+            for (let i = 0; i < cards.length; i += BATCH_SIZE) {
+                batches.push(cards.slice(i, i + BATCH_SIZE));
+            }
+            console.log(`[CosmosDbService] Processing ${cards.length} cards in ${batches.length} batches of ${BATCH_SIZE}`);
+            let totalSaved = 0;
+            let totalRU = 0;
+            // Process batches in parallel with controlled concurrency
+            const CONCURRENT_BATCHES = 3; // Limit concurrent batches to avoid rate limiting
+            for (let i = 0; i < batches.length; i += CONCURRENT_BATCHES) {
+                const concurrentBatches = batches.slice(i, i + CONCURRENT_BATCHES);
+                const batchPromises = concurrentBatches.map(async (batch, batchIndex) => {
+                    const actualBatchIndex = i + batchIndex;
+                    console.log(`[CosmosDbService] Processing batch ${actualBatchIndex + 1}/${batches.length} with ${batch.length} cards`);
+                    const batchStartTime = Date.now();
+                    let batchRU = 0;
+                    let batchSaved = 0;
+                    // Process each card in the batch
+                    const cardPromises = batch.map(async (card) => {
+                        try {
+                            const result = await this.cardContainer.items.upsert(card);
+                            batchRU += result.requestCharge || 0;
+                            batchSaved++;
+                            return { success: true, cardId: card.id, ru: result.requestCharge || 0 };
+                        }
+                        catch (error) {
+                            console.error(`[CosmosDbService] Failed to save card ${card.id}:`, error);
+                            return { success: false, cardId: card.id, error: error };
+                        }
+                    });
+                    const results = await Promise.all(cardPromises);
+                    const batchTime = Date.now() - batchStartTime;
+                    const failures = results.filter(r => !r.success);
+                    if (failures.length > 0) {
+                        console.warn(`[CosmosDbService] Batch ${actualBatchIndex + 1} had ${failures.length} failures out of ${batch.length} cards`);
+                        failures.forEach(failure => {
+                            console.warn(`[CosmosDbService] Failed card: ${failure.cardId}`);
+                        });
+                    }
+                    console.log(`[CosmosDbService] Batch ${actualBatchIndex + 1} completed: ${batchSaved}/${batch.length} cards saved in ${batchTime}ms, RU: ${batchRU.toFixed(2)}`);
+                    return { saved: batchSaved, ru: batchRU, failures: failures.length };
+                });
+                // Wait for all concurrent batches to complete
+                const batchResults = await Promise.all(batchPromises);
+                // Aggregate results
+                batchResults.forEach(result => {
+                    totalSaved += result.saved;
+                    totalRU += result.ru;
+                });
+                // Add small delay between concurrent batch groups to be gentle on Cosmos DB
+                if (i + CONCURRENT_BATCHES < batches.length) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+            }
+            const totalTime = Date.now() - startTime;
+            const avgTimePerCard = totalTime / cards.length;
+            const avgRUPerCard = totalRU / cards.length;
+            console.log(`[CosmosDbService] Batch save completed: ${totalSaved}/${cards.length} cards saved`);
+            console.log(`[CosmosDbService] Performance: ${totalTime}ms total (${avgTimePerCard.toFixed(1)}ms/card), ${totalRU.toFixed(2)} RU total (${avgRUPerCard.toFixed(2)} RU/card)`);
+            if (totalSaved < cards.length) {
+                const failedCount = cards.length - totalSaved;
+                console.warn(`[CosmosDbService] WARNING: ${failedCount} cards failed to save`);
+                // Don't throw error for partial failures - log and continue
+            }
+        }
+        catch (error) {
+            console.error(`[CosmosDbService] ERROR in batch save operation:`, error);
+            throw error;
+        }
+    }
     async updateCard(card) {
         try {
             await this.cardContainer.item(card.id, card.setId).replace(card);

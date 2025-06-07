@@ -230,14 +230,12 @@ async function getCardsBySet(request, context) {
                 cards = await Promise.all(cardPromises);
                 const transformTime = Date.now() - transformStartTime;
                 context.log(`${correlationId} Transformed ${cards.length} cards to PokeData-first format with pricing (${transformTime}ms)`);
-                // Step 3: Save to database and cache
+                // Step 3: Save to database and cache using batch operations
                 const saveStartTime = Date.now();
-                // Save each card to Cosmos DB
-                for (const card of cards) {
-                    await index_1.cosmosDbService.saveCard(card); // Type assertion for compatibility
-                }
+                // Use batch save for much better performance
+                await index_1.cosmosDbService.saveCards(cards); // Type assertion for compatibility
                 const saveTime = Date.now() - saveStartTime;
-                context.log(`${correlationId} Saved ${cards.length} cards to Cosmos DB (${saveTime}ms)`);
+                context.log(`${correlationId} Batch saved ${cards.length} cards to Cosmos DB (${saveTime}ms)`);
                 // Save to cache if enabled
                 if (process.env.ENABLE_REDIS_CACHE === "true") {
                     const cacheWriteStartTime = Date.now();
