@@ -1,18 +1,21 @@
 {
   "name": "pokedatafunc",
   "version": "1.0.0",
-  "main": "src/index.js",
+  "main": "index.js",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
-    "prestart": "npm run build",
+    "prestart": "pnpm run build",
     "start": "func start",
     "test": "node test-api.js",
     "test:azure": "node test-azure.js",
     "test:cosmos": "node test-cosmos.js",
-    "import": "npx ts-node import-data.ts",
+    "import": "pnpm exec ts-node import-data.ts",
     "build:deploy": "build-and-deploy.bat",
-    "deploy": "func azure functionapp publish pokedata-func",
+    "deploy": "pnpm run build && pnpm install && powershell -Command \"Compress-Archive -Path * -DestinationPath deployment.zip -Force; az functionapp deployment source config-zip --resource-group pokedata-rg --name pokedata-func --src deployment.zip\"",
     "deploy:staging": "func azure functionapp publish pokedata-func --slot staging"
   },
   "keywords": [],
@@ -25,10 +28,12 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "@azure/functions": "^4.7.0",
     "@azure/cosmos": "^4.3.0",
+    "@azure/functions": "^4.7.2",
     "@azure/storage-blob": "^12.27.0",
+    "@typespec/ts-http-runtime": "^0.2.2",
     "axios": "^1.9.0",
+    "cookie": "^0.6.0",
     "dotenv": "^16.5.0",
     "redis": "^4.7.0"
   }

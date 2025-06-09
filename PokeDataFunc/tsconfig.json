@@ -3,7 +3,7 @@
     "target": "ES2019",
     "module": "commonjs",
     "outDir": "./",
-    "rootDir": "./",
+    "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -13,10 +13,15 @@
     "sourceMap": true
   },
   "include": [
-    "**/*"
+    "src/**/*"
   ],
   "exclude": [
     "node_modules",
-    "**/*.test.ts"
+    "dist",
+    "**/*.test.ts",
+    "getCardInfo",
+    "getCardsBySet", 
+    "getSetList",
+    "RefreshData"
   ]
 }
