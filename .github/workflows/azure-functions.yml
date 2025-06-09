@@ -7,6 +7,7 @@ on:
       - cloud-migration
     paths:
       - 'PokeDataFunc/**'
+      - '.github/workflows/azure-functions.yml'
   workflow_dispatch:
 
 permissions:
@@ -16,7 +17,7 @@ permissions:
 env:
   AZURE_FUNCTIONAPP_NAME: 'pokedata-func'
   AZURE_FUNCTIONAPP_PACKAGE_PATH: './PokeDataFunc'
-  NODE_VERSION: '18.x'
+  NODE_VERSION: '20.x'
 
 jobs:
   build-and-deploy-staging:
@@ -26,17 +27,17 @@ jobs:
       - name: 'Checkout GitHub Action'
         uses: actions/checkout@v4
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.9.0
+
       - name: Setup Node ${{ env.NODE_VERSION }} Environment
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
           cache-dependency-path: './PokeDataFunc/pnpm-lock.yaml'
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.9.0
 
       - name: 'Install dependencies'
         run: pnpm install --frozen-lockfile
