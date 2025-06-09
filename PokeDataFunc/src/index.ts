@@ -1,4 +1,5 @@
-import { app } from '@azure/functions';
+import * as azureFunctions from '@azure/functions';
+const { app } = azureFunctions;
 import { CosmosDbService } from './services/CosmosDbService';
 import { RedisCacheService } from './services/RedisCacheService';
 import { BlobStorageService } from './services/BlobStorageService';
@@ -57,3 +58,5 @@ app.timer('refreshData', {
     schedule: '0 0 */12 * * *',
     handler: refreshData
 });
+
+// Test deployment with path-based triggers - 2025-06-09
