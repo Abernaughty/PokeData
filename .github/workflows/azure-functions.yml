@@ -16,7 +16,7 @@ permissions:
 
 env:
   AZURE_FUNCTIONAPP_NAME: 'pokedata-func'
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: './PokeDataFunc'
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: './PokeDataFunc/dist'
   NODE_VERSION: '20.x'
 
 jobs:
@@ -43,9 +43,12 @@ jobs:
         run: pnpm install --frozen-lockfile
         working-directory: ./PokeDataFunc
 
-      - name: 'Build TypeScript'
-        run: pnpm run build
+      - name: 'Create clean deployment package'
+        run: pnpm run build:clean
         working-directory: ./PokeDataFunc
+
+      - name: 'Verify dist directory contents'
+        run: ls -la ./PokeDataFunc/dist
 
       - name: 'Login to Azure'
         uses: azure/login@v2

@@ -7,6 +7,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "build:clean": "node scripts/build-clean.js",
     "watch": "tsc -w",
     "prestart": "pnpm run build",
     "start": "func start",
