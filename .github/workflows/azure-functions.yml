@@ -16,7 +16,7 @@ permissions:
 
 env:
   AZURE_FUNCTIONAPP_NAME: 'pokedata-func'
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: './PokeDataFunc'
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: './PokeDataFunc/dist'
   NODE_VERSION: '20.x'
 
 jobs:
@@ -46,6 +46,10 @@ jobs:
       - name: 'Build TypeScript'
         run: pnpm run build
         working-directory: ./PokeDataFunc
+
+      - name: 'Install production dependencies in dist'
+        run: npm install --production
+        working-directory: ./PokeDataFunc/dist
 
       - name: 'Login to Azure'
         uses: azure/login@v2
