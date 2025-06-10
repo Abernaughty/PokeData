@@ -26,6 +26,9 @@ export const cloudDataService = {
         url.searchParams.append('groupByExpansion', 'true');
       }
       
+      // Request all sets (English + Japanese) instead of just English
+      url.searchParams.append('language', 'ALL');
+      
       const response = await fetch(url.toString(), {
         headers: API_CONFIG.getHeaders()
       });

@@ -1,13 +1,12 @@
 {
   "name": "pokedatafunc",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "dist/index.js",
   "engines": {
     "node": ">=20.0.0"
   },
   "scripts": {
     "build": "tsc",
-    "build:clean": "node scripts/build-clean.js",
     "watch": "tsc -w",
     "prestart": "pnpm run build",
     "start": "func start",
@@ -15,8 +14,7 @@
     "test:azure": "node test-azure.js",
     "test:cosmos": "node test-cosmos.js",
     "import": "pnpm exec ts-node import-data.ts",
-    "build:deploy": "build-and-deploy.bat",
-    "deploy": "pnpm run build && pnpm install && powershell -Command \"Compress-Archive -Path * -DestinationPath deployment.zip -Force; az functionapp deployment source config-zip --resource-group pokedata-rg --name pokedata-func --src deployment.zip\"",
+    "deploy": "deploy.bat",
     "deploy:staging": "func azure functionapp publish pokedata-func --slot staging"
   },
   "keywords": [],

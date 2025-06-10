@@ -176,116 +176,30 @@ export async function getCardsBySet(request: HttpRequest, context: InvocationCon
                 
                 context.log(`${correlationId} PokeData API returned ${pokeDataCards.length} cards for set ${setId} (${apiTime}ms)`);
                 
-                // Step 2: For each card, get full details with pricing
+                // Step 2: Transform to basic card format (NO INDIVIDUAL PRICING CALLS)
                 const transformStartTime = Date.now();
-                const cardPromises = pokeDataCards.map(async (pokeDataCard) => {
-                    try {
-                        // Get full card details including pricing
-                        const fullCardData = await pokeDataApiService.getFullCardDetailsById(pokeDataCard.id);
-                        
-                        if (!fullCardData) {
-                            // If we can't get pricing, create card with basic info and empty pricing
-                            return {
-                                id: String(pokeDataCard.id),
-                                source: "pokedata" as const,
-                                pokeDataId: pokeDataCard.id,
-                                setId: pokeDataCard.set_id,
-                                setName: pokeDataCard.set_name,
-                                setCode: pokeDataCard.set_code || '',
-                                cardName: pokeDataCard.name,
-                                cardNumber: pokeDataCard.num,
-                                secret: pokeDataCard.secret || false,
-                                language: pokeDataCard.language || 'ENGLISH',
-                                releaseDate: pokeDataCard.release_date || '',
-                                pricing: {},
-                                lastUpdated: new Date().toISOString()
-                            };
-                        }
-                        
-                        // Transform pricing data
-                        const transformedPricing: any = {};
-                        
-                        // Process PSA grades
-                        const psaGrades: { [grade: string]: number } = {};
-                        for (let i = 1; i <= 10; i++) {
-                            const grade = i === 10 ? '10.0' : `${i}.0`;
-                            const key = `PSA ${grade}`;
-                            if (fullCardData.pricing && fullCardData.pricing[key] && fullCardData.pricing[key].value > 0) {
-                                psaGrades[String(i)] = fullCardData.pricing[key].value;
-                            }
-                        }
-                        if (Object.keys(psaGrades).length > 0) {
-                            transformedPricing.psa = psaGrades;
-                        }
-                        
-                        // Process CGC grades
-                        const cgcGrades: { [grade: string]: number } = {};
-                        const cgcGradeValues = ['1.0', '2.0', '3.0', '4.0', '5.0', '6.0', '7.0', '7.5', '8.0', '8.5', '9.0', '9.5', '10.0'];
-                        cgcGradeValues.forEach(grade => {
-                            const key = `CGC ${grade}`;
-                            if (fullCardData.pricing && fullCardData.pricing[key] && fullCardData.pricing[key].value > 0) {
-                                const gradeKey = grade.replace('.', '_');
-                                cgcGrades[gradeKey] = fullCardData.pricing[key].value;
-                            }
-                        });
-                        if (Object.keys(cgcGrades).length > 0) {
-                            transformedPricing.cgc = cgcGrades;
-                        }
-                        
-                        // Process other pricing sources
-                        if (fullCardData.pricing) {
-                            if (fullCardData.pricing['TCGPlayer'] && fullCardData.pricing['TCGPlayer'].value > 0) {
-                                transformedPricing.tcgPlayer = fullCardData.pricing['TCGPlayer'].value;
-                            }
-                            if (fullCardData.pricing['eBay Raw'] && fullCardData.pricing['eBay Raw'].value > 0) {
-                                transformedPricing.ebayRaw = fullCardData.pricing['eBay Raw'].value;
-                            }
-                            if (fullCardData.pricing['Pokedata Raw'] && fullCardData.pricing['Pokedata Raw'].value > 0) {
-                                transformedPricing.pokeDataRaw = fullCardData.pricing['Pokedata Raw'].value;
-                            }
-                        }
-                        
-                        return {
-                            id: String(pokeDataCard.id),
-                            source: "pokedata" as const,
-                            pokeDataId: pokeDataCard.id,
-                            setId: pokeDataCard.set_id,
-                            setName: pokeDataCard.set_name,
-                            setCode: pokeDataCard.set_code || '',
-                            cardName: pokeDataCard.name,
-                            cardNumber: pokeDataCard.num,
-                            secret: pokeDataCard.secret || false,
-                            language: pokeDataCard.language || 'ENGLISH',
-                            releaseDate: pokeDataCard.release_date || '',
-                            pricing: transformedPricing,
-                            lastUpdated: new Date().toISOString()
-                        };
-                    } catch (error: any) {
-                        context.log(`${correlationId} Warning: Failed to get pricing for card ${pokeDataCard.id}: ${error.message}`);
-                        // Return card with basic info and empty pricing
-                        return {
-                            id: String(pokeDataCard.id),
-                            source: "pokedata" as const,
-                            pokeDataId: pokeDataCard.id,
-                            setId: pokeDataCard.set_id,
-                            setName: pokeDataCard.set_name,
-                            setCode: pokeDataCard.set_code || '',
-                            cardName: pokeDataCard.name,
-                            cardNumber: pokeDataCard.num,
-                            secret: pokeDataCard.secret || false,
-                            language: pokeDataCard.language || 'ENGLISH',
-                            releaseDate: pokeDataCard.release_date || '',
-                            pricing: {},
-                            lastUpdated: new Date().toISOString()
-                        };
-                    }
-                });
                 
-                // Wait for all card processing to complete
-                cards = await Promise.all(cardPromises);
+                // Create basic card structure without pricing (on-demand strategy)
+                cards = pokeDataCards.map(pokeDataCard => ({
+                    id: String(pokeDataCard.id),
+                    source: "pokedata" as const,
+                    pokeDataId: pokeDataCard.id,
+                    setId: pokeDataCard.set_id,
+                    setName: pokeDataCard.set_name,
+                    setCode: pokeDataCard.set_code || '',
+                    cardName: pokeDataCard.name,
+                    cardNumber: pokeDataCard.num,
+                    secret: pokeDataCard.secret || false,
+                    language: pokeDataCard.language || 'ENGLISH',
+                    releaseDate: pokeDataCard.release_date || '',
+                    pricing: {}, // Empty pricing - will be fetched on-demand in GetCardInfo
+                    lastUpdated: new Date().toISOString()
+                }));
                 
                 const transformTime = Date.now() - transformStartTime;
-                context.log(`${correlationId} Transformed ${cards.length} cards to PokeData-first format with pricing (${transformTime}ms)`);
+                context.log(`${correlationId} Transformed ${cards.length} cards to basic PokeData format (${transformTime}ms)`);
+                context.log(`${correlationId} ✅ ON-DEMAND STRATEGY: Pricing will be fetched when users request individual cards`);
+                context.log(`${correlationId} ✅ TOKEN EFFICIENCY: 1 API call instead of ${pokeDataCards.length} calls (${pokeDataCards.length}x reduction)`);
                 
                 // Step 3: Save to database and cache using batch operations
                 const saveStartTime = Date.now();
