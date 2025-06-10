@@ -47,8 +47,55 @@ jobs:
         run: pnpm run build
         working-directory: ./PokeDataFunc
 
-      - name: 'Verify dist directory contents'
-        run: ls -la ./PokeDataFunc/dist
+      - name: 'Copy essential files to dist'
+        run: |
+          cp host.json dist/host.json
+          if [ -f "local.settings.json" ]; then
+            cp local.settings.json dist/local.settings.json
+          fi
+        working-directory: ./PokeDataFunc
+
+      - name: 'Create production package.json in dist'
+        run: |
+          cat > dist/package.json << 'EOF'
+          {
+            "name": "pokedatafunc",
+            "version": "1.0.0",
+            "main": "index.js",
+            "engines": {
+              "node": ">=20.0.0"
+            },
+            "dependencies": {
+              "@azure/cosmos": "^4.3.0",
+              "@azure/functions": "^4.7.2",
+              "@azure/storage-blob": "^12.27.0",
+              "@typespec/ts-http-runtime": "^0.2.2",
+              "axios": "^1.9.0",
+              "cookie": "^0.6.0",
+              "dotenv": "^16.5.0",
+              "redis": "^4.7.0"
+            }
+          }
+          EOF
+        working-directory: ./PokeDataFunc
+
+      - name: 'Install production dependencies in dist'
+        run: |
+          cd dist
+          npm install --production --silent
+        working-directory: ./PokeDataFunc
+
+      - name: 'Verify complete dist package contents'
+        run: |
+          echo "=== Dist directory contents ==="
+          ls -la dist/
+          echo "=== Package.json exists ==="
+          cat dist/package.json
+          echo "=== Host.json exists ==="
+          cat dist/host.json
+          echo "=== Node_modules exists ==="
+          ls -la dist/node_modules/ | head -10
+        working-directory: ./PokeDataFunc
 
       - name: 'Login to Azure'
         uses: azure/login@v2
