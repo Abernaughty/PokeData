@@ -29,6 +29,7 @@ import { getSetList } from './functions/GetSetList';
 import { getCardInfo } from './functions/GetCardInfo';
 import { getCardsBySet } from './functions/GetCardsBySet';
 import { refreshData } from './functions/RefreshData';
+import { monitorCredits } from './functions/MonitorCredits';
 
 // Register functions
 app.http('getSetList', {
@@ -53,10 +54,15 @@ app.http('getCardsBySet', {
 });
 
 
-// Register timer-triggered function
+// Register timer-triggered functions
 app.timer('refreshData', {
     schedule: '0 0 */12 * * *',
     handler: refreshData
+});
+
+app.timer('monitorCredits', {
+    schedule: '0 0 */6 * * *',
+    handler: monitorCredits
 });
 
 // Test deployment with path-based triggers - 2025-06-09

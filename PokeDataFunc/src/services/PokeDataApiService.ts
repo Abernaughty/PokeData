@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { EnhancedPriceData } from '../models/Card';
+import { CreditMonitoringService, CreditStatus } from './CreditMonitoringService';
 
 // Define interfaces for PokeData API responses
 interface PokeDataSet {
@@ -50,12 +51,16 @@ export interface IPokeDataApiService {
     
     // NEW: Full card details with pricing
     getFullCardDetailsById(pokeDataId: number): Promise<any>;
+    
+    // NEW: Credit monitoring methods
+    checkCreditsRemaining(): Promise<{ creditsRemaining: number; status: string } | null>;
 }
 
 export class PokeDataApiService implements IPokeDataApiService {
     private apiKey: string;
     private baseUrl: string;
     private cacheTTL: number = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+    private creditMonitoringService: CreditMonitoringService;
     
     // Cache for sets and cards to minimize API calls
     private setsCache: {
@@ -74,6 +79,7 @@ export class PokeDataApiService implements IPokeDataApiService {
     constructor(apiKey: string, baseUrl: string = 'https://www.pokedata.io/v0') {
         this.apiKey = apiKey;
         this.baseUrl = baseUrl;
+        this.creditMonitoringService = new CreditMonitoringService();
     }
     
     private getHeaders() {
@@ -537,5 +543,121 @@ export class PokeDataApiService implements IPokeDataApiService {
         }
         
         return Object.keys(enhancedPricing).length > 0 ? enhancedPricing : null;
+    }
+
+    /**
+     * Check remaining PokeData API credits
+     * This endpoint is FREE - no credits consumed
+     */
+    async checkCreditsRemaining(): Promise<{ creditsRemaining: number; status: string } | null> {
+        console.log(`[PokeDataApiService] Checking remaining API credits`);
+        
+        try {
+            const url = `${this.baseUrl}/account`;
+            
+            console.log(`[PokeDataApiService] Making credit check request to: ${url}`);
+            
+            const response = await axios.get(url, { headers: this.getHeaders() });
+            
+            if (response.data && typeof response.data.credits_remaining === 'number') {
+                const creditsRemaining = response.data.credits_remaining;
+                const creditLimit = response.data.credits_limit || undefined;
+                
+                console.log(`[PokeDataApiService] Current credits: ${creditsRemaining}${creditLimit ? ` / ${creditLimit}` : ''}`);
+                
+                // Determine status based on remaining credits
+                let status = 'healthy';
+                if (creditsRemaining <= 0) {
+                    status = 'exhausted';
+                } else if (creditLimit) {
+                    const percentage = creditsRemaining / creditLimit;
+                    if (percentage <= 0.05) status = 'critical';
+                    else if (percentage <= 0.1) status = 'critical';
+                    else if (percentage <= 0.2) status = 'warning';
+                } else {
+                    // Without knowing limit, use absolute thresholds
+                    if (creditsRemaining <= 100) status = 'critical';
+                    else if (creditsRemaining <= 500) status = 'warning';
+                }
+                
+                return {
+                    creditsRemaining,
+                    status
+                };
+            }
+            
+            console.log(`[PokeDataApiService] Unexpected response format for account endpoint:`, response.data);
+            return null;
+        } catch (error: any) {
+            console.error(`[PokeDataApiService] Error checking credits: ${error.message}`);
+            
+            if (error.response) {
+                console.error(`[PokeDataApiService] Response status: ${error.response.status}`);
+                console.error(`[PokeDataApiService] Response data:`, error.response.data);
+            }
+            
+            return null;
+        }
+    }
+
+    /**
+     * Enhanced API call wrapper with credit monitoring
+     * Automatically checks credits on specific error conditions
+     */
+    private async makeApiCallWithCreditCheck(
+        operation: string,
+        apiCall: () => Promise<any>,
+        correlationId: string = `api-${Date.now()}`
+    ): Promise<any> {
+        try {
+            return await apiCall();
+        } catch (error: any) {
+            // Check if this might be a credit-related error
+            const shouldCheckCredits = this.shouldCheckCreditsForError(error);
+            
+            if (shouldCheckCredits) {
+                console.warn(`${correlationId} API error detected, checking credits: ${error.message}`);
+                
+                // Check remaining credits
+                const creditStatus = await this.checkCreditsRemaining();
+                
+                if (creditStatus) {
+                    // Process credit status with monitoring service
+                    await this.creditMonitoringService.processCreditStatus(
+                        creditStatus.creditsRemaining,
+                        operation,
+                        'PokeDataApiService',
+                        correlationId
+                    );
+                    
+                    // Enhanced error message with credit information
+                    if (creditStatus.status === 'exhausted') {
+                        const enhancedError = new Error(
+                            `API call failed due to exhausted PokeData credits (${creditStatus.creditsRemaining} remaining). Original error: ${error.message}`
+                        );
+                        (enhancedError as any).originalError = error;
+                        (enhancedError as any).creditStatus = creditStatus;
+                        throw enhancedError;
+                    } else if (creditStatus.status === 'critical' || creditStatus.status === 'warning') {
+                        console.warn(`${correlationId} 🟡 LOW CREDITS WARNING: ${creditStatus.creditsRemaining} PokeData credits remaining (${creditStatus.status})`);
+                    }
+                }
+            }
+            
+            // Re-throw original error
+            throw error;
+        }
+    }
+
+    /**
+     * Determine if we should check credits based on the error
+     */
+    private shouldCheckCreditsForError(error: any): boolean {
+        if (!error.response) return false;
+        
+        const status = error.response.status;
+        
+        // Check credits on these status codes that might indicate quota issues
+        return [401, 403, 404, 429].includes(status);
     }
 }
