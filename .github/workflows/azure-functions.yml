@@ -43,8 +43,8 @@ jobs:
         run: pnpm install --frozen-lockfile
         working-directory: ./PokeDataFunc
 
-      - name: 'Create clean deployment package'
-        run: pnpm run build:clean
+      - name: 'Build TypeScript to dist directory'
+        run: pnpm run build
         working-directory: ./PokeDataFunc
 
       - name: 'Verify dist directory contents'
