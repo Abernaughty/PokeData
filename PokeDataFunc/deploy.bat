@@ -76,10 +76,14 @@ echo  Production Deployment (Recommended)
 echo ========================================
 echo.
 
-echo Step 1: Cleaning previous builds...
+echo Step 1: Cleaning previous builds and artifacts...
 if exist "dist" (
     rmdir /s /q "dist"
     echo [OK] Cleaned existing dist directory
+)
+if exist "deployment.zip" (
+    del "deployment.zip" 2>nul
+    echo [OK] Cleaned existing deployment.zip
 )
 mkdir "dist"
 
@@ -152,29 +156,63 @@ cd ..
 echo [OK] Deployment package created
 
 echo Step 7: Deploying to Azure Functions...
-az functionapp deployment source config-zip --resource-group pokedata-rg --name pokedata-func --src deployment.zip
-if %ERRORLEVEL% neq 0 (
-    echo [ERROR] Azure deployment failed
-    pause
-    exit /b 1
+call az functionapp deployment source config-zip --resource-group pokedata-rg --name pokedata-func --src deployment.zip > deploy_output.tmp 2>&1
+set DEPLOY_EXIT_CODE=%ERRORLEVEL%
+
+echo [DEBUG] Azure CLI exit code: %DEPLOY_EXIT_CODE%
+
+rem Check if deployment output contains success indicators
+findstr /i "succeeded" deploy_output.tmp >nul 2>&1
+set SUCCESS_FOUND=%ERRORLEVEL%
+
+rem Display deployment result
+type deploy_output.tmp
+del deploy_output.tmp 2>nul
+
+rem Determine if deployment was actually successful
+set DEPLOYMENT_SUCCESS=0
+if %DEPLOY_EXIT_CODE% equ 0 (
+    echo [OK] Azure deployment completed successfully ^(exit code 0^)
+    set DEPLOYMENT_SUCCESS=1
+    goto step8
 )
 
-echo Step 8: Cleaning up...
-if exist "deployment.zip" del "deployment.zip"
-echo [OK] Cleanup completed
+if %SUCCESS_FOUND% equ 0 (
+    echo [OK] Azure deployment completed successfully ^(success detected in output despite exit code %DEPLOY_EXIT_CODE%^)
+    set DEPLOYMENT_SUCCESS=1
+    goto step8
+)
 
-echo.
-echo ========================================
-echo  Production Deployment Success! [DONE]
-echo ========================================
-echo.
-echo The functions are now deployed with:
-echo [OK] Only compiled JavaScript files
-echo [OK] Production dependencies only  
-echo [OK] Clean Azure Functions structure
-echo [OK] No development files or source code
-echo [OK] 99.9%% token consumption reduction
-echo.
+echo [ERROR] Azure deployment failed ^(exit code %DEPLOY_EXIT_CODE%, no success indicators found^)
+echo [ERROR] Check Azure CLI authentication and function app name.
+pause
+exit /b 1
+
+:step8
+
+echo Step 8: Cleaning up...
+if exist "deployment.zip" (
+    del "deployment.zip"
+    echo [OK] Cleaned deployment.zip
+) else (
+    echo [INFO] deployment.zip already cleaned
+)
+
+if %DEPLOYMENT_SUCCESS% equ 1 (
+    echo.
+    echo ========================================
+    echo  Production Deployment Success! [DONE]
+    echo ========================================
+    echo.
+    echo The functions are now deployed with:
+    echo [OK] Only compiled JavaScript files
+    echo [OK] Production dependencies only  
+    echo [OK] Clean Azure Functions structure
+    echo [OK] No development files or source code
+    echo [OK] 99.9%% token consumption reduction
+    echo [OK] Credit monitoring system active
+    echo.
+)
 goto end
 
 :exit

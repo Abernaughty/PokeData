@@ -559,8 +559,8 @@ export class PokeDataApiService implements IPokeDataApiService {
             
             const response = await axios.get(url, { headers: this.getHeaders() });
             
-            if (response.data && typeof response.data.credits_remaining === 'number') {
-                const creditsRemaining = response.data.credits_remaining;
+            if (response.data && typeof response.data.credits === 'number') {
+                const creditsRemaining = response.data.credits;
                 const creditLimit = response.data.credits_limit || undefined;
                 
                 console.log(`[PokeDataApiService] Current credits: ${creditsRemaining}${creditLimit ? ` / ${creditLimit}` : ''}`);

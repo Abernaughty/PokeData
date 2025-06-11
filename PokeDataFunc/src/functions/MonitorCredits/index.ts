@@ -39,6 +39,7 @@ export async function monitorCredits(myTimer: Timer, context: InvocationContext)
     context.log(`${correlationId} Current credit status: ${creditsRemaining} credits remaining (${status}) - ${creditCheckTime}ms`);
     
     // Step 2: Initialize credit monitoring service
+    context.log(`${correlationId} Step 2: Initializing credit monitoring service...`);
     const creditMonitoringService = new CreditMonitoringService();
     
     // Step 3: Process credit status and generate monitoring data
@@ -56,6 +57,7 @@ export async function monitorCredits(myTimer: Timer, context: InvocationContext)
     context.log(`${correlationId} Credit status processed (${processingTime}ms) - Status: ${processedStatus.status}`);
     
     // Step 4: Create comprehensive monitoring data
+    context.log(`${correlationId} Step 4: Creating comprehensive monitoring data structure...`);
     const monitoringData: CreditMonitoringData = {
       id: timestamp,
       timestamp: new Date(),
@@ -114,6 +116,7 @@ export async function monitorCredits(myTimer: Timer, context: InvocationContext)
     context.log(`${correlationId} Monitoring data saved (${saveTime}ms)`);
     
     // Step 7: Generate summary and recommendations
+    context.log(`${correlationId} Step 7: Generating final summary and recommendations...`);
     const totalTime = Date.now() - startTime;
     context.log(`${correlationId} ✅ Credit monitoring complete in ${totalTime}ms`);
     
