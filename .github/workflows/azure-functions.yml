@@ -4,9 +4,15 @@ on:
   push:
     branches:
       - main
-      - cloud-migration
     paths:
-      - 'PokeDataFunc/**'
+      # Azure Functions source code and configuration
+      - 'PokeDataFunc/src/**'
+      - 'PokeDataFunc/package.json'
+      - 'PokeDataFunc/pnpm-lock.yaml'
+      - 'PokeDataFunc/host.json'
+      - 'PokeDataFunc/tsconfig.json'
+      - 'PokeDataFunc/data/**'
+      # Workflow file itself
       - '.github/workflows/azure-functions.yml'
   workflow_dispatch:
 
