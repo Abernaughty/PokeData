@@ -36,7 +36,7 @@ export class PokeDataToTcgMappingService {
     private reverseMappingLoaded: boolean = false;
 
     constructor() {
-        this.mappingFilePath = path.join(__dirname, '../../data/set-mapping.json');
+        this.mappingFilePath = path.join(__dirname, '../data/set-mapping.json');
     }
 
     /**
