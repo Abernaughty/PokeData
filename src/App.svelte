@@ -513,7 +513,6 @@
   
   .results .graded-price {
     margin-left: 0.5rem;
-    border-left: 3px solid #3c5aa6;
     padding-left: 0.8rem;
   }
   
