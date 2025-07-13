@@ -107,6 +107,12 @@ if exist "local.settings.json" (
 ) else (
     echo [WARN] local.settings.json not found, skipping
 )
+if exist "data" (
+    xcopy /E /I /Y "data" "dist\data" >nul
+    echo [OK] Copied data folder
+) else (
+    echo [WARN] data folder not found
+)
 
 echo Step 4: Creating production package.json...
 (

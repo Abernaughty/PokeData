@@ -9,7 +9,7 @@ tsconfig.json
 *.md
 src/
 .env
-data/
+# data/ - REMOVED: Data folder needed for set mapping in production
 docs/
 scripts/
 batch-update-pricing.js

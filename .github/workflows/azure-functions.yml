@@ -61,6 +61,11 @@ jobs:
           fi
         working-directory: ./PokeDataFunc
 
+      - name: 'Copy data folder to dist'
+        run: |
+          cp -r data dist/data
+        working-directory: ./PokeDataFunc
+
       - name: 'Create production package.json in dist'
         run: |
           cat > dist/package.json << 'EOF'
@@ -95,6 +100,8 @@ jobs:
         run: |
           echo "=== Dist directory contents ==="
           ls -la dist/
+          echo "=== Data folder contents ==="
+          ls -la dist/data/
           echo "=== Package.json exists ==="
           cat dist/package.json
           echo "=== Host.json exists ==="
