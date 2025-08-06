@@ -1,6 +1,7 @@
 import { writable } from 'svelte/store';
 import { hybridDataService } from '../services/hybridDataService';
 import { error, isOnline } from './uiStore';
+import { selectedSet } from './setStore';
 import { uiLogger } from '../services/loggerService';
 
 // Create stores for state
@@ -73,6 +74,15 @@ export async function fetchCardPrice(cardId, forceRefresh = false) {
         return;
     }
     
+    // Get the current selected set to extract setId
+    let currentSet;
+    selectedSet.subscribe(value => { currentSet = value; })();
+    
+    if (!currentSet || !currentSet.id) {
+        error.set("Set information is required for pricing data");
+        return;
+    }
+    
     // Reset pricing related state
     isLoading.set(true);
     error.set(null);
@@ -82,10 +92,10 @@ export async function fetchCardPrice(cardId, forceRefresh = false) {
     priceData.set(null);
     
     try {
-        uiLogger.info('Fetching price data for card', { cardId, forceRefresh });
+        uiLogger.info('Fetching price data for card', { cardId, setId: currentSet.id, forceRefresh });
         
-        // Load pricing data with metadata using the card ID
-        const result = await hybridDataService.getCardPricingWithMetadata(cardId, forceRefresh);
+        // Load pricing data with metadata using the card ID and setId
+        const result = await hybridDataService.getCardPricingWithMetadata(cardId, currentSet.id, forceRefresh);
         const rawPriceData = result.data;
         
         pricingTimestamp.set(result.timestamp);

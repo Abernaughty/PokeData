@@ -295,15 +295,22 @@ export const cloudDataService = {
    * @param {boolean} forceRefresh - Whether to force a refresh from the API
    * @returns {Promise<Object>} Card data with pricing information
    */
-  async getCardPricing(cardId, forceRefresh = false) {
+  async getCardPricing(cardId, setId, forceRefresh = false) {
     try {
       if (!cardId) {
         throw new Error('Card ID is required to fetch pricing data');
       }
+      
+      if (!setId) {
+        throw new Error('Set ID is required to fetch pricing data');
+      }
 
-      apiLogger.info('Getting pricing data for card from cloud API', { cardId, forceRefresh });
+      apiLogger.info('Getting pricing data for card from cloud API', { cardId, setId, forceRefresh });
       
       const url = new URL(API_CONFIG.buildCardInfoUrl(cardId));
+      
+      // Add required setId parameter
+      url.searchParams.append('setId', setId);
       
       // Add query parameters
       if (forceRefresh) {
@@ -464,15 +471,22 @@ export const cloudDataService = {
    * @param {boolean} forceRefresh - Whether to force a refresh from the API
    * @returns {Promise<Object>} Card pricing data with metadata
    */
-  async getCardPricingWithMetadata(cardId, forceRefresh = false) {
+  async getCardPricingWithMetadata(cardId, setId, forceRefresh = false) {
     try {
       if (!cardId) {
         throw new Error('Card ID is required to fetch pricing data');
       }
+      
+      if (!setId) {
+        throw new Error('Set ID is required to fetch pricing data');
+      }
 
-      apiLogger.info('Getting pricing data with metadata for card from cloud API', { cardId, forceRefresh });
+      apiLogger.info('Getting pricing data with metadata for card from cloud API', { cardId, setId, forceRefresh });
       
       const url = new URL(API_CONFIG.buildCardInfoUrl(cardId));
+      
+      // Add required setId parameter
+      url.searchParams.append('setId', setId);
       
       // Add query parameters
       if (forceRefresh) {

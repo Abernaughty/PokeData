@@ -7,7 +7,7 @@ import { PokemonTcgApiService } from './services/PokemonTcgApiService';
 import { PokeDataApiService } from './services/PokeDataApiService';
 
 // Initialize shared services
-export const cosmosDbService = new CosmosDbService(process.env.COSMOSDB_CONNECTION_STRING || "");
+export const cosmosDbService = new CosmosDbService(process.env.COSMOS_DB_CONNECTION_STRING || "");
 export const redisCacheService = new RedisCacheService(
     process.env.REDIS_CONNECTION_STRING || "",
     process.env.ENABLE_REDIS_CACHE === "true"

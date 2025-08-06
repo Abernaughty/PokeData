@@ -20,7 +20,7 @@ const imageEnhancementService = new ImageEnhancementService(
 
 // Enhanced card structure for PokeData-first approach
 interface PokeDataFirstCard {
-    id: string;                    // "pokedata-{cardId}"
+    id: string;
     source: "pokedata";
     pokeDataId: number;
     setId: number;
@@ -73,9 +73,38 @@ export async function getCardInfo(request: HttpRequest, context: InvocationConte
         // Get PokeData card ID from route parameters
         const pokeDataCardId = request.params.cardId;
         
+        // Get setId from query parameters (REQUIRED)
+        const setIdParam = request.query.get("setId");
+        
         if (!pokeDataCardId) {
             context.log(`${correlationId} ERROR: Missing PokeData card ID in request`);
             const errorResponse = createNotFoundError("PokeData Card ID", "missing", "GetCardInfo");
+            return {
+                jsonBody: errorResponse,
+                status: errorResponse.status
+            };
+        }
+        
+        if (!setIdParam) {
+            context.log(`${correlationId} ERROR: Missing setId query parameter`);
+            const errorResponse = createBadRequestError(
+                "setId query parameter is required for efficient card lookup",
+                "GetCardInfo"
+            );
+            return {
+                jsonBody: errorResponse,
+                status: errorResponse.status
+            };
+        }
+        
+        // Validate setId is numeric
+        const setId = parseInt(setIdParam);
+        if (isNaN(setId)) {
+            context.log(`${correlationId} ERROR: Invalid setId format: ${setIdParam}`);
+            const errorResponse = createBadRequestError(
+                `Invalid setId format. Expected numeric ID, got: ${setIdParam}`,
+                "GetCardInfo"
+            );
             return {
                 jsonBody: errorResponse,
                 status: errorResponse.status
@@ -96,7 +125,7 @@ export async function getCardInfo(request: HttpRequest, context: InvocationConte
             };
         }
         
-        context.log(`${correlationId} Processing PokeData-first request for card ID: ${pokeDataCardId}`);
+        context.log(`${correlationId} Processing PokeData-first request for card ID: ${pokeDataCardId}, setId: ${setId}`);
         
         // Parse query parameters
         const forceRefresh = request.query.get("forceRefresh") === "true";
@@ -132,8 +161,8 @@ export async function getCardInfo(request: HttpRequest, context: InvocationConte
         // If not in cache, check Cosmos DB
         let dbStartTime = Date.now();
         if (!card) {
-            context.log(`${correlationId} Checking Cosmos DB for PokeData card: ${pokeDataCardId}`);
-            const dbCard = await cosmosDbService.getCard(`pokedata-${pokeDataCardId}`);
+            context.log(`${correlationId} Checking Cosmos DB for PokeData card: ${pokeDataCardId}, setId: ${setId}`);
+            const dbCard = await cosmosDbService.getCard(pokeDataCardId, setId);
             
             const dbTime = Date.now() - dbStartTime;
             
@@ -141,6 +170,32 @@ export async function getCardInfo(request: HttpRequest, context: InvocationConte
                 // Convert from stored format to PokeDataFirstCard format if needed
                 card = dbCard as unknown as PokeDataFirstCard;
                 context.log(`${correlationId} Database HIT for PokeData card: ${pokeDataCardId} (${dbTime}ms)`);
+                
+                // Check if card already has complete image data
+                if (card.images && card.images.small && card.images.large) {
+                    context.log(`${correlationId} Card already has complete images - skipping enhancement`);
+                    context.log(`${correlationId} Images found: small=${!!card.images.small}, large=${!!card.images.large}`);
+                    
+                    // Calculate total time and return immediately
+                    const totalTime = Date.now() - startTime;
+                    context.log(`${correlationId} Returning cached card with images - Total time: ${totalTime}ms`);
+                    
+                    const response: ApiResponse<PokeDataFirstCard> = {
+                        status: 200,
+                        data: card,
+                        timestamp: new Date().toISOString(),
+                        cached: false, // From database, not Redis cache
+                        cacheAge: undefined
+                    };
+                    
+                    return { 
+                        jsonBody: response,
+                        status: response.status,
+                        headers: { "Cache-Control": `public, max-age=${cardsTtl}` }
+                    };
+                } else {
+                    context.log(`${correlationId} Card missing images (small: ${!!card.images?.small}, large: ${!!card.images?.large}) - proceeding with enhancement`);
+                }
             } else {
                 context.log(`${correlationId} Database MISS for PokeData card: ${pokeDataCardId} (${dbTime}ms)`);
             }
@@ -213,7 +268,7 @@ export async function getCardInfo(request: HttpRequest, context: InvocationConte
                 
                 // Step 3: Create base card structure
                 card = {
-                    id: pokeDataCardId,
+                    id: pokeDataCardId, // Use clean numeric ID
                     source: "pokedata",
                     pokeDataId: cardIdNum,
                     setId: fullCardData.set_id,
@@ -265,11 +320,30 @@ export async function getCardInfo(request: HttpRequest, context: InvocationConte
                 
                 // Update card with enhancement data
                 if (enhancedCard.images) {
-                    card.images = enhancedCard.images;
-                    card.enhancement = enhancedCard.enhancement;
-                    context.log(`${correlationId} Image enhancement successful (${enhancementTime}ms)`);
-                    if (card.enhancement) {
-                        context.log(`${correlationId} Enhanced with TCG card: ${card.enhancement.tcgCardId}`);
+                    // Ensure both small and large images with fallbacks
+                    const smallImage = enhancedCard.images.small || enhancedCard.images.large || '';
+                    const largeImage = enhancedCard.images.large || enhancedCard.images.small || '';
+                    
+                    if (smallImage && largeImage) {
+                        card.images = {
+                            small: smallImage,
+                            large: largeImage
+                        };
+                        if (enhancedCard.enhancement) {
+                            card.enhancement = {
+                                tcgSetId: enhancedCard.enhancement.tcgSetId,
+                                tcgCardId: enhancedCard.enhancement.tcgCardId,
+                                metadata: enhancedCard.enhancement.metadata,
+                                enhancedAt: new Date().toISOString()
+                            };
+                        }
+                        context.log(`${correlationId} Image enhancement successful (${enhancementTime}ms)`);
+                        context.log(`${correlationId} Images assigned: small=${!!smallImage}, large=${!!largeImage}`);
+                        if (card.enhancement) {
+                            context.log(`${correlationId} Enhanced with TCG card: ${card.enhancement.tcgCardId}`);
+                        }
+                    } else {
+                        context.log(`${correlationId} Image enhancement failed - no valid images returned (${enhancementTime}ms)`);
                     }
                 } else {
                     context.log(`${correlationId} Image enhancement skipped - no mapping available (${enhancementTime}ms)`);

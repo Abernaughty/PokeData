@@ -4,7 +4,7 @@ import { Set } from '../models/Set';
 
 export interface ICosmosDbService {
     // Card operations
-    getCard(cardId: string): Promise<Card | null>;
+    getCard(cardId: string, setId: number): Promise<Card | null>;
     getCardsBySet(setCode: string): Promise<Card[]>;
     getCardsBySetId(setId: string): Promise<Card[]>;
     saveCard(card: Card): Promise<void>;
@@ -41,15 +41,24 @@ export class CosmosDbService implements ICosmosDbService {
         console.log('CosmosDbService initialized');
     }
     
-    async getCard(cardId: string): Promise<Card | null> {
+    async getCard(cardId: string, setId: number): Promise<Card | null> {
         try {
-            // Extract setId from cardId (e.g., "sv8pt5-161" -> "sv8pt5")
-            const setId = cardId.split('-')[0];
+            // Remove any "pokedata-" prefix to get clean numeric ID
+            const cleanCardId = cardId.replace(/^pokedata-/, '');
             
-            const { resource } = await this.cardContainer.item(cardId, setId).read();
+            console.log(`[CosmosDbService] Querying card ${cleanCardId} in set ${setId}`);
+            
+            // Use efficient single-partition query with known setId
+            const { resource } = await this.cardContainer.item(cleanCardId, setId).read();
+            
+            console.log(`[CosmosDbService] Successfully retrieved card ${cleanCardId}`);
             return resource as Card;
-        } catch (error) {
-            console.error(`Error getting card ${cardId}:`, error);
+        } catch (error: any) {
+            if (error.code === 404) {
+                console.log(`[CosmosDbService] Card ${cardId} not found in set ${setId}`);
+                return null;
+            }
+            console.error(`[CosmosDbService] Error getting card ${cardId} from set ${setId}:`, error);
             return null;
         }
     }
