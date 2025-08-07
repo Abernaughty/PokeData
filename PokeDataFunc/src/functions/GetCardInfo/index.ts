@@ -134,7 +134,7 @@ export async function getCardInfo(request: HttpRequest, context: InvocationConte
         context.log(`${correlationId} Request parameters - forceRefresh: ${forceRefresh}, TTL: ${cardsTtl}`);
         
         // Check cache first (if enabled and not forcing refresh)
-        const cacheKey = getCardCacheKey(`pokedata-${pokeDataCardId}`);
+        const cacheKey = getCardCacheKey(pokeDataCardId);
         let card: PokeDataFirstCard | null = null;
         let cacheHit = false;
         let cacheAge = 0;

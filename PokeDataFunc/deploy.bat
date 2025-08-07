@@ -121,7 +121,7 @@ echo   "name": "pokedatafunc",
 echo   "version": "1.0.0",
 echo   "main": "index.js",
 echo   "engines": {
-echo     "node": "^>=20.0.0"
+echo     "node": ">=20.0.0"
 echo   },
 echo   "dependencies": {
 echo     "@azure/cosmos": "^4.3.0",
