@@ -29,6 +29,7 @@
     "axios": "1.9.0",
     "js-yaml": "4.1.0",
     "node-fetch": "3.3.2",
+    "sirv": "3.0.1",
     "sirv-cli": "1.0.0"
   },
   "engines": {
