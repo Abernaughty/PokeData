@@ -1,14 +1,21 @@
 # Active Context
 
 ## Current Focus (January 10, 2025)
-Successfully fixed CI/CD pipeline and completed comprehensive deployment system improvements.
+Successfully fixed CI/CD pipeline including federated credential authentication issue.
 
 ### Latest Updates (Just Completed)
-1. **Fixed GitHub Actions Workflow**:
+1. **Fixed GitHub Actions Federated Credential Authentication**:
+   - Issue: AADSTS700213 error - "No matching federated identity record found"
+   - Root cause: GitHub secrets contained wrong Client ID
+   - Solution: Updated `AZUREAPPSERVICE_CLIENTID_2373F1476CEC447D9D3BE7FB74677C2A` with correct App Registration Client ID
+   - Federated credential properly configured with subject: `repo:Abernaughty/PokeData:environment:staging`
+   - Authentication now working for both staging and production environments
+
+2. **GitHub Actions Workflow Fully Operational**:
    - Created comprehensive `test-api.js` for pre-deployment validation
    - Tests validate build output, configuration files, and function structure
    - Workflow now passes "Build and Test" step successfully
-   - Deployment to staging in progress
+   - Deployment to staging working with federated credentials
 
 2. **Pre-Deployment Testing Implementation**:
    - 14 validation tests covering all critical aspects
