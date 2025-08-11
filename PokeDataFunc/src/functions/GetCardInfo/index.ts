@@ -59,7 +59,7 @@ interface PokeDataFirstCard {
  * PokeData-First GetCardInfo Function
  * 
  * This function implements the new PokeData-first architecture:
- * 1. Expects PokeData card ID as input
+ * 1. Expects PokeData card ID and set ID as path parameters (/api/sets/{setId}/cards/{cardId})
  * 2. Gets comprehensive pricing data from PokeData API (guaranteed)
  * 3. Enhances with Pokemon TCG images when mapping exists (optional)
  * 4. Returns complete card data with pricing always available
@@ -70,11 +70,9 @@ export async function getCardInfo(request: HttpRequest, context: InvocationConte
     const startTime = Date.now();
     
     try {
-        // Get PokeData card ID from route parameters
+        // Get PokeData card ID and setId from route parameters
         const pokeDataCardId = request.params.cardId;
-        
-        // Get setId from query parameters (REQUIRED)
-        const setIdParam = request.query.get("setId");
+        const setIdParam = request.params.setId;
         
         if (!pokeDataCardId) {
             context.log(`${correlationId} ERROR: Missing PokeData card ID in request`);
@@ -86,11 +84,8 @@ export async function getCardInfo(request: HttpRequest, context: InvocationConte
         }
         
         if (!setIdParam) {
-            context.log(`${correlationId} ERROR: Missing setId query parameter`);
-            const errorResponse = createBadRequestError(
-                "setId query parameter is required for efficient card lookup",
-                "GetCardInfo"
-            );
+            context.log(`${correlationId} ERROR: Missing setId path parameter`);
+            const errorResponse = createNotFoundError("Set ID", "missing", "GetCardInfo");
             return {
                 jsonBody: errorResponse,
                 status: errorResponse.status
@@ -100,9 +95,9 @@ export async function getCardInfo(request: HttpRequest, context: InvocationConte
         // Validate setId is numeric
         const setId = parseInt(setIdParam);
         if (isNaN(setId)) {
-            context.log(`${correlationId} ERROR: Invalid setId format: ${setIdParam}`);
+            context.log(`${correlationId} ERROR: Invalid setId path parameter format: ${setIdParam}`);
             const errorResponse = createBadRequestError(
-                `Invalid setId format. Expected numeric ID, got: ${setIdParam}`,
+                `Invalid setId format in path. Expected numeric ID, got: ${setIdParam}`,
                 "GetCardInfo"
             );
             return {

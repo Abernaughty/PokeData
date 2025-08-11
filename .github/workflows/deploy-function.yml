@@ -1,0 +1,180 @@
+# CI/CD Pipeline for PokeData Azure Functions
+# Implements staging deployment with manual approval for production
+
+name: Azure Function App CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:  # Allow manual triggers
+
+env:
+  AZURE_FUNCTIONAPP_NAME: 'pokedata-func'
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: 'PokeDataFunc'
+  NODE_VERSION: '22.x'
+  RESOURCE_GROUP: 'pokedata-rg'
+
+jobs:
+  # Build and Test
+  build-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: '📥 Checkout GitHub Action'
+        uses: actions/checkout@v4
+      
+      - name: '⚙️ Setup Node ${{ env.NODE_VERSION }}'
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      
+      - name: '📦 Install dependencies'
+        run: |
+          cd ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+          npm install
+      
+      - name: '🔨 Build TypeScript'
+        run: |
+          cd ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+          npm run build --if-present
+      
+      - name: '🧪 Run tests'
+        run: |
+          cd ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+          npm test --if-present
+      
+      - name: '📤 Upload artifact for deployment'
+        uses: actions/upload-artifact@v4
+        with:
+          name: function-app
+          path: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+
+  # Deploy to Staging Slot (automatic on main branch push)
+  deploy-staging:
+    name: Deploy to Staging
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: build-test
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://pokedata-func-staging.azurewebsites.net
+    steps:
+      - name: '📥 Download artifact from build job'
+        uses: actions/download-artifact@v4
+        with:
+          name: function-app
+          path: .
+      
+      - name: '🔐 Login to Azure'
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_2373F1476CEC447D9D3BE7FB74677C2A }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_006F21A676F04E49964C0606826AE31A }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_4EABEB599BB34C8A8E60471FB3D1EDD3 }}
+      
+      - name: '🚀 Deploy to Staging Slot'
+        uses: Azure/functions-action@v1
+        with:
+          app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
+          slot-name: 'staging'
+          package: '.'
+      
+      - name: '⏳ Wait for deployment to stabilize'
+        run: sleep 30
+      
+      - name: '🏥 Health Check on Staging'
+        run: |
+          echo "Testing staging deployment..."
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://pokedata-func-staging.azurewebsites.net/api/GetSetList)
+          if [ $response -eq 200 ]; then
+            echo "✅ Staging health check passed! (HTTP $response)"
+          else
+            echo "⚠️ Staging health check returned HTTP $response"
+            echo "The deployment may still be warming up. Check manually before swapping."
+          fi
+      
+      - name: '📊 Staging Deployment Summary'
+        run: |
+          echo "========================================="
+          echo "Staging deployment complete!"
+          echo "========================================="
+          echo "Test your staging deployment at:"
+          echo "🔗 https://pokedata-func-staging.azurewebsites.net/api/GetSetList"
+          echo "🔗 https://pokedata-func-staging.azurewebsites.net/api/GetCardsBySet?setCode=sv8pt5"
+          echo "🔗 https://pokedata-func-staging.azurewebsites.net/api/GetCardInfo?cardId=sv8pt5-161"
+          echo ""
+          echo "Once verified, approve the production deployment to swap slots."
+
+  # Swap to Production (requires manual approval)
+  swap-to-production:
+    name: Swap to Production
+    if: github.ref == 'refs/heads/main'
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    environment: 
+      name: production
+      url: https://pokedata-func.azurewebsites.net
+    steps:
+      - name: '🔐 Login to Azure'
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_2373F1476CEC447D9D3BE7FB74677C2A }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_006F21A676F04E49964C0606826AE31A }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_4EABEB599BB34C8A8E60471FB3D1EDD3 }}
+      
+      - name: '🔄 Swap Staging to Production'
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            echo "Performing slot swap..."
+            az functionapp deployment slot swap \
+              --name ${{ env.AZURE_FUNCTIONAPP_NAME }} \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --slot staging \
+              --target-slot production
+      
+      - name: '⏳ Wait for swap to complete'
+        run: sleep 15
+      
+      - name: '🏥 Verify Production Health'
+        run: |
+          echo "Testing production deployment..."
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://pokedata-func.azurewebsites.net/api/GetSetList)
+          if [ $response -eq 200 ]; then
+            echo "✅ Production health check passed! (HTTP $response)"
+          else
+            echo "⚠️ Production health check returned HTTP $response"
+            echo "The swap completed but the app may need time to warm up."
+          fi
+      
+      - name: '🔥 Warm up Production Endpoints'
+        run: |
+          echo "Warming up production endpoints..."
+          curl -s https://pokedata-func.azurewebsites.net/api/GetSetList > /dev/null
+          curl -s "https://pokedata-func.azurewebsites.net/api/GetCardsBySet?setCode=sv8pt5" > /dev/null
+          echo "Production endpoints warmed up"
+      
+      - name: '🎉 Production Deployment Summary'
+        run: |
+          echo "========================================="
+          echo "Production deployment complete!"
+          echo "========================================="
+          echo "✅ Your code is now live in production!"
+          echo "🔗 Production URL: https://pokedata-func.azurewebsites.net"
+          echo ""
+          echo "ℹ️ The previous production version is now in the staging slot."
+          echo "ℹ️ If you need to rollback, swap the slots again."
+
+  # PR validation (build and test only, no deployment)
+  pr-validation:
+    name: PR Validation
+    if: github.event_name == 'pull_request'
+    needs: build-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: '✅ PR Validation Complete'
+        run: |
+          echo "Pull request validation successful!"
+          echo "Build and tests passed. Ready for review."

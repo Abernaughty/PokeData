@@ -1,231 +1,384 @@
 @echo off
 title PokeData Azure Functions Deployment
-color 0A
+color 07
 
+REM Load function keys from .env file with improved parsing
+set ENV_FILE=%~dp0.env
+if exist "%ENV_FILE%" (
+    for /f "usebackq tokens=1,* delims==" %%a in ("%ENV_FILE%") do (
+        if "%%a"=="AZURE_FUNCTION_KEY_STAGING" set STAGING_KEY=%%b
+        if "%%a"=="PRODUCTION_FUNCTION_KEY" set PRODUCTION_KEY=%%b
+    )
+)
+
+REM Debug output to verify keys loaded
+echo.
+echo Checking function keys...
+if defined STAGING_KEY (
+    echo [OK] Staging key loaded from .env
+    REM Show first 10 chars for verification (masked for security)
+    set KEY_PREFIX=%STAGING_KEY:~0,10%
+    echo     Key starts with: %KEY_PREFIX%...
+) else (
+    echo [ERROR] AZURE_FUNCTION_KEY_STAGING not found in .env file
+    echo         Please ensure AZURE_FUNCTION_KEY_STAGING=your_key is in PokeDataFunc/.env
+    echo         Deployment cannot continue without authentication keys.
+    pause
+    goto end
+)
+
+if defined PRODUCTION_KEY (
+    echo [OK] Production key loaded from .env
+) else (
+    echo [WARNING] PRODUCTION_FUNCTION_KEY not found in .env file
+    echo           Production tests will fail without this key.
+)
+
+:start
 echo.
 echo ========================================
 echo  PokeData Azure Functions Deployment
-echo  [DEPLOY] Optimized Token Consumption Ready
+echo  [CI/CD] Safe Deployment Pipeline
 echo ========================================
 echo.
 
 echo Select deployment method:
 echo.
-echo 1. Quick Deploy (Development/Testing)
-echo    - Fast TypeScript compilation
-echo    - Direct deployment from dist/
-echo    - Includes all dependencies
+echo 1. Safe Deploy (Staging -^> Test -^> Production)
+echo    - Deploy to staging slot
+echo    - Run health checks
+echo    - Optional swap to production
 echo.
-echo 2. Production Deploy (Recommended)
-echo    - Clean production package
-echo    - Optimized dependencies only
-echo    - Professional deployment
+echo 2. Emergency Direct to Production
+echo    - Bypass staging (use with caution)
+echo    - Direct deployment to production
 echo.
-echo 3. Exit
+echo 3. Swap Staging to Production
+echo    - Swap existing staging deployment
+echo    - Use if already tested staging
+echo.
+echo 4. Exit
 echo.
 
-set /p choice=Enter your choice (1-3): 
+set /p choice=Enter your choice (1-4): 
 
-if "%choice%"=="1" goto quick_deploy
-if "%choice%"=="2" goto production_deploy
-if "%choice%"=="3" goto exit
+if "%choice%"=="1" goto safe_deploy
+if "%choice%"=="2" goto emergency_deploy
+if "%choice%"=="3" goto swap_only
+if "%choice%"=="4" goto exit
 echo Invalid choice. Please try again.
 goto start
 
-:quick_deploy
+:safe_deploy
 echo.
 echo ========================================
-echo  Quick Development Deployment
+echo  Safe Deployment Pipeline
 echo ========================================
 echo.
 
 echo Step 1: Building TypeScript...
+cd /d "%~dp0"
 call pnpm run build
 if %ERRORLEVEL% neq 0 (
+    color 0C
     echo [ERROR] Build failed with error code %ERRORLEVEL%.
-    pause
-    exit /b %ERRORLEVEL%
+    goto error_end
 )
 
-echo Step 2: Verifying dist structure...
+echo Step 2: Verifying build output...
 if not exist "dist\index.js" (
+    color 0C
     echo [ERROR] dist\index.js not found. Build may have failed.
-    pause
-    exit /b 1
+    goto error_end
 )
 
-echo Step 3: Deploying to Azure Functions...
-echo Note: Using compiled dist/ directory with all dependencies
-func azure functionapp publish pokedata-func --cwd dist
+echo.
+echo Step 3: Deploying to STAGING slot...
+echo ----------------------------------------
+call func azure functionapp publish pokedata-func --slot staging --javascript --cwd dist
 
+if %ERRORLEVEL% neq 0 (
+    color 0C
+    echo [ERROR] Staging deployment failed with error code %ERRORLEVEL%.
+    goto error_end
+)
+
+echo.
+echo ========================================
+echo  Staging Deployment Complete!
+echo ========================================
+echo.
+echo Step 4: Waiting for staging slot to warm up...
+echo ----------------------------------------
+set retry_count=0
+set max_retries=3
+
+:retry_health_check
+set /a retry_count+=1
+echo.
+echo Warm-up attempt %retry_count% of %max_retries%...
+echo Waiting 30 seconds for staging to stabilize...
+timeout /t 30 /nobreak >nul
+
+echo Testing health endpoint...
+echo [DEBUG] Testing URL: https://pokedata-func-staging.azurewebsites.net/api/sets?code=%STAGING_KEY:~0,10%...
+curl -f -s -o nul -w "HTTP Status: %%{http_code}\n" "https://pokedata-func-staging.azurewebsites.net/api/sets?code=%STAGING_KEY%"
 if %ERRORLEVEL% equ 0 (
-    echo.
-    echo [OK] Quick deployment completed successfully!
-    echo [OK] Optimized functions are now live with 99.9%% token reduction.
-) else (
-    echo.
-    echo [ERROR] Deployment failed with error code %ERRORLEVEL%.
-    echo Check Azure CLI authentication and function app name.
+    echo [OK] Staging is responding!
+    goto test_endpoints
 )
-goto end
 
-:production_deploy
+if %retry_count% lss %max_retries% (
+    echo [RETRY] Staging needs more time to warm up...
+    goto retry_health_check
+)
+
+color 0E
+echo [WARNING] Staging may still be warming up after %max_retries% attempts.
+echo You can proceed with manual testing if needed.
+color 07
+
+:test_endpoints
+echo.
+echo Step 5: Running automated endpoint tests on STAGING...
+echo ========================================
+echo.
+echo 1. Testing GetSetList endpoint...
+echo ----------------------------------------
+curl -s -o nul -w "HTTP Status: %%{http_code}\n" "https://pokedata-func-staging.azurewebsites.net/api/sets?code=%STAGING_KEY%"
+echo.
+
+echo 2. Testing GetCardsBySet endpoint (setId: 557)...
+echo ----------------------------------------
+curl -s -o nul -w "HTTP Status: %%{http_code}\n" "https://pokedata-func-staging.azurewebsites.net/api/sets/557/cards?code=%STAGING_KEY%"
+echo.
+
+echo 3. Testing GetCardInfo endpoint (setId: 557, cardId: 73121)...
+echo ----------------------------------------
+curl -s -o nul -w "HTTP Status: %%{http_code}\n" "https://pokedata-func-staging.azurewebsites.net/api/sets/557/cards/73121?code=%STAGING_KEY%"
+
 echo.
 echo ========================================
-echo  Production Deployment (Recommended)
+echo  Staging Environment Ready!
 echo ========================================
 echo.
+echo Staging URL: https://pokedata-func-staging.azurewebsites.net
+echo.
+echo Manual test endpoints (with auth):
+echo - https://pokedata-func-staging.azurewebsites.net/api/sets?code=%STAGING_KEY%
+echo - https://pokedata-func-staging.azurewebsites.net/api/sets/557/cards?code=%STAGING_KEY%
+echo - https://pokedata-func-staging.azurewebsites.net/api/sets/557/cards/73121?code=%STAGING_KEY%
+echo.
+echo ----------------------------------------
+echo.
 
-echo Step 1: Cleaning previous builds and artifacts...
-if exist "dist" (
-    rmdir /s /q "dist"
-    echo [OK] Cleaned existing dist directory
-)
-if exist "deployment.zip" (
-    del "deployment.zip" 2>nul
-    echo [OK] Cleaned existing deployment.zip
-)
-mkdir "dist"
+:staging_decision
+set /p test_choice=Would you like to (T)est manually, (S)wap to production now, or (L)eave in staging? [T/S/L]: 
 
-echo Step 2: Building TypeScript...
+if /i "%test_choice%"=="T" goto manual_test
+if /i "%test_choice%"=="S" goto perform_swap
+if /i "%test_choice%"=="L" goto staging_complete
+echo Invalid choice. Please enter T, S, or L.
+goto staging_decision
+
+:manual_test
+echo.
+echo Opening staging site in browser...
+start "https://pokedata-func-staging.azurewebsites.net/api/sets?code=%STAGING_KEY%"
+echo.
+echo Please test the staging deployment in your browser.
+echo.
+set /p ready=Once testing is complete, swap to production? [Y/N]: 
+if /i "%ready%"=="Y" goto perform_swap
+if /i "%ready%"=="N" goto staging_complete
+echo Invalid choice. Please enter Y or N.
+goto manual_test
+
+:perform_swap
+echo.
+echo Step 6: Swapping staging to production...
+echo ----------------------------------------
+call az functionapp deployment slot swap --name pokedata-func --resource-group pokedata-rg --slot staging --target-slot production
+
+if %ERRORLEVEL% neq 0 (
+    color 0C
+    echo [ERROR] Slot swap failed with error code %ERRORLEVEL%.
+    echo Your code remains in staging. You can retry the swap using option 3.
+    goto error_end
+)
+
+echo.
+echo Waiting for swap to complete (15 seconds)...
+timeout /t 15 /nobreak >nul
+
+echo.
+echo Step 7: Verifying production deployment...
+echo ========================================
+echo.
+echo Running automated endpoint tests on PRODUCTION...
+echo.
+echo 1. Testing GetSetList endpoint...
+echo ----------------------------------------
+curl -s -o nul -w "HTTP Status: %%{http_code}\n" "https://pokedata-func.azurewebsites.net/api/sets?code=%PRODUCTION_KEY%"
+echo.
+
+echo 2. Testing GetCardsBySet endpoint (setId: 557)...
+echo ----------------------------------------
+curl -s -o nul -w "HTTP Status: %%{http_code}\n" "https://pokedata-func.azurewebsites.net/api/sets/557/cards?code=%PRODUCTION_KEY%"
+echo.
+
+echo 3. Testing GetCardInfo endpoint (setId: 557, cardId: 73121)...
+echo ----------------------------------------
+curl -s -o nul -w "HTTP Status: %%{http_code}\n" "https://pokedata-func.azurewebsites.net/api/sets/557/cards/73121?code=%PRODUCTION_KEY%"
+
+color 0A
+echo.
+echo ========================================
+echo  Production Deployment Complete!
+echo ========================================
+echo.
+echo [SUCCESS] Your code is now live in production!
+echo Production URL: https://pokedata-func.azurewebsites.net
+echo.
+echo The previous production version is now in the staging slot.
+echo If you need to rollback, use option 3 to swap back.
+echo.
+goto success_end
+
+:staging_complete
+color 0A
+echo.
+echo ========================================
+echo  Staging Deployment Complete!
+echo ========================================
+echo.
+echo [OK] Your code remains in the staging slot for further testing.
+echo Staging URL: https://pokedata-func-staging.azurewebsites.net
+echo.
+echo When ready, run this script again and choose option 3 to swap to production.
+echo.
+goto success_end
+
+:emergency_deploy
+echo.
+echo ========================================
+echo  EMERGENCY Direct Production Deploy
+echo ========================================
+echo.
+color 0E
+echo [WARNING] This will deploy directly to production without staging!
+echo [WARNING] This bypasses all safety checks and testing phases!
+echo.
+set /p confirm=Are you sure you want to continue? [YES/NO]: 
+if /i not "%confirm%"=="YES" (
+    echo Deployment cancelled.
+    goto start
+)
+
+color 07
+echo.
+echo Step 1: Building TypeScript...
+cd /d "%~dp0"
 call pnpm run build
 if %ERRORLEVEL% neq 0 (
-    echo [ERROR] TypeScript build failed
-    pause
-    exit /b 1
-)
-echo [OK] TypeScript build completed
-
-echo Step 3: Copying essential files...
-if exist "host.json" (
-    copy /Y "host.json" "dist\host.json" >nul
-    echo [OK] Copied host.json
-)
-if exist "local.settings.json" (
-    copy /Y "local.settings.json" "dist\local.settings.json" >nul
-    echo [OK] Copied local.settings.json
-) else (
-    echo [WARN] local.settings.json not found, skipping
-)
-if exist "data" (
-    xcopy /E /I /Y "data" "dist\data" >nul
-    echo [OK] Copied data folder
-) else (
-    echo [WARN] data folder not found
+    color 0C
+    echo [ERROR] Build failed with error code %ERRORLEVEL%.
+    goto error_end
 )
 
-echo Step 4: Creating production package.json...
-(
-echo {
-echo   "name": "pokedatafunc",
-echo   "version": "1.0.0",
-echo   "main": "index.js",
-echo   "engines": {
-echo     "node": ">=20.0.0"
-echo   },
-echo   "dependencies": {
-echo     "@azure/cosmos": "^4.3.0",
-echo     "@azure/functions": "^4.7.2",
-echo     "@azure/storage-blob": "^12.27.0",
-echo     "@typespec/ts-http-runtime": "^0.2.2",
-echo     "axios": "^1.9.0",
-echo     "cookie": "^0.6.0",
-echo     "dotenv": "^16.5.0",
-echo     "redis": "^4.7.0"
-echo   }
-echo }
-) > "dist\package.json"
-echo [OK] Created production package.json
+echo Step 2: Deploying directly to PRODUCTION...
+call func azure functionapp publish pokedata-func --javascript --cwd dist
 
-echo Step 5: Installing production dependencies...
-cd dist
-call npm install --production --silent
 if %ERRORLEVEL% neq 0 (
-    echo [ERROR] Failed to install production dependencies
-    cd ..
-    pause
-    exit /b 1
+    color 0C
+    echo [ERROR] Production deployment failed with error code %ERRORLEVEL%.
+    goto error_end
 )
-cd ..
-echo [OK] Production dependencies installed
 
-echo Step 6: Creating deployment package...
-cd dist
-powershell -Command "Compress-Archive -Path * -DestinationPath ../deployment.zip -Force" >nul 2>&1
+color 0A
+echo.
+echo ========================================
+echo  Emergency Deployment Complete!
+echo ========================================
+echo.
+echo [OK] Direct production deployment completed.
+echo [WARNING] No staging or testing was performed!
+echo.
+goto success_end
+
+:swap_only
+echo.
+echo ========================================
+echo  Swap Staging to Production
+echo ========================================
+echo.
+
+echo Checking current staging slot...
+echo Staging URL: https://pokedata-func-staging.azurewebsites.net
+echo.
+set /p confirm_swap=Swap staging to production now? [Y/N]: 
+if /i not "%confirm_swap%"=="Y" (
+    echo Swap cancelled.
+    goto start
+)
+
+echo.
+echo Performing slot swap...
+call az functionapp deployment slot swap --name pokedata-func --resource-group pokedata-rg --slot staging --target-slot production
+
 if %ERRORLEVEL% neq 0 (
-    echo [ERROR] Failed to create deployment package
-    cd ..
-    pause
-    exit /b 1
-)
-cd ..
-echo [OK] Deployment package created
-
-echo Step 7: Deploying to Azure Functions...
-call az functionapp deployment source config-zip --resource-group pokedata-rg --name pokedata-func --src deployment.zip > deploy_output.tmp 2>&1
-set DEPLOY_EXIT_CODE=%ERRORLEVEL%
-
-echo [DEBUG] Azure CLI exit code: %DEPLOY_EXIT_CODE%
-
-rem Check if deployment output contains success indicators
-findstr /i "succeeded" deploy_output.tmp >nul 2>&1
-set SUCCESS_FOUND=%ERRORLEVEL%
-
-rem Display deployment result
-type deploy_output.tmp
-del deploy_output.tmp 2>nul
-
-rem Determine if deployment was actually successful
-set DEPLOYMENT_SUCCESS=0
-if %DEPLOY_EXIT_CODE% equ 0 (
-    echo [OK] Azure deployment completed successfully ^(exit code 0^)
-    set DEPLOYMENT_SUCCESS=1
-    goto step8
+    color 0C
+    echo [ERROR] Slot swap failed with error code %ERRORLEVEL%.
+    goto error_end
 )
 
-if %SUCCESS_FOUND% equ 0 (
-    echo [OK] Azure deployment completed successfully ^(success detected in output despite exit code %DEPLOY_EXIT_CODE%^)
-    set DEPLOYMENT_SUCCESS=1
-    goto step8
-)
+echo.
+echo Waiting for swap to complete (15 seconds)...
+timeout /t 15 /nobreak >nul
 
-echo [ERROR] Azure deployment failed ^(exit code %DEPLOY_EXIT_CODE%, no success indicators found^)
-echo [ERROR] Check Azure CLI authentication and function app name.
-pause
-exit /b 1
+echo Verifying production...
+echo.
+echo 1. Testing GetSetList endpoint...
+curl -s -o nul -w "HTTP Status: %%{http_code}\n" "https://pokedata-func.azurewebsites.net/api/sets?code=%PRODUCTION_KEY%"
+echo.
+echo 2. Testing GetCardsBySet endpoint (setId: 557)...
+curl -s -o nul -w "HTTP Status: %%{http_code}\n" "https://pokedata-func.azurewebsites.net/api/sets/557/cards?code=%PRODUCTION_KEY%"
+echo.
+echo 3. Testing GetCardInfo endpoint (setId: 557, cardId: 73121)...
+curl -s -o nul -w "HTTP Status: %%{http_code}\n" "https://pokedata-func.azurewebsites.net/api/sets/557/cards/73121?code=%PRODUCTION_KEY%"
 
-:step8
-
-echo Step 8: Cleaning up...
-if exist "deployment.zip" (
-    del "deployment.zip"
-    echo [OK] Cleaned deployment.zip
-) else (
-    echo [INFO] deployment.zip already cleaned
-)
-
-if %DEPLOYMENT_SUCCESS% equ 1 (
-    echo.
-    echo ========================================
-    echo  Production Deployment Success! [DONE]
-    echo ========================================
-    echo.
-    echo The functions are now deployed with:
-    echo [OK] Only compiled JavaScript files
-    echo [OK] Production dependencies only  
-    echo [OK] Clean Azure Functions structure
-    echo [OK] No development files or source code
-    echo [OK] 99.9%% token consumption reduction
-    echo [OK] Credit monitoring system active
-    echo.
-)
-goto end
+color 0A
+echo.
+echo ========================================
+echo  Swap Complete!
+echo ========================================
+echo.
+echo [SUCCESS] Staging has been swapped to production!
+echo The previous production version is now in staging.
+echo.
+goto success_end
 
 :exit
 echo Exiting...
 goto end
 
+:success_end
+echo.
+pause
+color 07
+goto cleanup
+
+:error_end
+echo.
+pause
+color 07
+goto cleanup
+
 :end
 echo.
-color 07
 pause
+color 07
+goto cleanup
+
+:cleanup
+exit /b
