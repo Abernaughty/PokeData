@@ -292,6 +292,7 @@ export const cloudDataService = {
   /**
    * Get pricing data for a specific card
    * @param {string} cardId - The card ID
+   * @param {string} setId - The set ID
    * @param {boolean} forceRefresh - Whether to force a refresh from the API
    * @returns {Promise<Object>} Card data with pricing information
    */
@@ -307,10 +308,7 @@ export const cloudDataService = {
 
       apiLogger.info('Getting pricing data for card from cloud API', { cardId, setId, forceRefresh });
       
-      const url = new URL(API_CONFIG.buildCardInfoUrl(cardId));
-      
-      // Add required setId parameter
-      url.searchParams.append('setId', setId);
+      const url = new URL(API_CONFIG.buildCardInfoUrl(cardId, setId));
       
       // Add query parameters
       if (forceRefresh) {
@@ -468,6 +466,7 @@ export const cloudDataService = {
   /**
    * Get pricing data for a specific card with metadata
    * @param {string} cardId - The card ID
+   * @param {string} setId - The set ID
    * @param {boolean} forceRefresh - Whether to force a refresh from the API
    * @returns {Promise<Object>} Card pricing data with metadata
    */
@@ -483,10 +482,7 @@ export const cloudDataService = {
 
       apiLogger.info('Getting pricing data with metadata for card from cloud API', { cardId, setId, forceRefresh });
       
-      const url = new URL(API_CONFIG.buildCardInfoUrl(cardId));
-      
-      // Add required setId parameter
-      url.searchParams.append('setId', setId);
+      const url = new URL(API_CONFIG.buildCardInfoUrl(cardId, setId));
       
       // Add query parameters
       if (forceRefresh) {

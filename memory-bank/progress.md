@@ -7,6 +7,29 @@ This document tracks what works, what's left to build, current status, known iss
 
 The PokeData project has achieved a mature cloud-first architecture with comprehensive functionality and enterprise-grade project organization:
 
+### ✅ **DEPLOYMENT AND ROUTING IMPROVEMENTS COMPLETE (2025-08-10)**:
+- **🎉 AZURE FUNCTIONS DEPLOYMENT FIXED**: Successfully resolved all deployment issues
+  - **Azure Functions Core Tools**: Installed via npm for quick deployment capability
+  - **Runtime Detection**: Fixed with `--javascript` flag for proper function detection
+  - **Route Architecture**: Migrated to REST-compliant hierarchical routes
+  - **Backend Deployment Script**: Enhanced with visual feedback and robust error handling
+- **🚀 REST-COMPLIANT API ROUTES**: Improved API design with hierarchical structure
+  - **Old Pattern**: `/api/cards/{cardId}?setId=` (query parameter approach)
+  - **New Pattern**: `/api/sets/{setId}/cards/{cardId}` (hierarchical REST approach)
+  - **Backend Updates**: GetCardInfo handler reads setId from request.params
+  - **Frontend Alignment**: URL builders and services updated to match new structure
+- **✅ DEPLOYMENT METHODS OPERATIONAL**: Both deployment approaches working
+  - **Backend Quick Deploy**: Using Azure Functions Core Tools (`func azure functionapp publish`)
+  - **Backend Production Deploy**: Using Azure CLI ZIP deployment
+  - **Frontend Deploy**: New Node.js script with automatic token management
+  - **Visual Feedback**: Color-coded output (green=success, red=error)
+  - **Error Recovery**: Proper cleanup and color reset on script completion
+- **✨ FRONTEND DEPLOYMENT MODERNIZED**: Complete Node.js-based solution
+  - **Token Management**: Automatic loading from `.env` file
+  - **Cross-Platform**: Works on Windows, Mac, and Linux
+  - **Interactive Menu**: Same deployment options as batch script
+  - **No Manual Entry**: Eliminates token prompt issues
+
 ### ✅ **CLOUD-FIRST ARCHITECTURE FULLY OPERATIONAL (2025-06-04)**:
 - **🎉 COMPLETE CLOUD MIGRATION**: Successfully transitioned from client-side to Azure cloud-first architecture
 - **🚀 FEATURE FLAGS DEFAULT ENABLED**: All cloud features (API, images, caching) enabled by default in production
@@ -101,6 +124,44 @@ The PokeData project has achieved a mature cloud-first architecture with compreh
    - ✅ **Fallback Mechanisms**: Multiple levels of fallback for data availability
 
 12. **Recent Improvements**:
+
+   - ✅ **🎉 DEPLOYMENT AND ROUTE ARCHITECTURE IMPROVEMENTS (2025-08-10)**:
+     - **🚀 AZURE FUNCTIONS DEPLOYMENT FIXED**: Successfully resolved deployment issues and improved API architecture
+       - **Root Achievement**: Fixed Azure Functions Core Tools installation and route design issues
+         - **Azure Functions Core Tools**: Installed via npm, verified with `func --version`
+         - **Runtime Detection**: Added `--javascript` flag to quick deploy command
+         - **Route Syntax Fix**: Changed from invalid `cards/{cardId}/?{setId}` to valid path parameters
+         - **REST Compliance**: Implemented hierarchical `/api/sets/{setId}/cards/{cardId}` structure
+       - **Complete Route Migration**:
+         - **✅ Backend Route Update**: Modified `index.ts` to use new hierarchical route pattern
+         - **✅ Handler Logic Update**: GetCardInfo now reads `setId` from `request.params` instead of query
+         - **✅ Frontend URL Builders**: Updated `cloudApiConfig.js` to include setId in path
+         - **✅ Service Layer Update**: Modified `cloudDataService.js` to pass setId correctly
+         - **✅ Error Handling**: Removed missing-setId query checks, updated error messages
+       - **Deployment Script Enhancements**:
+         - **✅ Missing Label Fix**: Added `:start` label to deployment script
+         - **✅ Error Handling**: Fixed inconsistent error handling and premature exits
+         - **✅ Visual Feedback**: Implemented color coding (green=success, red=error)
+         - **✅ Proper Cleanup**: Ensured color reset to default after script execution
+         - **✅ User Experience**: Added pauses for readable output
+       - **Deployment Methods**:
+         - **Quick Deploy**: Azure Functions Core Tools direct deployment from dist/
+           - Command: `func azure functionapp publish pokedata-func --javascript`
+           - Use Case: Development and testing with fast iteration
+         - **Production Deploy**: Azure CLI ZIP deployment
+           - Command: `az functionapp deployment source config-zip`
+           - Use Case: Production releases with optimized packages
+       - **Architecture Benefits**:
+         - **✅ REST Best Practices**: Hierarchical URLs clearly show resource relationships
+         - **✅ Azure Portal Testing**: Can test endpoints directly in Azure Portal
+         - **✅ API Clarity**: Clear parent-child relationship between sets and cards
+         - **✅ Frontend Consistency**: Uniform URL structure across all API calls
+       - **Files Updated**:
+         - **✅ `PokeDataFunc/deploy.bat`**: Complete overhaul with visual feedback
+         - **✅ `PokeDataFunc/src/index.ts`**: New route definition
+         - **✅ `PokeDataFunc/src/functions/GetCardInfo/index.ts`**: Handler logic update
+         - **✅ `src/data/cloudApiConfig.js`**: URL builder updates
+         - **✅ `src/services/cloudDataService.js`**: Service method updates
 
    - ✅ **🎉 CRITICAL GITHUB ACTIONS DEPLOYMENT ISSUE RESOLVED (2025-06-10)**:
      - **🚀 AZURE FUNCTIONS DEPLOYMENT CRISIS COMPLETELY RESOLVED**: Successfully fixed critical GitHub Actions workflow issue where functions deployed successfully but never appeared in Azure Portal
@@ -942,7 +1003,9 @@ The PokeData project has achieved a mature cloud-first architecture with compreh
 - **✅ COMPLETED**: Production deployment with GitHub CLI integration
 - **✅ COMPLETED**: All production functions validated and working
 - **✅ COMPLETED**: Critical Azure Functions deployment issue completely resolved (2025-08-07)
-- **🔄 CURRENT FOCUS**: Azure Functions fully operational - ready for continued development and optimization
+- **✅ COMPLETED**: Backend deployment and route architecture improvements (2025-08-10)
+- **✅ COMPLETED**: Frontend deployment modernization with Node.js (2025-08-10)
+- **🔄 CURRENT FOCUS**: Production-ready with unified deployment system across frontend and backend
 
 ### Key Performance Achievements
 - **✅ Function Consolidation**: 167x performance improvement (299ms vs 50+ seconds)

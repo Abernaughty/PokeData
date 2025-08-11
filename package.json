@@ -10,7 +10,11 @@
     "sirv": "sirv public --no-clear --port 3000",
     "prod-install": "pnpm install --prod",
     "clean": "rimraf node_modules .pnpm-store pnpm-lock.yaml",
-    "prune": "pnpm prune"
+    "prune": "pnpm prune",
+    "deploy:frontend": "node deploy-frontend.js",
+    "deploy:frontend:quick": "node deploy-frontend.js",
+    "deploy:frontend:clean": "node deploy-frontend.js",
+    "deploy:frontend:build": "node deploy-frontend.js"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "21.1.0",

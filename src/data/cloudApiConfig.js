@@ -37,18 +37,24 @@ export const API_CONFIG = {
     return `${this.baseUrl}/sets/${encodeURIComponent(setId)}/cards`;
   },
   
-  buildCardInfoUrl(cardId) {
-    if (this.authType === 'function') {
-      return `${this.baseUrl}/cards/${encodeURIComponent(cardId)}?code=${encodeURIComponent(this.functionKey)}`;
+  buildCardInfoUrl(cardId, setId) {
+    if (!setId) {
+      throw new Error('setId is required for buildCardInfoUrl');
     }
-    return `${this.baseUrl}/cards/${encodeURIComponent(cardId)}`;
+    if (this.authType === 'function') {
+      return `${this.baseUrl}/sets/${encodeURIComponent(setId)}/cards/${encodeURIComponent(cardId)}?code=${encodeURIComponent(this.functionKey)}`;
+    }
+    return `${this.baseUrl}/sets/${encodeURIComponent(setId)}/cards/${encodeURIComponent(cardId)}`;
   },
   
   // Added for compatibility with existing code
-  buildPricingUrl(id) {
-    if (this.authType === 'function') {
-      return `${this.baseUrl}/cards/${encodeURIComponent(id)}?code=${encodeURIComponent(this.functionKey)}`;
+  buildPricingUrl(id, setId) {
+    if (!setId) {
+      throw new Error('setId is required for buildPricingUrl');
     }
-    return `${this.baseUrl}/cards/${encodeURIComponent(id)}`;
+    if (this.authType === 'function') {
+      return `${this.baseUrl}/sets/${encodeURIComponent(setId)}/cards/${encodeURIComponent(id)}?code=${encodeURIComponent(this.functionKey)}`;
+    }
+    return `${this.baseUrl}/sets/${encodeURIComponent(setId)}/cards/${encodeURIComponent(id)}`;
   }
 };
