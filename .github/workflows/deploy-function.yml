@@ -57,6 +57,9 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     needs: build-test
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # Required for OIDC authentication
+      contents: read   # Required to checkout code
     environment:
       name: staging
       url: https://pokedata-func-staging.azurewebsites.net
@@ -113,6 +116,9 @@ jobs:
     if: github.ref == 'refs/heads/main'
     needs: deploy-staging
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # Required for OIDC authentication
+      contents: read   # Required to checkout code
     environment: 
       name: production
       url: https://pokedata-func.azurewebsites.net
