@@ -435,8 +435,9 @@ export const cloudDataService = {
       }
       
       // Transform image structure: images: {small: "...", large: "..."} → image_url: "..."
+      // Prioritize large image for better quality
       if (cardData.images) {
-        transformedCard.image_url = cardData.images.small || cardData.images.large;
+        transformedCard.image_url = cardData.images.large || cardData.images.small;
         apiLogger.debug('Transformed image URL', { cardId, imageUrl: transformedCard.image_url });
       }
       
@@ -621,8 +622,9 @@ export const cloudDataService = {
       }
       
       // Transform image structure: images: {small: "...", large: "..."} → image_url: "..."
+      // Prioritize large image for better quality
       if (cardData.images) {
-        transformedCard.image_url = cardData.images.small || cardData.images.large;
+        transformedCard.image_url = cardData.images.large || cardData.images.small;
         apiLogger.debug('Transformed image URL with metadata', { cardId, imageUrl: transformedCard.image_url });
       }
       

@@ -20,19 +20,19 @@ A web application for looking up Pokémon card pricing data based on set name an
 
 ## Quick Start
 
-The easiest way to run the application is to use the provided batch file:
+The easiest way to run the application is to use the provided server script:
 
 ### Command Prompt
 ```bash
-run-app.bat
+scripts\server.bat
 ```
 
 ### PowerShell
 ```powershell
-.\run-app.bat
+.\scripts\server.bat
 ```
 
-This script will automatically check and install all required dependencies before starting the application.
+This will start the development server with hot reloading at http://localhost:3000.
 
 ## System Requirements
 
@@ -89,23 +89,25 @@ If you prefer to set up manually, this project uses pnpm for package management.
    pnpm start
    ```
 
-## Batch Files
+## Scripts
 
-The following batch files are available to run the application:
+All utility scripts are located in the `scripts/` directory:
 
-- **dev-server.bat**: Starts the development server with hot reloading (http://localhost:3000)
+- **scripts/server.bat**: Unified server script with parameter support
+  - Use `scripts\server.bat` or `scripts\server.bat dev` for development server with hot reloading
+  - Use `scripts\server.bat prod` for production server with optimized build
   - Automatically detects and safely terminates any existing processes on port 3000
-  - Uses a robust process termination approach to avoid conflicts
-- **prod-server.bat**: Starts the production server (http://localhost:3000)
-  - Automatically detects and safely terminates any existing processes on port 3000
-  - Uses a robust process termination approach to avoid conflicts
-- **build-app.bat**: Builds the application for production
-  - Use `build-app.bat` for a full build
-  - Use `build-app.bat css` to rebuild only CSS
-- **tools.bat**: Provides utility tools
-  - Use `tools.bat setup` to install dependencies
-  - Use `tools.bat diagnose` to diagnose environment issues
-  - Use `tools.bat fix-path` to fix Node.js path issues
+- **scripts/build-app.bat**: Builds the application for production
+  - Use `scripts\build-app.bat` for a full build
+  - Use `scripts\build-app.bat css` to rebuild only CSS
+- **scripts/tools.bat**: Provides utility tools
+  - Use `scripts\tools.bat setup` to install dependencies
+  - Use `scripts\tools.bat diagnose` to diagnose environment issues
+  - Use `scripts\tools.bat fix-path` to fix Node.js path issues
+- **scripts/deploy-frontend.js**: Deploy to Azure Static Web Apps
+  - Use `npm run deploy:frontend` to run the deployment script
+
+See [scripts/README.md](scripts/README.md) for detailed documentation.
 
 ## Development
 
@@ -113,12 +115,12 @@ Start the development server:
 
 **Command Prompt:**
 ```bash
-dev-server.bat
+scripts\server.bat dev
 ```
 
 **PowerShell:**
 ```powershell
-.\dev-server.bat
+.\scripts\server.bat dev
 ```
 
 The app will be available at http://localhost:3000 with hot reloading enabled. The development server is configured to always use port 3000, which is required for API Management service integration.
@@ -129,24 +131,24 @@ Build for production:
 
 **Command Prompt:**
 ```bash
-build-app.bat
+scripts\build-app.bat
 ```
 
 **PowerShell:**
 ```powershell
-.\build-app.bat
+.\scripts\build-app.bat
 ```
 
 Start the production server:
 
 **Command Prompt:**
 ```bash
-prod-server.bat
+scripts\server.bat prod
 ```
 
 **PowerShell:**
 ```powershell
-.\prod-server.bat
+.\scripts\server.bat prod
 ```
 
 ## Available Scripts
@@ -163,9 +165,9 @@ prod-server.bat
 - `pnpm build` - Build for production
 - `pnpm start` - Start production server (port 3000)
 - `pnpm clean` - Clean installation files
-- `pnpm prod-install` - Install production dependencies only
+- `pnpm deploy:frontend` - Deploy frontend to Azure Static Web Apps
 
-Note: When running batch files in PowerShell, prefix them with `.\` (e.g., `.\dev-server.bat`, `.\prod-server.bat`)
+Note: When running batch files in PowerShell, prefix them with `.\` (e.g., `.\scripts\server.bat`, `.\scripts\build-app.bat`)
 
 ## Project Structure
 
@@ -177,10 +179,11 @@ Note: When running batch files in PowerShell, prefix them with `.\` (e.g., `.\de
 - `public/` - Static assets
   - `build/` - Compiled code (generated)
   - `images/` - Images
-  - `mock/` - Mock data for development
   - `data/` - Static data files
+- `scripts/` - Build, deployment, and utility scripts
 - `docs/` - Documentation files
 - `memory-bank/` - Project memory documentation
+- `PokeDataFunc/` - Azure Functions backend
 
 ## License
 

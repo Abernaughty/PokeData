@@ -9,25 +9,25 @@ This document outlines the technologies used, development setup, technical const
 - **Svelte**: Core UI framework for building the application
 - **JavaScript**: Primary programming language
 - **HTML/CSS**: Markup and styling
-- **IndexedDB**: Browser-based database for persistent storage
 - **Fetch API**: For making HTTP requests to external APIs
 - **Web Storage API**: For lightweight client-side storage
 
 ### Current Cloud Technologies (Default)
 - **Azure Cosmos DB**: Primary database for card metadata and pricing information
-- **Azure Blob Storage**: Storage for card images
-- **Azure CDN**: Fast delivery of card images
-- **Azure Cache for Redis**: Cache for frequently accessed data
 - **Azure Functions**: Serverless API endpoints and background processing
 - **Azure API Management**: API gateway and external API proxy
+- **Azure Static Web Apps**: Frontend hosting
 
 ### Development Tools
 - **Rollup**: Module bundler for JavaScript
 - **PNPM**: Package manager for Node.js dependencies
 - **SirvCLI**: Static file server for development and testing
 - **Batch Scripts**: Automation for common development tasks
-- **Azure CLI**: Command-line tools for Azure resource management (planned)
+- **Azure CLI**: Command-line tools for Azure resource management (✅ installed and configured)
 - **Azure Storage Explorer**: Visual tool for managing Azure storage resources (planned)
+- **Azure MCP Server**: Model Context Protocol server for Azure service integration (✅ installed)
+- **GitHub MCP Server**: Model Context Protocol server for GitHub integration (✅ installed 2025-08-12)
+- **Go Programming Language**: v1.24.6 installed for building MCP servers from source (✅ installed 2025-08-12)
 
 ### External Services
 - **Pokémon TCG API**: Primary source for card metadata, set information, and high-quality images
@@ -47,10 +47,14 @@ This document outlines the technologies used, development setup, technical const
 2. **Repository Structure**:
    ```
    PokeData/
+   ├── .github/               # GitHub Actions workflows
+   │   └── workflows/
    ├── docs/                  # Documentation files
+   │   ├── api-documentation.md
    │   ├── azure-deployment.md
+   │   ├── cicd-deployment-guide.md
    │   ├── debugging-guide.md
-   │   └── quick-debug-guide.md
+   │   └── ...
    ├── memory-bank/           # Project memory documentation
    │   ├── activeContext.md
    │   ├── productContext.md
@@ -58,6 +62,11 @@ This document outlines the technologies used, development setup, technical const
    │   ├── projectbrief.md
    │   ├── systemPatterns.md
    │   └── techContext.md
+   ├── PokeDataFunc/          # Azure Functions backend
+   │   ├── src/               # TypeScript source code
+   │   ├── scripts/           # Data management scripts
+   │   ├── docs/              # Backend documentation
+   │   └── ...
    ├── public/                # Static assets
    │   ├── build/             # Compiled code (generated)
    │   ├── images/            # Images
@@ -66,6 +75,13 @@ This document outlines the technologies used, development setup, technical const
    │   ├── global.css         # Global styles
    │   ├── index.html         # HTML entry point
    │   └── staticwebapp.config.json # Azure Static Web Apps configuration
+   ├── scripts/               # Build and utility scripts
+   │   ├── build-app.bat      # Production build script
+   │   ├── build.js           # Build configuration
+   │   ├── deploy-frontend.js # Frontend deployment script
+   │   ├── server.bat         # Unified server script
+   │   ├── tools.bat          # Utility tools
+   │   └── README.md          # Scripts documentation
    ├── src/                   # Source code
    │   ├── components/        # UI components
    │   │   ├── CardSearchSelect.svelte
@@ -74,37 +90,26 @@ This document outlines the technologies used, development setup, technical const
    │   │   └── SearchableSelect.svelte
    │   ├── data/              # Static data and configuration
    │   │   ├── apiConfig.js
-   │   │   ├── prismaticEvolutionsCards.js
+   │   │   ├── cloudApiConfig.js
    │   │   └── setList.js
    │   ├── services/          # Business logic and API services
+   │   │   ├── cloudDataService.js
    │   │   ├── pokeDataService.js
    │   │   └── storage/
    │   │       └── db.js
+   │   ├── stores/            # Svelte stores
    │   ├── App.svelte         # Main application component
    │   ├── corsProxy.js       # CORS proxy utility
    │   ├── debug-env.js       # Debugging utilities
    │   └── main.js            # Application entry point
-   ├── azure/                 # Azure resource templates and scripts (planned)
-   │   ├── templates/         # ARM templates for Azure resources
-   │   ├── functions/         # Azure Functions code
-   │   ├── scripts/           # Deployment and management scripts
-   │   └── config/            # Configuration files for Azure resources
    ├── .env.example           # Example environment variables
    ├── .gitignore             # Git ignore file
    ├── .npmrc                 # NPM configuration
-   ├── build-app.bat          # Consolidated build tool
-   ├── build.js               # Build configuration
-   ├── dev-server.bat         # Development server script
-   ├── node-test.js           # Node.js test script
+   ├── DEPLOYMENT_GUIDE.md    # Comprehensive deployment guide
    ├── package.json           # Package configuration
    ├── pnpm-lock.yaml         # PNPM lock file
-   ├── prod-server.bat        # Production server script
    ├── README.md              # Project documentation
-   ├── rollup.config.cjs      # Rollup configuration (CommonJS)
-   ├── rollup.config.js       # Rollup configuration (ES modules)
-   ├── run-app.bat            # Quick start launcher
-   ├── tools.bat              # Consolidated utility tools
-   └── TASKS.md               # Development tasks and status
+   └── rollup.config.cjs      # Rollup configuration
    ```
 
 3. **Setup Commands**:
@@ -137,34 +142,37 @@ This document outlines the technologies used, development setup, technical const
 
    Note: The PokeData repository is located at `C:\Users\maber\Documents\GitHub\PokeData` and is also available on GitHub at https://github.com/Abernaughty/PokeData. There is a separate static web app workflow directory at `C:\Users\maber\Documents\GitHub\git-maber\PokeData` that should not be modified unless explicitly requested.
 
-4. **Automation Scripts**:
-   - **dev-server.bat**: Starts the development server with hot reloading (http://localhost:3000)
+4. **Automation Scripts** (located in `scripts/` directory):
+   - **scripts/server.bat**: Unified server script with parameter support (http://localhost:3000)
+     - Use `scripts\server.bat` or `scripts\server.bat dev` for development server with hot reloading
+     - Use `scripts\server.bat prod` for production server with optimized build
      - Automatically detects and safely terminates any existing processes on port 3000
+     - Includes automatic build check for production mode
      - Uses a robust process termination approach to avoid conflicts
-   - **prod-server.bat**: Starts the production server (http://localhost:3000)
-     - Automatically detects and safely terminates any existing processes on port 3000
-     - Uses a robust process termination approach to avoid conflicts
-   - **build-app.bat**: Builds the application for production
-     - Use `build-app.bat` for a full build
-     - Use `build-app.bat css` to rebuild only CSS
-   - **tools.bat**: Provides utility tools
-     - Use `tools.bat setup` to install dependencies
-     - Use `tools.bat diagnose` to diagnose environment issues
-     - Use `tools.bat fix-path` to fix Node.js path issues
-   - **run-app.bat**: Quick start launcher that runs setup and starts the production server
+   - **scripts/build-app.bat**: Builds the application for production
+     - Use `scripts\build-app.bat` for a full build
+     - Use `scripts\build-app.bat css` to rebuild only CSS
+   - **scripts/tools.bat**: Provides utility tools
+     - Use `scripts\tools.bat setup` to install dependencies
+     - Use `scripts\tools.bat diagnose` to diagnose environment issues
+     - Use `scripts\tools.bat fix-path` to fix Node.js path issues
+   - **scripts/deploy-frontend.js**: Node.js script for deploying frontend to Azure Static Web Apps
+     - Interactive menu with multiple deployment options
+     - Automatic token management from .env file
+     - Cross-platform compatibility
 
 ### Development Workflow
 1. **Local Development**:
-   - Run `pnpm dev` or `dev-server.bat` to start the development server
+   - Run `pnpm dev` or `scripts\server.bat dev` to start the development server
    - Access the application at http://localhost:3000
    - Changes to source files trigger hot reloading
 
 2. **Building for Production**:
-   - Run `pnpm build` or `build-app.bat` to create a production build
+   - Run `pnpm build` or `scripts\build-app.bat` to create a production build
    - Output is generated in the `public/build` directory
 
 3. **Running in Production Mode**:
-   - Run `pnpm start` or `prod-server.bat` to serve the production build
+   - Run `pnpm start` or `scripts\server.bat prod` to serve the production build
    - Access the application at http://localhost:3000
 
 ### Planned Cloud Development Workflow
@@ -207,20 +215,15 @@ This document outlines the technologies used, development setup, technical const
 - **Offline Functionality**: Core features work without internet connection
 
 ### Current Storage Limitations
-- **IndexedDB**: Limited by browser storage allocation (typically 50-100MB)
+- **Browser Storage**: Limited by browser storage allocation
 - **Cache Invalidation**: Required for data freshness
-- **Fallback Mechanisms**: Needed for browsers without IndexedDB support
+- **Fallback Mechanisms**: Needed for API unavailability
 
 ### Cloud Storage Implementation
 - **Cosmos DB**: Configured with card data in Cards container and set data in Sets container
   - On-demand population strategy for efficient storage usage
   - Currently populated with data for Scarlet & Violet sets, with older sets loaded on-demand
   - Cards are stored by Set ID partition key for efficient querying
-- **Blob Storage**: Cost-effective storage for card images
-- **Redis Cache**: High-performance in-memory cache for frequently accessed data
-  - Configured with TTL-based caching (sets: 7 days, cards: 24 hours)
-  - Optimized read path with cache-aside pattern
-- **CDN**: Edge caching for improved image delivery performance
 
 ### API Constraints
 - **Rate Limiting**: External APIs may have request limits
@@ -231,7 +234,6 @@ This document outlines the technologies used, development setup, technical const
 ### Cloud Service Constraints
 - **Cosmos DB RU Limits**: Request Units need to be properly provisioned
 - **Azure Functions Execution Time**: Maximum execution time for functions
-- **Redis Cache Size**: Memory limits based on selected tier
 - **API Management Throughput**: Request limits based on selected tier
 - **Cost Management**: Operational costs need to be monitored and optimized
 
@@ -262,11 +264,9 @@ For the cloud-based architecture, we've implemented the following dependencies:
 | Package | Purpose | Status |
 |---------|---------|--------|
 | @azure/cosmos | Cosmos DB client for Node.js | ✅ Implemented |
-| @azure/storage-blob | Azure Blob Storage client for Node.js | ✅ Implemented |
 | axios | HTTP client for API requests | ✅ Implemented |
 | @azure/identity | Authentication for Azure services | ✅ Implemented |
 | @azure/functions | Azure Functions runtime | ✅ Implemented |
-| redis | Redis client for Node.js | ✅ Implemented |
 | chart.js | Library for price history visualization | 🔄 Planned |
 | azure-functions-core-tools | Local development tools for Azure Functions | ✅ Implemented |
 
@@ -441,6 +441,13 @@ For the cloud-based architecture, we've implemented the following dependencies:
   - Azure Static Web Apps for hosting (✅ implemented - Pokedata-SWA with clean configuration)
   - CDN for static assets and images (planned)
   - Environment-specific configuration (planned)
+  - **Custom Domain**: https://pokedata.maber.io (✅ configured and working)
+  - **Deployment Script (deploy-frontend.js)**:
+    - Fixed static progress display issue (2025-01-12)
+    - Implemented real-time progress indicator with animated spinner
+    - Shows continuously updating elapsed time during deployment
+    - Parses and displays SWA CLI status messages with timestamps
+    - Corrected app URL from incorrect Azure default to custom domain
 
 - **Backend**:
   - Azure Functions for serverless API endpoints (✅ implemented)
@@ -449,8 +456,6 @@ For the cloud-based architecture, we've implemented the following dependencies:
 
 - **Data Storage**:
   - Cosmos DB for card data and pricing (✅ implemented)
-  - Blob Storage for card images (✅ configured)
-  - Redis Cache for frequently accessed data (✅ implemented)
 
 - **Monitoring**:
   - Azure Monitor for application insights (planned)
@@ -608,9 +613,9 @@ The Azure Function implementation uses a hybrid API approach leveraging both the
 4. **Azure Functions**:
    - Data normalization and transformation (✅ implemented)
    - Error handling and fallback mechanisms (✅ implemented)
-   - Caching with Redis and background processing (✅ implemented)
+   - Background processing (✅ implemented)
    - On-demand database population strategy (✅ implemented)
-   - Tiered cache access pattern (Redis → Cosmos DB → External API) (✅ implemented)
+   - Cache access pattern (Cosmos DB → External API) (✅ implemented)
 
 ### Enhanced CORS Proxy
 The application currently uses an enhanced CORS proxy to handle cross-origin requests and ensure proper header handling:
@@ -910,6 +915,291 @@ The Azure Function implementation features a multi-tiered caching strategy:
    - Event-driven cache invalidation
    - Scheduled cache warming for popular items
    - Monitoring and analytics for cache performance
+
+## Azure MCP Server Integration
+
+### Overview
+The Azure MCP (Model Context Protocol) Server provides direct integration with Azure services through a standardized protocol. This enables AI assistants to interact with Azure resources programmatically.
+
+### Installation and Configuration
+- **Server Name**: `github.com/Azure/azure-mcp`
+- **Location**: `C:\Users\maber\OneDrive\Documents\Cline\MCP\azure-mcp`
+- **Configuration File**: `C:\Users\maber\AppData\Roaming\Code\User\globalStorage\saoudrizwan.claude-dev\settings\cline_mcp_settings.json`
+- **Version**: 0.5.4
+- **Authentication**: Uses existing Azure CLI credentials
+
+### Available Azure Services
+The Azure MCP Server provides tools for interacting with the following services:
+
+#### Data Services
+- **Cosmos DB**: List accounts, databases, containers, and query data
+  - Current Account: `pokemon-card-pricing-db`
+  - Database: `PokemonCards`
+  - Containers: `Cards`, `Sets`
+- **Storage**: Manage storage accounts, blobs, tables, file shares, and Data Lake
+- **SQL Database**: Manage databases, servers, elastic pools, and firewall rules
+- **PostgreSQL**: List and query databases, manage servers
+- **Redis Cache**: List cache resources and manage access policies
+
+#### Compute and Container Services
+- **Azure Kubernetes Service (AKS)**: List and manage AKS clusters
+- **Azure Functions**: Through Azure Developer CLI integration
+- **Virtual Desktop**: Manage host pools and user sessions
+
+#### Developer and Integration Services
+- **App Configuration**: Manage key-value pairs and configuration settings
+- **Key Vault**: Manage certificates, keys, and secrets
+- **Service Bus**: Manage queues, topics, and subscriptions
+- **API Management**: Through marketplace integration
+
+#### Monitoring and Analytics
+- **Azure Monitor**: Query logs and metrics
+- **Data Explorer (Kusto)**: Execute KQL queries
+- **Grafana**: Manage Azure Managed Grafana workspaces
+- **Workbooks**: Create and manage interactive dashboards
+- **Load Testing**: Create and run load tests
+
+#### AI and Search Services
+- **Azure AI Search**: List services, indexes, and execute search queries
+- **Azure Foundry**: List and deploy foundry models
+- **Documentation Search**: Search Microsoft/Azure documentation
+
+#### Management and Governance
+- **Subscriptions**: List and manage Azure subscriptions
+  - Active: Thunderdome, Bing Bong
+  - Disabled: Subscrippy
+- **Resource Groups**: List and manage resource groups
+- **Role-Based Access Control (RBAC)**: Manage role assignments
+- **Marketplace**: Access Azure Marketplace products
+
+#### Infrastructure as Code
+- **Bicep**: Get Bicep schemas for Azure resources
+- **Terraform Best Practices**: Get Azure Terraform best practices
+- **Azure Developer CLI (azd)**: Template discovery, provisioning, and deployment
+
+### Tool Usage Pattern
+Tools are accessed through a hierarchical command structure:
+
+```javascript
+// Example: List Cosmos DB containers
+{
+  "intent": "List containers in PokemonCards database",
+  "command": "cosmos_database_container_list",
+  "parameters": {
+    "account": "pokemon-card-pricing-db",
+    "database": "PokemonCards",
+    "subscription": "Thunderdome"
+  }
+}
+```
+
+### Key Features
+1. **Unified Interface**: Single interface for all Azure services
+2. **Authentication**: Uses existing Azure CLI credentials
+3. **Learning Mode**: Tools support `learn=true` parameter to discover available commands
+4. **Error Handling**: Comprehensive error messages and retry logic
+5. **Cross-Platform**: Works on Windows, macOS, and Linux
+
+### Integration Benefits
+- **Direct Azure Access**: Query and manage Azure resources without leaving the development environment
+- **Real-Time Data**: Access live data from Cosmos DB, Storage, and other services
+- **Documentation**: Built-in documentation search for Azure services
+- **Best Practices**: Access to Azure best practices for SDK and Terraform
+- **Monitoring**: Query logs and metrics directly from Azure Monitor
+
+### Current Usage in Project
+The Azure MCP Server is actively used for:
+- Querying Cosmos DB for Pokemon card data and pricing
+- Managing Azure Storage for card images
+- Monitoring Azure Functions performance
+- Accessing Azure documentation for development guidance
+- Managing deployment configurations
+
+## GitHub MCP Server Integration
+
+### Overview
+The GitHub MCP (Model Context Protocol) Server provides direct integration with GitHub's API through a standardized protocol. This enables AI assistants to interact with GitHub repositories, issues, pull requests, and workflows programmatically.
+
+### Installation and Configuration
+- **Server Name**: `github.com/github/github-mcp-server`
+- **Location**: `C:\Users\maber\OneDrive\Documents\Cline\MCP\github-mcp-server`
+- **Executable**: `github-mcp-server.exe` (built from source)
+- **Configuration File**: `C:\Users\maber\AppData\Roaming\Code\User\globalStorage\saoudrizwan.claude-dev\settings\cline_mcp_settings.json`
+- **Authentication**: GitHub Personal Access Token (PAT)
+- **Installation Date**: 2025-08-12
+
+### Build Process
+The GitHub MCP server was built from source:
+1. Cloned repository from https://github.com/github/github-mcp-server
+2. Installed Go v1.24.6 via winget
+3. Built executable using `go build -o github-mcp-server.exe ./cmd/github-mcp-server`
+4. Configured in MCP settings with PAT authentication
+
+### Available GitHub Tools
+The GitHub MCP Server provides comprehensive tools for GitHub operations:
+
+#### Repository Management
+- **get_file_contents**: Read files from repositories
+- **create_or_update_file**: Create or modify files
+- **delete_file**: Delete files from repositories
+- **create_branch**: Create new branches
+- **list_branches**: List repository branches
+- **list_commits**: Get commit history
+- **get_commit**: Get specific commit details
+- **push_files**: Push multiple files in a single commit
+- **fork_repository**: Fork repositories
+- **create_repository**: Create new repositories
+- **list_tags**: List repository tags
+- **get_tag**: Get tag details
+
+#### Issues Management
+- **create_issue**: Open new issues
+- **list_issues**: List repository issues
+- **get_issue**: Get issue details
+- **update_issue**: Edit existing issues
+- **add_issue_comment**: Add comments to issues
+- **get_issue_comments**: Get issue comments
+- **search_issues**: Search for issues
+- **add_sub_issue**: Add sub-issues to parent issues
+- **remove_sub_issue**: Remove sub-issues
+- **reprioritize_sub_issue**: Change sub-issue priority
+- **list_sub_issues**: List sub-issues
+- **assign_copilot_to_issue**: Assign Copilot to work on issues
+
+#### Pull Requests
+- **create_pull_request**: Open new pull requests
+- **list_pull_requests**: List pull requests
+- **get_pull_request**: Get PR details
+- **update_pull_request**: Edit pull requests
+- **merge_pull_request**: Merge pull requests
+- **get_pull_request_diff**: Get PR diff
+- **get_pull_request_files**: Get changed files
+- **get_pull_request_comments**: Get PR comments
+- **get_pull_request_reviews**: Get PR reviews
+- **get_pull_request_status**: Get PR status checks
+- **update_pull_request_branch**: Update PR branch
+- **search_pull_requests**: Search for pull requests
+- **request_copilot_review**: Request Copilot code review
+
+#### Pull Request Reviews
+- **create_pending_pull_request_review**: Start a review
+- **add_comment_to_pending_review**: Add review comments
+- **submit_pending_pull_request_review**: Submit review
+- **delete_pending_pull_request_review**: Delete pending review
+- **create_and_submit_pull_request_review**: Create and submit review in one step
+
+#### GitHub Actions
+- **list_workflows**: List GitHub Actions workflows
+- **run_workflow**: Trigger workflow runs
+- **get_workflow_run**: Get workflow run details
+- **list_workflow_runs**: List workflow runs
+- **list_workflow_jobs**: List jobs in a workflow run
+- **get_workflow_run_logs**: Download workflow logs
+- **get_job_logs**: Get specific job logs
+- **get_workflow_run_usage**: Get workflow usage metrics
+- **list_workflow_run_artifacts**: List workflow artifacts
+- **download_workflow_run_artifact**: Download artifacts
+- **cancel_workflow_run**: Cancel running workflows
+- **delete_workflow_run_logs**: Delete workflow logs
+- **rerun_workflow_run**: Re-run entire workflow
+- **rerun_failed_jobs**: Re-run only failed jobs
+
+#### Search Capabilities
+- **search_repositories**: Find repositories
+- **search_code**: Search code across GitHub
+- **search_users**: Find GitHub users
+- **search_orgs**: Find organizations
+- **search_issues**: Search for issues
+- **search_pull_requests**: Search for pull requests
+
+#### Notifications
+- **list_notifications**: List GitHub notifications
+- **get_notification_details**: Get notification details
+- **dismiss_notification**: Mark notifications as read/done
+- **manage_notification_subscription**: Manage notification subscriptions
+- **manage_repository_notification_subscription**: Manage repo notifications
+- **mark_all_notifications_read**: Mark all as read
+
+#### Security and Scanning
+- **list_code_scanning_alerts**: List code scanning alerts
+- **get_code_scanning_alert**: Get alert details
+- **list_dependabot_alerts**: List Dependabot alerts
+- **get_dependabot_alert**: Get Dependabot alert details
+- **list_secret_scanning_alerts**: List secret scanning alerts
+- **get_secret_scanning_alert**: Get secret alert details
+
+#### Gists
+- **create_gist**: Create new gists
+- **list_gists**: List user gists
+- **update_gist**: Update existing gists
+
+#### Discussions
+- **list_discussions**: List repository discussions
+- **get_discussion**: Get discussion details
+- **get_discussion_comments**: Get discussion comments
+- **list_discussion_categories**: List discussion categories
+
+#### User Profile
+- **get_me**: Get authenticated user's profile
+
+#### Releases
+- **list_releases**: List repository releases
+- **get_latest_release**: Get latest release
+
+### Resource Templates
+The server also provides resource templates for accessing repository content:
+- `repo://{owner}/{repo}/contents{/path*}`: Repository content
+- `repo://{owner}/{repo}/refs/heads/{branch}/contents{/path*}`: Branch content
+- `repo://{owner}/{repo}/sha/{sha}/contents{/path*}`: Commit content
+- `repo://{owner}/{repo}/refs/pull/{prNumber}/head/contents{/path*}`: PR content
+- `repo://{owner}/{repo}/refs/tags/{tag}/contents{/path*}`: Tag content
+
+### Integration Benefits for PokeData Project
+
+#### CI/CD Automation
+- Trigger and monitor GitHub Actions workflows
+- Automatically create issues for failed deployments
+- Generate pull requests for dependency updates
+- Monitor workflow performance and costs
+
+#### Repository Management
+- Automated file updates for configuration changes
+- Branch management for feature development
+- Tag creation for releases
+- Commit history analysis
+
+#### Issue and PR Workflow
+- Create issues for bugs found during testing
+- Automated PR creation for code changes
+- Request Copilot reviews for code quality
+- Manage sub-issues for complex features
+
+#### Documentation
+- Update README and documentation files directly
+- Create gists for code snippets
+- Search for similar implementations across GitHub
+
+#### Monitoring and Notifications
+- Track GitHub notifications programmatically
+- Monitor security alerts (Dependabot, code scanning)
+- Get notified of important repository events
+
+### Current Usage in Project
+The GitHub MCP Server enables:
+- Direct repository management without manual GitHub UI interaction
+- Automated issue and PR creation for development workflow
+- GitHub Actions monitoring and triggering
+- Security alert monitoring and management
+- Code search across the entire GitHub platform
+- Notification management for staying updated on project activity
+
+### Example Use Cases
+1. **Automated Deployment**: Trigger GitHub Actions deployment workflow and monitor its progress
+2. **Issue Creation**: Automatically create issues when errors are detected in production
+3. **PR Management**: Create PRs for dependency updates and request reviews
+4. **Code Search**: Find similar implementations or usage patterns across GitHub
+5. **Security Monitoring**: Check for Dependabot alerts and security vulnerabilities
+6. **Documentation Updates**: Update README and docs directly from the development environment
 
 ## Component Implementation
 

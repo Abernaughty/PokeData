@@ -76,31 +76,136 @@ async function deployToSWA() {
     console.log('Deploying to Azure Static Web Apps...');
     console.log('[INFO] Starting deployment...\n');
     
-    try {
-        await runCommand('swa', [
+    return new Promise((resolve) => {
+        const startTime = Date.now();
+        let progressInterval;
+        let lastOutputTime = Date.now();
+        
+        // Start progress indicator
+        const startProgressIndicator = () => {
+            const spinnerChars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+            let spinnerIndex = 0;
+            
+            progressInterval = setInterval(() => {
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                const spinner = spinnerChars[spinnerIndex % spinnerChars.length];
+                
+                // Clear the current line and write the progress
+                process.stdout.write(`\r${spinner} Deploying... Time: ${elapsed}s`);
+                spinnerIndex++;
+                
+                // Check if we haven't received output for a while (might be stuck)
+                if (Date.now() - lastOutputTime > 60000) {
+                    process.stdout.write('\n[WARNING] Deployment is taking longer than expected...\n');
+                    lastOutputTime = Date.now();
+                }
+            }, 100);
+        };
+        
+        const child = spawn('swa', [
             'deploy',
             './public',
             '--deployment-token',
             process.env.SWA_DEPLOYMENT_TOKEN,
             '--env',
             'production'
-        ]);
+        ], {
+            shell: true
+        });
         
-        console.log('\n========================================');
-        console.log(' Deployment Success! [DONE]');
-        console.log('========================================\n');
-        console.log('[OK] Frontend deployed successfully to Azure Static Web Apps!');
-        console.log('[OK] Changes should be live in a few moments.\n');
-        console.log('Your app URL: https://pokedata-swa.azurestaticapps.net\n');
-        return true;
-    } catch (error) {
-        console.error('\n========================================');
-        console.error(' Deployment Failed [ERROR]');
-        console.error('========================================\n');
-        console.error('[ERROR] Deployment failed:', error.message);
-        console.error('Check your deployment token and network connection.\n');
-        return false;
-    }
+        let outputBuffer = '';
+        let errorBuffer = '';
+        
+        // Start the progress indicator
+        startProgressIndicator();
+        
+        // Capture stdout
+        child.stdout.on('data', (data) => {
+            lastOutputTime = Date.now();
+            outputBuffer += data.toString();
+            
+            // Parse for specific status messages from SWA CLI
+            const lines = data.toString().split('\n');
+            for (const line of lines) {
+                if (line.includes('Status:') || line.includes('Uploading') || line.includes('Deploying')) {
+                    // Clear the progress line and show the status
+                    process.stdout.write('\r' + ' '.repeat(50) + '\r');
+                    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                    console.log(`[${elapsed}s] ${line.trim()}`);
+                }
+            }
+        });
+        
+        // Capture stderr
+        child.stderr.on('data', (data) => {
+            lastOutputTime = Date.now();
+            errorBuffer += data.toString();
+        });
+        
+        child.on('exit', (code) => {
+            // Stop the progress indicator
+            if (progressInterval) {
+                clearInterval(progressInterval);
+            }
+            
+            // Clear the progress line
+            process.stdout.write('\r' + ' '.repeat(50) + '\r');
+            
+            const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
+            
+            if (code === 0) {
+                console.log('\n========================================');
+                console.log(' Deployment Success! [DONE]');
+                console.log('========================================\n');
+                console.log(`[OK] Frontend deployed successfully to Azure Static Web Apps!`);
+                console.log(`[OK] Total deployment time: ${totalTime}s`);
+                console.log('[OK] Changes should be live in a few moments.\n');
+                console.log('Your app URL: https://pokedata.maber.io\n');
+                resolve(true);
+            } else {
+                console.error('\n========================================');
+                console.error(' Deployment Failed [ERROR]');
+                console.error('========================================\n');
+                console.error('[ERROR] Deployment failed with exit code:', code);
+                console.error(`[ERROR] Total time: ${totalTime}s`);
+                
+                if (errorBuffer) {
+                    console.error('[ERROR] Error details:', errorBuffer);
+                } else if (outputBuffer.includes('error') || outputBuffer.includes('Error')) {
+                    // Try to extract error from output
+                    const errorLines = outputBuffer.split('\n').filter(line => 
+                        line.toLowerCase().includes('error') || line.includes('failed')
+                    );
+                    if (errorLines.length > 0) {
+                        console.error('[ERROR] Error details:', errorLines.join('\n'));
+                    }
+                }
+                
+                console.error('Check your deployment token and network connection.\n');
+                resolve(false);
+            }
+        });
+        
+        child.on('error', (error) => {
+            // Stop the progress indicator
+            if (progressInterval) {
+                clearInterval(progressInterval);
+            }
+            
+            // Clear the progress line
+            process.stdout.write('\r' + ' '.repeat(50) + '\r');
+            
+            const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
+            
+            console.error('\n========================================');
+            console.error(' Deployment Failed [ERROR]');
+            console.error('========================================\n');
+            console.error('[ERROR] Failed to start deployment process:', error.message);
+            console.error(`[ERROR] Total time: ${totalTime}s`);
+            console.error('Check that SWA CLI is installed and accessible.\n');
+            resolve(false);
+        });
+    });
 }
 
 async function quickDeploy() {

@@ -11,7 +11,7 @@ Collectors often need to check multiple sources to get accurate pricing informat
 Additionally, the project serves as a practical demonstration of modern web development techniques, including:
 - Cloud-first architecture with Azure services
 - Serverless backend with Azure Functions
-- Advanced caching strategies with Redis and Cosmos DB
+- Advanced caching strategies with Cosmos DB
 - Frontend development with Svelte
 - API integration and data handling
 - Responsive UI design with modern patterns
@@ -45,17 +45,16 @@ Additionally, the project serves as a practical demonstration of modern web deve
 1. **Cloud-First Backend**: 
    - Azure Functions for serverless API endpoints
    - Azure Cosmos DB for optimized card data storage
-   - Azure Cache for Redis for high-performance caching
    - Azure API Management for rate limiting and monitoring
 
 2. **Data Management**:
    - Hybrid API integration (Pokémon TCG API + PokeData API)
-   - Multi-tier caching strategy (Redis → Cosmos DB → External APIs)
+   - Caching strategy (Cosmos DB → External APIs)
    - On-demand image loading for optimal performance
    - Intelligent batch operations for database efficiency
 
 3. **Caching Strategy**:
-   - Set lists cached in Redis with 7-day TTL
+   - Set lists cached with 7-day TTL
    - Card lists cached with 24-hour TTL
    - Pricing data with shorter expiration for freshness
    - Background refresh for popular content
@@ -89,7 +88,7 @@ Additionally, the project serves as a practical demonstration of modern web deve
 ## Design Principles
 
 1. **Performance First**: Ensure sub-second response times through intelligent architecture.
-   - Cloud-first design with edge caching
+   - Cloud-first design
    - On-demand loading strategies
    - Optimized database operations
 
@@ -119,12 +118,10 @@ The PokeData project has achieved a mature cloud-first architecture with compreh
 
 ### **Cloud-First Architecture Fully Operational (2025-06-04)**:
 1. **Azure Infrastructure Complete**:
-   - **Azure Static Web Apps**: Frontend hosting with CDN at https://pokedata.maber.io
+   - **Azure Static Web Apps**: Frontend hosting at https://pokedata.maber.io
    - **Azure Functions**: Serverless backend with GetSetList, GetCardsBySet, GetCardInfo, RefreshData
    - **Azure Cosmos DB**: Optimized card data storage with partition keys and indexing
-   - **Azure Cache for Redis**: High-performance caching with TTL-based invalidation
    - **Azure API Management**: Rate limiting, authentication, and monitoring
-   - **Azure Blob Storage**: Card image storage with CDN integration
 
 2. **Performance Optimization Complete**:
    - **167x performance improvement**: 299ms vs 50+ seconds for set operations
@@ -136,7 +133,7 @@ The PokeData project has achieved a mature cloud-first architecture with compreh
 3. **PokeData-First Backend Architecture**:
    - **Hybrid API integration**: Pokémon TCG API + PokeData API
    - **123 successful set mappings**: 91.6% coverage between APIs
-   - **Multi-tier caching**: Redis → Cosmos DB → External APIs
+   - **Caching strategy**: Cosmos DB → External APIs
    - **On-demand image loading**: Fast browsing with images loaded when needed
    - **Normalized data handling**: Automatic format conversion between APIs
 

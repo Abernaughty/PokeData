@@ -512,8 +512,7 @@
   }
   
   .results .graded-price {
-    margin-left: 0.5rem;
-    padding-left: 0.8rem;
+    /* Removed indentation to standardize with other pricing sections */
   }
   
   .no-prices {

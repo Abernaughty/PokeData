@@ -5,32 +5,24 @@ This document outlines the system architecture, key technical decisions, design 
 
 ## System Architecture
 
-### Current Architecture: Cloud-First with Client-Side Fallback
-The PokeData application now uses a cloud-first architecture with Azure services as the default behavior, while maintaining client-side capabilities as a fallback:
+### Current Architecture: Cloud-First Architecture
+The PokeData application uses a cloud-first architecture with Azure services:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                                                                             │
 │                               Azure Cloud                                   │
 │                                                                             │
-│  ┌─────────────┐     ┌─────────────┐     ┌───────────┐     ┌───────────┐   │
-│  │             │     │             │     │           │     │           │   │
-│  │  Cosmos DB  │◀───▶│   Azure     │◀───▶│  Azure    │◀───▶│  Azure    │   │
-│  │  (Card Data)│     │  Functions  │     │  Cache    │     │   CDN     │   │
-│  │             │     │             │     │ (Redis)   │     │           │   │
-│  └─────────────┘     └─────────────┘     └───────────┘     └───────────┘   │
-│                             │                                    │          │
-│                             │                                    │          │
-│                      ┌─────────────┐                      ┌─────────────┐   │
-│                      │             │                      │             │   │
-│                      │    API      │                      │    Blob     │   │
-│                      │ Management  │                      │  Storage    │   │
-│                      │             │                      │ (Card Images)│   │
-│                      └─────────────┘                      └─────────────┘   │
-│                             │                                    │          │
-└─────────────────────────────│────────────────────────────────────│──────────┘
-                              │                                    │
-                              ▼                                    ▼
+│  ┌─────────────┐     ┌─────────────┐     ┌─────────────┐                   │
+│  │             │     │             │     │             │                   │
+│  │  Cosmos DB  │◀───▶│   Azure     │◀───▶│    API      │                   │
+│  │  (Card Data)│     │  Functions  │     │ Management  │                   │
+│  │             │     │             │     │             │                   │
+│  └─────────────┘     └─────────────┘     └─────────────┘                   │
+│                             │                                              │
+└─────────────────────────────│──────────────────────────────────────────────┘
+                              │
+                              ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                                                                             │
 │                               Client                                        │
@@ -51,9 +43,12 @@ The PokeData project is maintained in a standalone Git repository at `C:\Users\m
 ```
 PokeData/
 ├── docs/                  # Documentation files
+│   ├── api-documentation.md
 │   ├── azure-deployment.md
+│   ├── cicd-deployment-guide.md
 │   ├── debugging-guide.md
-│   └── quick-debug-guide.md
+│   ├── DEPLOYMENT_GUIDE.md  # Comprehensive deployment documentation
+│   └── [other docs...]
 ├── memory-bank/           # Project memory documentation
 │   ├── activeContext.md
 │   ├── productContext.md
@@ -61,22 +56,34 @@ PokeData/
 │   ├── projectbrief.md
 │   ├── systemPatterns.md
 │   └── techContext.md
-├── PokeDataFunc/          # Azure Functions backend
+├── PokeDataFunc/          # Azure Functions backend (separate package)
 │   ├── src/               # TypeScript source code
 │   │   ├── functions/     # Azure Function implementations
 │   │   ├── services/      # Backend services
 │   │   └── models/        # Data models
-│   ├── data/              # Set mapping and reference data
+│   ├── data/              # Source data files (tracked in Git)
+│   ├── dist/              # TypeScript build output (ignored in Git)
+│   ├── scripts/           # Consolidated data management scripts
+│   │   ├── set-mapping.js
+│   │   ├── manage-image-urls.js
+│   │   └── test-image-urls.js
 │   ├── package.json       # Backend dependencies
 │   └── tsconfig.json      # TypeScript configuration
 ├── public/                # Static assets and build output
-│   ├── build/             # Compiled JS/CSS
+│   ├── build/             # Compiled JS/CSS (ignored in Git)
 │   ├── data/              # Static data files
 │   ├── images/            # Image assets
 │   ├── debug-api.js       # Debugging utilities
 │   ├── global.css         # Global styles
 │   ├── index.html         # Main HTML file
 │   └── staticwebapp.config.json  # Azure config
+├── scripts/               # Frontend utility scripts
+│   ├── build-app.bat      # Build script
+│   ├── build.js           # Build configuration
+│   ├── deploy-frontend.js # Frontend deployment
+│   ├── server.bat         # Unified dev/prod server
+│   ├── tools.bat          # Utility tools
+│   └── README.md          # Script documentation
 ├── src/                   # Frontend source code
 │   ├── components/        # UI components
 │   ├── data/              # Data utilities
@@ -85,30 +92,34 @@ PokeData/
 │   ├── debug/             # Debug tools and panels
 │   ├── App.svelte         # Main application component
 │   └── main.js            # Application entry point
-├── .env.example           # Environment variables template
-├── .gitignore             # Git ignore file
+├── .gitignore             # Git ignore file (cleaned up)
 ├── .npmrc                 # NPM configuration
 ├── package.json           # Frontend dependencies and scripts
 ├── pnpm-lock.yaml         # PNPM lock file
 ├── README.md              # Project documentation
-├── rollup.config.cjs      # Rollup config (CommonJS)
-├── build-app.bat          # Build script
-├── dev-server.bat         # Development server script
-├── prod-server.bat        # Production server script
-├── run-app.bat            # Quick start launcher
-├── tools.bat              # Consolidated utility tools
-└── TASKS.md               # Task tracking
+└── rollup.config.cjs      # Rollup config (CommonJS)
 ```
+
+### Monorepo Architecture
+The project follows a **monorepo structure** with clear separation:
+- **Frontend (Root)**: Svelte application with its own package.json and build configuration
+- **Backend (PokeDataFunc/)**: Azure Functions with separate package.json and TypeScript setup
+- **Scripts (scripts/)**: Utility scripts for frontend operations
+- **Data Scripts (PokeDataFunc/scripts/)**: Backend data management scripts
+
+This structure provides:
+- Clear separation of concerns between frontend and backend
+- Independent dependency management for each component
+- Organized script locations based on their purpose
+- Clean root directory following JavaScript/Node.js best practices
 
 ### Current Implementation Layers
 
 #### Cloud Service Layer (Primary - Default Enabled)
 - **Azure Cosmos DB**: Primary database for card metadata and pricing information (✅ implemented)
-- **Azure Blob Storage**: Storage for card images (✅ configured)
-- **Azure Cache for Redis**: Cache for frequently accessed data (✅ implemented)
 - **Azure Functions**: Serverless API endpoints and background processing (✅ implemented)
 - **Azure API Management**: API gateway and external API proxy (✅ implemented)
-- **Azure Static Web Apps**: Frontend hosting with CDN (✅ implemented)
+- **Azure Static Web Apps**: Frontend hosting (✅ implemented)
 
 #### Frontend Service Layer
 - **hybridDataService**: Intelligent service that chooses between cloud and local APIs based on feature flags
@@ -117,9 +128,8 @@ PokeData/
 - **pokeDataService**: Legacy service for local API calls (fallback when cloud disabled)
 
 #### Data Layer Architecture
-- **Cloud-First Data Flow**: Redis → Cosmos DB → External APIs (PokeData + Pokemon TCG)
-- **Client-Side Fallback**: IndexedDB caching for offline/local mode
-- **Hybrid Caching**: Both cloud (Redis) and local (IndexedDB) caching strategies
+- **Cloud-First Data Flow**: Cosmos DB → External APIs (PokeData + Pokemon TCG)
+- **Direct API Integration**: Images served directly from Pokemon TCG API URLs
 
 #### Component Layer
 - **UI Components**: Svelte components for user interface elements
@@ -201,51 +211,21 @@ The current implementation focuses on a client-side architecture with robust cac
 - **CardVariantSelector.svelte**: Modal component for selecting card variants
 
 ### Service Structure
-- **pokeDataService.js**: Service for fetching and processing card data
+- **cloudDataService.js**: Service for communicating with Azure Functions API
   - getSetList(): Fetches list of all Pokémon card sets
   - getCardsForSet(): Fetches cards for a specific set
   - getCardPricing(): Fetches pricing data for a specific card
-  - loadMockData(): Loads mock data for testing
-- **db.js**: Service for managing IndexedDB storage
-  - getSetList(): Retrieves cached set list
-  - saveSetList(): Caches set list data
-  - getCardsForSet(): Retrieves cached cards for a set
-  - saveCardsForSet(): Caches cards for a set
-  - getCardPricing(): Retrieves cached pricing data
-  - saveCardPricing(): Caches pricing data
+- **hybridDataService.js**: Intelligent service that chooses between cloud and local APIs
+- **featureFlagService.js**: Service managing cloud vs local behavior (defaults to cloud-enabled)
+- **pokeDataService.js**: Legacy service for local API calls (fallback when cloud disabled)
 
 ### Current Data Flow
 1. User selects a set from the SearchableSelect dropdown
-2. App loads cards for the selected set (from cache or API)
+2. App loads cards for the selected set via Azure Functions
 3. User selects a card from the CardSearchSelect dropdown
-4. App fetches pricing data for the selected card (from cache or API)
+4. App fetches pricing data for the selected card via Azure Functions
 5. Results are displayed with formatted pricing information
 
-### Planned Cloud-Based Data Flow
-1. **Initial Load**:
-   - App starts → Load set list from Redis cache
-   - If not in cache → Query Pokémon TCG API → Store in Redis
-
-2. **Set Selection**:
-   - User selects set → Load card list from Redis cache
-   - If not in cache → Query Pokémon TCG API → Store in Redis
-
-3. **Card Selection**:
-   - User selects card → Parallel operations:
-     - Request card image via CDN from Blob Storage
-     - Request card data from Azure Function
-
-4. **Data Processing**:
-   - Azure Function:
-     - Check Cosmos DB for card data
-     - If found and recent → Return data
-     - If not found or stale → Query both APIs → Merge data → Store in Cosmos DB → Return
-
-5. **Background Updates**:
-   - Daily scheduled Azure Function:
-     - Fetch latest pricing data from both APIs
-     - Update Cosmos DB documents
-     - Invalidate relevant Redis cache entries
 
 ## Key Technical Decisions
 
@@ -267,19 +247,7 @@ The current implementation focuses on a client-side architecture with robust cac
 - **Trade-offs**: Cost considerations vs. flexibility and performance
 - **Implementation**: JSON document model with optimized indexing for card queries
 
-### 4. CDN for Image Delivery
-- **Rationale**: Faster image loading, reduced latency, improved user experience
-- **Alternatives Considered**: Direct Blob Storage access, third-party image CDN
-- **Trade-offs**: Additional configuration vs. performance benefits
-- **Implementation**: Azure CDN connected to Blob Storage with appropriate caching rules
-
-### 5. Redis for Caching
-- **Rationale**: Faster response times, shared cache across users, better control
-- **Alternatives Considered**: In-memory caching in Azure Functions, client-side caching
-- **Trade-offs**: Additional service to manage vs. performance benefits
-- **Implementation**: Cache set lists, card lists, and popular card data with appropriate TTL
-
-### 6. Standalone Repository Architecture
+### 4. Standalone Repository Architecture
 - **Rationale**: Better isolation, focused development, and clearer project boundaries
 - **Alternatives Considered**: Multi-project repository, monorepo approach
 - **Trade-offs**: Requires additional setup but provides cleaner project management and better focus
@@ -295,6 +263,13 @@ The current implementation focuses on a client-side architecture with robust cac
 - **Rationale**: Improves user experience by breaking down the search into manageable steps
 - **Alternatives Considered**: Single search field with autocomplete
 - **Trade-offs**: Additional step in the process but more structured and efficient search
+
+### 9. Large Image URLs by Default (2025-01-12)
+- **Rationale**: Provides better visual quality for card collectors who value high-resolution images
+- **Alternatives Considered**: Small images for faster loading, progressive image loading
+- **Trade-offs**: Slightly larger bandwidth usage vs significantly better image quality
+- **Implementation**: Modified cloudDataService.js to prioritize `images.large` over `images.small`
+- **Benefits**: Enhanced user experience with clearer card details and better readability
 
 ## Design Patterns
 
@@ -397,32 +372,17 @@ else if (data && data.data && Array.isArray(data.data)) {
 }
 ```
 
-### Planned Cloud Architecture Patterns
+### Cloud Architecture Patterns
 
 #### 1. Microservices Pattern
 - **Implementation**: Separate Azure Functions for different capabilities
 - **Benefits**: Independent scaling and deployment, clear service boundaries
 - **Example**: Separate functions for set list retrieval, card data retrieval, and pricing updates
 
-#### 2. CQRS Pattern (Command Query Responsibility Segregation)
-- **Implementation**: Separate read and write operations
-- **Benefits**: Optimized query paths, event-driven updates
-- **Example**: Read operations from Redis cache, write operations to Cosmos DB
-
-#### 3. Cache-Aside Pattern
-- **Implementation**: Check cache before database
-- **Benefits**: Improved performance, reduced database load
-- **Example**: Check Redis cache for set list before querying Cosmos DB
-
-#### 4. Circuit Breaker Pattern
+#### 2. Circuit Breaker Pattern
 - **Implementation**: Prevent cascading failures
 - **Benefits**: Improved resilience, graceful degradation
 - **Example**: Implement circuit breaker for external API calls
-
-#### 5. Strangler Fig Pattern
-- **Implementation**: Gradually migrate from client-side to cloud architecture
-- **Benefits**: Reduced risk, incremental migration
-- **Example**: Start with set list and card data migration, then add advanced features
 
 ## Component Relationships
 
@@ -461,7 +421,7 @@ App.svelte
 └─────────────────────────────────────────────────────┘
 ```
 
-### Planned Cloud-Based Data Flow
+### Cloud-Based Data Flow
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
 │             │     │             │     │             │
@@ -495,42 +455,24 @@ App.svelte
 └─────────────┘     └─────────────┘     └─────────────┘
        │                   │                   │
        ▼                   ▼                   ▼
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│             │     │             │     │             │
-│ Redis Cache │     │ Redis Cache │     │ Cosmos DB   │
-│ (Sets)      │     │ (Cards)     │     │ (Card Data) │
-│             │     │             │     │             │
-└─────────────┘     └─────────────┘     └─────────────┘
-                                               │
-                                               ▼
-                                        ┌─────────────┐
-                                        │             │
-                                        │ Blob Storage│
-                                        │ (Images)    │
-                                        │             │
-                                        └─────────────┘
-                                               │
-                                               ▼
-                                        ┌─────────────┐
-                                        │             │
-                                        │ Azure CDN   │
-                                        │             │
-                                        └─────────────┘
+┌─────────────────────────────────────────────────────┐
+│                                                     │
+│                  Cosmos DB                          │
+│                  (Card Data)                        │
+│                                                     │
+└─────────────────────────────────────────────────────┘
 ```
 
 ### State Management
-- **Current App.svelte**: Manages the main application state
+- **App.svelte**: Manages the main application state
   - selectedSet: Currently selected Pokémon card set
   - selectedCard: Currently selected card
   - priceData: Pricing data for the selected card
   - isLoading: Loading state flags
   - error: Error state and messages
-
-- **Planned State Management**:
   - Client-side state for UI interactions
-  - Server-side state in Cosmos DB and Redis
+  - Server-side state in Cosmos DB
   - Reactive updates via API responses
-  - Background refresh for frequently accessed data
 
 ## Critical Implementation Paths
 
@@ -569,24 +511,24 @@ App.svelte
 5. UI displays error message
 6. Fallback to mock data if available
 
-### Planned Cloud Implementation Paths
+### Cloud Implementation Paths
 
 #### 1. Initial Data Loading
 1. App.svelte mounts and initializes
 2. onMount hook triggers loading of set list
 3. API client calls Azure Function via API Management
-4. Azure Function checks Redis cache for set list
-5. If cache miss, Function queries Pokémon TCG API
-6. Set list is processed, stored in Redis, and returned
+4. Azure Function checks Cosmos DB for set list
+5. If not found, Function queries Pokémon TCG API
+6. Set list is processed, stored in Cosmos DB, and returned
 7. Set list is displayed in the UI
 
 #### 2. Card Search Flow
 1. User selects a set from the dropdown
 2. handleSetSelect event handler is triggered
 3. API client calls Azure Function via API Management
-4. Azure Function checks Redis cache for card list
-5. If cache miss, Function queries Pokémon TCG API
-6. Card list is processed, stored in Redis, and returned
+4. Azure Function checks Cosmos DB for card list
+5. If not found, Function queries Pokémon TCG API
+6. Card list is processed, stored in Cosmos DB, and returned
 7. Card list is displayed in CardSearchSelect
 
 #### 3. Price Retrieval Flow
@@ -595,15 +537,14 @@ App.svelte
 3. Azure Function checks Cosmos DB for card data
 4. If not found or stale, Function queries both APIs
 5. Data is merged, stored in Cosmos DB, and returned
-6. Card image is loaded from Azure CDN
+6. Card image is loaded directly from Pokemon TCG API
 7. Results are displayed in the UI
 
 #### 4. Background Data Update
 1. Timer-triggered Azure Function runs daily
 2. Function queries both APIs for latest pricing data
 3. Function updates Cosmos DB documents
-4. Function invalidates relevant Redis cache entries
-5. Next user request gets fresh data
+4. Next user request gets fresh data
 
 ## Pagination Patterns
 
@@ -743,31 +684,24 @@ App.svelte
    - Conditional rendering to minimize DOM updates
    - Proper use of Svelte reactivity
 
-### Planned Cloud Performance Considerations
-1. **Multi-Tiered Caching Strategy**:
-   - Redis Cache for frequently accessed data (set lists, card lists)
-   - CDN for image delivery
-   - Browser caching for static assets
-   - TTL-based cache invalidation
-
-2. **Optimized Data Access Patterns**:
+### Cloud Performance Considerations
+1. **Optimized Data Access Patterns**:
    - Cosmos DB indexing for common query patterns
    - Partition keys based on access patterns
    - Denormalized data for efficient retrieval
 
-3. **Serverless Scaling**:
+2. **Serverless Scaling**:
    - Consumption-based Azure Functions
    - Automatic scaling based on load
    - Optimized cold start handling
 
-4. **Network Optimization**:
-   - CDN for edge caching
+3. **Network Optimization**:
    - Compression for API responses
    - Minimized payload sizes
    - Efficient API batching
+   - Browser caching for static assets
 
-5. **Cost-Performance Balance**:
-   - Tiered storage approach (hot/cool)
+4. **Cost-Performance Balance**:
    - Consumption-based compute
    - Cache optimization to reduce API calls
    - Monitoring and alerts for cost control
@@ -794,14 +728,14 @@ App.svelte
    - Safe handling of external content
    - Validation of image URLs
 
-### Planned Cloud Security Considerations
+### Cloud Security Considerations
 1. **Authentication and Authorization**:
    - Azure AD integration for admin functions
    - API Management subscription keys
    - Role-based access control
 
 2. **Data Protection**:
-   - Encryption at rest for Cosmos DB and Blob Storage
+   - Encryption at rest for Cosmos DB
    - Encryption in transit with HTTPS/TLS
    - Private endpoints for internal services
 

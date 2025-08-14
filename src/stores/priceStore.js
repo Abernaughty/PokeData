@@ -47,10 +47,18 @@ function filterValidPrices(pricing) {
     return filteredPricing;
 }
 
-// Format price to always show 2 decimal places
+// Format price to always show 2 decimal places with comma separators
 export function formatPrice(value) {
     if (value === undefined || value === null) return "0.00";
-    return parseFloat(value).toFixed(2);
+    
+    // Convert to number and format with 2 decimal places
+    const num = parseFloat(value);
+    
+    // Add comma separators for thousands
+    return num.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
 }
 
 // Actions

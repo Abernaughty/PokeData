@@ -18,55 +18,37 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+*.log
 
-# Editor directories and files
-
+# IDE and Editor files
 .idea/
+.vscode/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-
-# Vim swap files
 *.sw[a-p]
 .*.sw[a-p]
-*_BACKUP_*.bat
-*_BASE_*.bat
-*_LOCAL_*.bat
-*_REMOTE_*.bat
 
 # OS specific files
 .DS_Store
 Thumbs.db
+desktop.ini
 
 # Temporary files
-*.log
 *.tmp
+*.temp
+.temp/
+.tmp/
 
-# Local batch files
-init-git.bat
-stage-and-commit.bat
-push-to-github.bat
+# Git merge conflict files
+*_BACKUP_*.bat
+*_BASE_*.bat
+*_LOCAL_*.bat
+*_REMOTE_*.bat
+*.orig
 
-# Python environment (should not be in repository)
-Lib/
-Scripts/
-pyvenv.cfg
-*.pyc
-__pycache__/
-*.pyo
-*.pyd
-.Python
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
+# Source maps (optional - uncomment if you generate these)
+# *.js.map
+# *.css.map
