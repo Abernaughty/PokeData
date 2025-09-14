@@ -56,26 +56,24 @@ if /i "%MODE%"=="dev" (
 )
 echo.
 
-:: Check for processes using port 3000 more safely
+:: Check for processes using port 3000 - simplified approach
 echo Checking for processes using port 3000...
-netstat -ano | findstr /C:":3000 " > port_check.tmp
+netstat -ano > temp_netstat.txt 2>nul
+findstr /C:":3000 " temp_netstat.txt >nul 2>&1
 if %ERRORLEVEL% EQU 0 (
     echo Port 3000 is in use. Attempting to free it...
-    
-    :: Extract PIDs to a temporary file and terminate them
-    for /f "tokens=5" %%a in (port_check.tmp) do (
+    for /f "tokens=5" %%a in ('findstr /C:":3000 " temp_netstat.txt') do (
         if not "%%a"=="" (
             echo Attempting to terminate process with PID: %%a
             taskkill /F /PID %%a >nul 2>&1
             timeout /t 1 /nobreak >nul
         )
     )
-    
-    :: Wait a moment for ports to be released
-    timeout /t 2 /nobreak >nul
-    echo Port cleanup completed.
 )
-del port_check.tmp 2>nul
+del temp_netstat.txt >nul 2>&1
+
+:: Wait a moment for ports to be released if any were terminated
+timeout /t 2 /nobreak >nul
 
 :: Set environment variables to force port 3000
 set PORT=3000

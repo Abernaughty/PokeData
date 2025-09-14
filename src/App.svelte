@@ -6,6 +6,7 @@
   import { cardsInSet, selectedCard, isLoadingCards, cardName, selectCard } from './stores/cardStore';
   import { priceData, isLoading, pricingTimestamp, pricingFromCache, pricingIsStale, fetchCardPrice, formatPrice, loadPricingForVariant } from './stores/priceStore';
   import { error, isOnline, initNetworkListeners, startBackgroundTasks } from './stores/uiStore';
+  import { theme, toggleTheme } from './stores/themeStore';
   
   // Import components
   import SearchableSelect from './components/SearchableSelect.svelte';
@@ -82,6 +83,27 @@
 <main>
   <header>
     <h1>Pokémon Card Price Checker</h1>
+    <button class="theme-toggle" on:click={toggleTheme} aria-label="Toggle theme">
+      {#if $theme === 'light'}
+        <!-- Moon icon for dark mode -->
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      {:else}
+        <!-- Sun icon for light mode -->
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+      {/if}
+    </button>
   </header>
   <div class="form-container">
     <div class="form-group">
@@ -271,10 +293,14 @@
   }
   
   header {
-    background-color: #3c5aa6; /* Pokemon blue */
+    background-color: var(--color-pokemon-blue);
     padding: 1rem;
     border-radius: 8px 8px 0 0;
     margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
   }
   
   h1 {
@@ -285,10 +311,37 @@
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
   }
   
+  .theme-toggle {
+    position: absolute;
+    right: 1rem;
+    width: auto;
+    padding: 0.5rem;
+    background-color: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .theme-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: rotate(180deg);
+  }
+  
+  .theme-toggle svg {
+    width: 24px;
+    height: 24px;
+    color: white;
+  }
+  
   .form-container {
-    background-color: rgba(255, 255, 255, 0.9);
+    background-color: var(--bg-container);
     border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 8px var(--shadow-heavy);
     padding: 1.5rem;
     margin-bottom: 1rem;
     backdrop-filter: blur(5px);
@@ -312,23 +365,25 @@
     width: 100%;
     padding: 0.6rem 0.75rem;
     margin-bottom: 0.75rem;
-    border: 1px solid #ddd;
+    border: 1px solid var(--border-input);
     border-radius: 4px;
     font-size: 1rem;
+    background-color: var(--bg-dropdown);
+    color: var(--text-primary);
     transition: border-color 0.3s ease;
   }
   
   input:focus {
     outline: none;
-    border-color: #3c5aa6;
+    border-color: var(--border-focus);
     box-shadow: 0 0 0 2px rgba(60, 90, 166, 0.2);
   }
   
-  button {
+  button:not(.theme-toggle) {
     width: 100%;
     margin-top: 0.75rem;
     padding: 0.75rem 1rem;
-    background-color: #ee1515; /* Pokemon red */
+    background-color: var(--color-pokemon-red);
     color: white;
     border: none;
     border-radius: 4px;
@@ -338,18 +393,19 @@
     transition: background-color 0.3s ease;
   }
   
-  button:hover {
-    background-color: #cc0000;
+  button:not(.theme-toggle):hover {
+    background-color: var(--color-pokemon-red-dark);
   }
   
-  button:disabled {
-    background-color: #cccccc;
+  button:not(.theme-toggle):disabled {
+    background-color: var(--border-primary);
+    color: var(--text-muted);
     cursor: not-allowed;
   }
   
   .disabled-select input, .loading-select input {
-    background-color: #f5f5f5;
-    color: #999;
+    background-color: var(--bg-hover);
+    color: var(--text-muted);
     cursor: not-allowed;
   }
   
@@ -365,7 +421,7 @@
     width: 20px;
     height: 20px;
     border: 2px solid rgba(60, 90, 166, 0.2);
-    border-top: 2px solid #3c5aa6;
+    border-top: 2px solid var(--color-pokemon-blue);
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }
@@ -376,16 +432,16 @@
   }
   
   .error-select input {
-    background-color: #fff8f8;
-    color: #cc0000;
+    background-color: rgba(238, 21, 21, 0.05);
+    color: var(--color-pokemon-red);
     cursor: not-allowed;
-    border: 1px solid #ffcccc;
+    border: 1px solid rgba(238, 21, 21, 0.3);
   }
 
   
 
   .error {
-    color: #ee1515;
+    color: var(--color-pokemon-red);
     font-size: 0.9rem;
     margin-top: 0.5rem;
     padding: 0.5rem;
@@ -396,12 +452,12 @@
   
   .results {
     margin-top: 1.5rem;
-    border: 1px solid #ddd;
+    border: 1px solid var(--border-primary);
     border-radius: 8px;
     padding: 1rem;
-    background-color: rgba(249, 249, 249, 0.9);
+    background-color: var(--bg-tertiary);
     backdrop-filter: blur(5px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 8px var(--shadow-medium);
   }
   
   .results-container {
@@ -424,9 +480,9 @@
     text-align: center;
     margin-bottom: 1rem;
     padding: 0.5rem;
-    background-color: rgba(255, 255, 255, 0.8);
+    background-color: var(--bg-secondary);
     border-radius: 8px;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--border-primary);
   }
   
   .card-image img {
@@ -444,10 +500,10 @@
   }
   
   .card-details h2 {
-    color: #3c5aa6;
+    color: var(--color-pokemon-blue);
     margin-top: 0;
     margin-bottom: 0.5rem;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid var(--border-primary);
     padding-bottom: 0.5rem;
     font-size: 1.4rem;
   }
@@ -458,16 +514,16 @@
   }
   
   .results h2 {
-    color: #3c5aa6;
+    color: var(--color-pokemon-blue);
     margin-top: 0;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid var(--border-primary);
     padding-bottom: 0.5rem;
   }
   
   .results h3 {
     margin-top: 1rem;
     margin-bottom: 0.5rem;
-    color: #ee1515;
+    color: var(--color-pokemon-red);
   }
   
   .results ul {
@@ -477,7 +533,7 @@
   
   .results li {
     padding: 0.5rem 0;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--border-secondary);
   }
   
   .results li:last-child {
@@ -491,18 +547,18 @@
   
   .price {
     font-weight: 700;
-    color: #ee1515;
+    color: var(--color-pokemon-red);
   }
   
   .currency {
-    color: #666;
+    color: var(--text-secondary);
     font-size: 0.9rem;
   }
   
   .pricing-category {
-    background-color: #f2f2f2;
+    background-color: var(--bg-hover);
     font-weight: 700;
-    color: #3c5aa6;
+    color: var(--color-pokemon-blue);
     margin-top: 0.5rem;
     padding: 0.5rem;
     border-radius: 4px;
@@ -516,7 +572,7 @@
   }
   
   .no-prices {
-    color: #6c757d;
+    color: var(--text-secondary);
     font-style: italic;
     padding: 0.5rem 0;
   }
@@ -524,19 +580,19 @@
   .pricing-timestamp {
     margin-top: 1rem;
     padding-top: 0.5rem;
-    border-top: 1px dashed #ddd;
+    border-top: 1px dashed var(--border-primary);
     font-size: 0.85rem;
-    color: #666;
+    color: var(--text-secondary);
   }
   
   .cached-indicator {
-    color: #3c5aa6;
+    color: var(--color-pokemon-blue);
     font-weight: 500;
     margin-left: 0.5rem;
   }
   
   .stale-indicator {
-    color: #ee1515;
+    color: var(--color-pokemon-red);
     font-weight: 500;
     margin-left: 0.5rem;
   }

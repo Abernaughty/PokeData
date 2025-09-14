@@ -1,9 +1,46 @@
 # Active Context
 
-## Current Focus (August 12, 2025)
-Memory Bank cleanup to remove references to non-implemented technologies.
+## Current Focus (September 14, 2025)
+✅ Dark mode implementation completed successfully for PokeData site.
 
-### Latest Updates (Just Completed - August 12, 2025 - 4:38 PM)
+### Latest Updates (Just Completed - September 14, 2025 - 3:19 PM)
+
+1. **Dark Mode Implementation for PokeData Site**:
+   - **Purpose**: Add dark/light theme toggle functionality to improve user experience
+   
+   - **Implementation Details**:
+     - Created `src/stores/themeStore.js` - Svelte store for theme management
+     - Detects system preference on first visit
+     - Saves user preference to localStorage for persistence
+     - Smooth 0.3s transitions between themes
+   
+   - **Files Created/Modified**:
+     - `src/stores/themeStore.js` - New theme management store
+     - `public/global.css` - Converted to CSS variable system with light/dark themes
+     - `src/App.svelte` - Added theme toggle button with sun/moon icons
+     - `src/components/SearchableSelect.svelte` - Updated to use CSS variables
+     - `scripts/server.bat` - Fixed batch script errors for development server
+     - `rollup.config.cjs` - Fixed serve() function to use correct npm script
+   
+   - **Key Features**:
+     - Automatic system preference detection
+     - Manual toggle with sun/moon icons in header
+     - Persistent theme choice across sessions
+     - Smooth transitions (0.3s ease)
+     - Maintains Pokémon blue branding in both themes
+     - Complete CSS variable coverage for all UI elements
+   
+   - **Color Schemes**:
+     - Light Mode: White backgrounds, light gray containers, dark text
+     - Dark Mode: Dark backgrounds (#1a1a1a), dark gray containers (#2d2d2d), light text
+     - Both modes preserve the Pokémon blue (#3b82c4) header
+   
+   - **Technical Fixes**:
+     - Resolved server.bat "or was unexpected" error by using temp file for netstat
+     - Fixed rollup.config.cjs to call correct npm script
+     - Installed missing sirv dependency
+
+### Previous Updates (August 12, 2025 - 4:38 PM)
 
 1. **Memory Bank Cleanup - Removed Non-Implemented Technologies**:
    - **Purpose**: Clean up documentation to accurately reflect current architecture

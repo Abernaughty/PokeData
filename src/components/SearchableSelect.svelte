@@ -363,8 +363,10 @@
     padding: 0.5rem;
     padding-right: 3.5rem;
     font-size: 1rem;
-    border: 1px solid #ddd;
+    border: 1px solid var(--border-input);
     border-radius: 4px;
+    background-color: var(--bg-dropdown);
+    color: var(--text-primary);
   }
   
   .clear-icon {
@@ -379,7 +381,7 @@
   }
 
   .clear-icon-circle {
-    background-color: #ee1515; /* Pokemon red */
+    background-color: var(--color-pokemon-red);
     border-radius: 50%;
     width: 18px;
     height: 18px;
@@ -392,7 +394,7 @@
   }
 
   .clear-icon:hover .clear-icon-circle {
-    background-color: #cc0000; /* Darker red on hover */
+    background-color: var(--color-pokemon-red-dark);
   }
   
   .dropdown-icon {
@@ -400,7 +402,7 @@
     right: 0.5rem;
     top: 50%;
     transform: translateY(-50%);
-    color: #666;
+    color: var(--text-secondary);
     pointer-events: none;
   }
   
@@ -411,19 +413,19 @@
     width: 100%;
     max-height: 400px; /* Increased max-height */
     overflow-y: auto;
-    background-color: white;
-    border: 1px solid #ddd;
+    background-color: var(--bg-dropdown);
+    border: 1px solid var(--border-primary);
     border-radius: 0 0 4px 4px;
     z-index: 10;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 8px var(--shadow-light);
   }
   
   .group-header {
     padding: 0.5rem;
     font-weight: bold;
-    background-color: #f0f0f0;
-    color: #3c5aa6; /* Pokemon blue */
-    border-bottom: 1px solid #ddd;
+    background-color: var(--bg-group-header);
+    color: var(--color-pokemon-blue);
+    border-bottom: 1px solid var(--border-primary);
     position: sticky;
     top: 0;
     z-index: 1;
@@ -432,8 +434,8 @@
   .item {
     padding: 0.5rem;
     cursor: pointer;
-    color: #333; /* Added explicit text color */
-    border-bottom: 1px solid #f5f5f5;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-secondary);
   }
   
   .indented {
@@ -446,8 +448,8 @@
   }
   
   .item:hover, .highlighted {
-    background-color: #f5f5f5;
-    color: #3c5aa6; /* Blue color on hover */
+    background-color: var(--bg-hover);
+    color: var(--color-pokemon-blue);
   }
   
   .label {
@@ -455,14 +457,14 @@
   }
   
   .secondary {
-    color: #666;
+    color: var(--text-secondary);
     font-size: 0.9rem;
     margin-left: 0.25rem;
   }
   
   .no-results {
     padding: 0.5rem;
-    color: #666;
+    color: var(--text-secondary);
     font-style: italic;
     text-align: center;
   }

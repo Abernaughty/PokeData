@@ -37,7 +37,7 @@ function serve() {
         writeBundle() {
             if (server) return;
             // Explicitly set port to 3000 and add --port flag
-            server = require('child_process').spawn('pnpm', ['run', 'sirv', '--', '--dev', '--single', '--port', PORT.toString()], {
+            server = require('child_process').spawn('pnpm', ['run', 'start'], {
                 stdio: ['ignore', 'inherit', 'inherit'],
                 shell: true,
                 env: { ...process.env, PORT: PORT.toString() }
