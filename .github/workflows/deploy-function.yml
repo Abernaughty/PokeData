@@ -44,12 +44,12 @@ jobs:
       - name: '🔨 Build TypeScript'
         run: |
           cd ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
-          pnpm run build --if-present
+          pnpm run build
       
       - name: '🧪 Run tests'
         run: |
           cd ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
-          pnpm test --if-present
+          pnpm test
       
       - name: '📤 Upload artifact for deployment'
         uses: actions/upload-artifact@v4
