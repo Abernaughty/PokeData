@@ -1,7 +1,50 @@
 # Active Context
 
-## Current Focus (September 14, 2025)
-✅ Dark mode implementation completed successfully for PokeData site.
+## Current Focus (September 16, 2025)
+🔍 **URGENT**: Investigating Azure Functions deployment issue after npm→pnpm migration.
+
+**Problem**: After migrating PokeDataFunc from npm to pnpm, Azure Functions are no longer visible in the Azure portal and endpoints return 404 responses, despite "successful" deployments.
+
+**Root Cause Analysis**: 
+- GitHub Actions workflow runs successfully (build passes, deployment completes)
+- Azure Function App is running and accessible
+- Functions are not registering with Azure runtime (invisible in portal)
+- Health checks return 404 for all endpoints
+- Issue likely related to Azure Functions v4 programming model compatibility with pnpm
+
+## NPM→PNPM Migration Validation Checklist
+
+### 🔴 Critical Configuration Changes (Must Fix)
+- [x] **Package Manager Commands**: Scripts updated from `npm run` to `pnpm run`
+- [x] **CI/CD Pipeline**: GitHub Actions uses `pnpm/action-setup@v2` with version 8.15.4
+- [x] **Lock File Management**: `package-lock.json` → `pnpm-lock.yaml`
+- [ ] **Verify No Remaining npm References**: Check all scripts and documentation
+
+### 🟡 Potential Issues (Need Validation)
+- [ ] **Node Modules Structure**: pnpm uses symlinks - Azure Functions compatibility?
+- [ ] **Package Resolution**: `@azure/functions` resolving correctly in pnpm structure?
+- [ ] **Build Process**: TypeScript compilation working with pnpm-installed packages?
+- [ ] **Build Output**: `dist/` folder contains all required dependencies?
+
+### 🟢 Configuration Files to Validate
+- [ ] **pnpm Configuration**: `.npmrc` file compatibility with pnpm
+- [ ] **Azure Functions Config**: `host.json` configuration still valid
+- [ ] **Function Registration**: v4 programming model working with new dependency structure
+- [ ] **Runtime Dependencies**: All packages available in deployed environment
+
+### 🔍 Validation Tasks (In Priority Order)
+1. **Check Build Output**: Verify `dist/` folder contains proper JavaScript and dependencies
+2. **Verify Package Resolution**: Ensure `@azure/functions` is accessible in runtime  
+3. **Test Function Registration**: Confirm functions are registering with Azure runtime
+4. **Validate Dependencies**: Check if all packages are available in deployed environment
+5. **Review Deployment Artifacts**: Ensure deployment package is complete
+
+### Most Likely Culprits
+1. **Build Output Issues**: `dist/` folder missing required files
+2. **Dependency Resolution**: Azure runtime can't find `@azure/functions`
+3. **Function Registration**: v4 programming model not working with pnpm structure
+
+## Previous Completed Work (September 14, 2025)
 
 ### Latest Updates (Just Completed - September 14, 2025 - 3:19 PM)
 

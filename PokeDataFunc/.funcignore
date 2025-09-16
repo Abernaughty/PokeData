@@ -23,7 +23,7 @@ test-set-mapping.js
 build-and-deploy.bat
 copy-function-json.js
 deploy-manual.bat
-pnpm-lock.yaml
+# pnpm-lock.yaml - REMOVED: Need this for Azure Functions to use pnpm instead of npm
 README.md
 deploy.zip
 deployment.zip
