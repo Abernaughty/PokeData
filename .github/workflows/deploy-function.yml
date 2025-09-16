@@ -28,7 +28,7 @@ jobs:
       - name: '📦 Setup pnpm'
         uses: pnpm/action-setup@v2
         with:
-          version: 10.9.0
+          version: 8.15.4
       
       - name: '⚙️ Setup Node ${{ env.NODE_VERSION }}'
         uses: actions/setup-node@v3
