@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Focus (September 16, 2025)
-🔍 **URGENT**: Investigating Azure Functions deployment issue after npm→pnpm migration.
+🚨 **PRIORITY ACTION**: Revert pnpm migration back to npm to restore Azure Functions functionality.
 
 **Problem**: After migrating PokeDataFunc from npm to pnpm, Azure Functions are no longer visible in the Azure portal and endpoints return 404 responses, despite "successful" deployments.
 
@@ -10,7 +10,125 @@
 - Azure Function App is running and accessible
 - Functions are not registering with Azure runtime (invisible in portal)
 - Health checks return 404 for all endpoints
-- Issue likely related to Azure Functions v4 programming model compatibility with pnpm
+- Issue confirmed: Azure Functions v4 programming model incompatibility with pnpm symlink structure
+- Error: "No job functions found. Try making your job classes and methods public"
+
+**DECISION**: Revert to npm immediately to restore service functionality.
+
+## PRIORITY NEXT ACTION: Complete npm Reversion Plan
+
+### Phase 1: Identify All Changes Made During pnpm Migration ⏳ NEXT
+
+**Files to Revert:**
+1. **`.github/workflows/deploy-function.yml`** - Revert pnpm setup back to npm
+2. **`PokeDataFunc/package.json`** - Remove any pnpm-specific configurations  
+3. **`PokeDataFunc/.funcignore`** - Revert pnpm-lock.yaml exclusion back to package-lock.json
+4. **Root `package.json`** - Ensure npm compatibility
+5. **`.npmrc`** - Remove any pnpm-specific settings
+
+**Files to Remove:**
+- `pnpm-lock.yaml` (root level)
+- `PokeDataFunc/pnpm-lock.yaml`
+
+**Files to Restore:**
+- `package-lock.json` (root level) - will be regenerated
+- `PokeDataFunc/package-lock.json` - will be regenerated
+
+### Phase 2: GitHub Actions Workflow Reversion ⏸️ PENDING
+
+**Critical Changes to `.github/workflows/deploy-function.yml`:**
+```yaml
+# REMOVE: pnpm setup section entirely
+- name: '📦 Setup pnpm'
+  uses: pnpm/action-setup@v2
+  with:
+    version: 8.15.4
+
+# UPDATE: Node setup to use npm cache
+- name: '⚙️ Setup Node ${{ env.NODE_VERSION }}'
+  uses: actions/setup-node@v3
+  with:
+    node-version: ${{ env.NODE_VERSION }}
+    cache: 'npm'  # Change from 'pnpm' back to 'npm'
+    cache-dependency-path: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/package-lock.json'
+
+# REVERT: All pnpm commands back to npm
+- name: '📦 Install dependencies'
+  run: |
+    cd ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+    npm ci  # Change from 'pnpm install --frozen-lockfile'
+
+- name: '🔨 Build TypeScript'
+  run: |
+    cd ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+    npm run build  # Change from 'pnpm run build'
+
+- name: '🧪 Run tests'
+  run: |
+    cd ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+    npm test  # Change from 'pnpm test'
+```
+
+### Phase 3: Package Configuration Reversion ⏸️ PENDING
+
+**PokeDataFunc/.funcignore:**
+```
+# REVERT: Exclude package-lock.json instead of pnpm-lock.yaml
+package-lock.json
+# REMOVE: # pnpm-lock.yaml - REMOVED: Need this for Azure Functions to use pnpm instead of npm
+```
+
+### Phase 4: Clean Build Environment ⏸️ PENDING
+
+**Local Development Cleanup:**
+1. Delete `node_modules` in both root and `PokeDataFunc/`
+2. Delete `pnpm-lock.yaml` files
+3. Delete `PokeDataFunc/dist/` folder
+4. Run `npm install` to regenerate `package-lock.json`
+5. Run `npm run build` to rebuild with npm dependencies
+
+### Phase 5: Deployment and Validation ⏸️ PENDING
+
+**Deployment Steps:**
+1. Commit all reversion changes with message: "Revert: npm→pnpm migration due to Azure Functions compatibility issues"
+2. Push to trigger GitHub Actions deployment
+3. Monitor deployment logs for npm-based build
+4. Verify functions appear in Azure portal
+5. Test all endpoints to ensure functionality
+
+### Phase 6: Documentation Updates ⏸️ PENDING
+
+**Update Memory Bank:**
+- Document the reversion decision and reasons
+- Update `activeContext.md` to reflect npm usage
+- Note lessons learned about pnpm compatibility issues with Azure Functions v4
+
+### Benefits of This Approach
+
+1. **Proven Stability**: npm was working before the migration
+2. **Azure Functions Compatibility**: No symlink issues with Azure Functions v4
+3. **Reduced Complexity**: Eliminates pnpm-specific configuration concerns
+4. **Faster Resolution**: Immediate return to known working state
+
+### Risk Mitigation
+
+- **Backup Current State**: Create a branch with current pnpm setup before reverting
+- **Gradual Rollback**: Test locally first, then deploy
+- **Monitoring**: Watch deployment closely for any issues
+
+### Timeline Estimate
+
+- **Phase 1-3**: 30 minutes (file changes)
+- **Phase 4**: 15 minutes (cleanup and rebuild)
+- **Phase 5**: 20 minutes (deployment and validation)
+- **Total**: ~1 hour to complete reversion
+
+### Lessons Learned
+
+- **pnpm Symlink Structure**: Incompatible with Azure Functions v4 programming model
+- **Package Manager Migration Risk**: Always test thoroughly in staging before production
+- **Azure Functions Sensitivity**: Deployment package structure critical for function discovery
+- **False Positive Deployments**: GitHub Actions can succeed while Azure Functions fail to register
 
 ## NPM→PNPM Migration Validation Checklist
 

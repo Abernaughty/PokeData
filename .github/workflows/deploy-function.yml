@@ -25,31 +25,27 @@ jobs:
       - name: '📥 Checkout GitHub Action'
         uses: actions/checkout@v4
       
-      - name: '📦 Setup pnpm'
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8.15.4
-      
       - name: '⚙️ Setup Node ${{ env.NODE_VERSION }}'
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
+          cache: 'npm'
+          cache-dependency-path: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/package-lock.json'
       
       - name: '📦 Install dependencies'
         run: |
           cd ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
-          pnpm install --frozen-lockfile
+          npm ci
       
       - name: '🔨 Build TypeScript'
         run: |
           cd ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
-          pnpm run build
+          npm run build
       
       - name: '🧪 Run tests'
         run: |
           cd ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
-          pnpm test
+          npm test
       
       - name: '📤 Upload artifact for deployment'
         uses: actions/upload-artifact@v4
