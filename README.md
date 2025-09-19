@@ -44,12 +44,12 @@ This will start the development server with hot reloading at http://localhost:30
 
 - Svelte (UI framework) - Core UI framework for building the application
 - Rollup (module bundler) - Bundles JavaScript modules for browser use
-- PNPM (package manager) - Fast, disk space efficient package manager
+- NPM (package manager) - Node.js package manager
 - SirvCLI (static file server) - Serves the compiled application files during development and production, handling HTTP requests to the local server at port 3000
 
 ## Manual Installation
 
-If you prefer to set up manually, this project uses pnpm for package management.
+If you prefer to set up manually, this project uses npm for package management.
 
 1. Clone the repository:
    
@@ -69,24 +69,24 @@ If you prefer to set up manually, this project uses pnpm for package management.
    
    **Command Prompt:**
    ```bash
-   pnpm install
+   npm install
    ```
    
    **PowerShell:**
    ```powershell
-   pnpm install
+   npm install
    ```
 
 3. Start the application:
    
    **Command Prompt:**
    ```bash
-   pnpm start
+   npm start
    ```
    
    **PowerShell:**
    ```powershell
-   pnpm start
+   npm start
    ```
 
 ## Scripts
@@ -154,18 +154,17 @@ scripts\server.bat prod
 ## Available Scripts
 
 ### Command Prompt
-- `pnpm dev` - Start development server (port 3000)
-- `pnpm build` - Build for production
-- `pnpm start` - Start production server (port 3000)
-- `pnpm clean` - Clean installation files
-- `pnpm prod-install` - Install production dependencies only
+- `npm run dev` - Start development server (port 3000)
+- `npm run build` - Build for production
+- `npm start` - Start production server (port 3000)
+- `npm run clean` - Clean installation files
 
 ### PowerShell
-- `pnpm dev` - Start development server (port 3000)
-- `pnpm build` - Build for production
-- `pnpm start` - Start production server (port 3000)
-- `pnpm clean` - Clean installation files
-- `pnpm deploy:frontend` - Deploy frontend to Azure Static Web Apps
+- `npm run dev` - Start development server (port 3000)
+- `npm run build` - Build for production
+- `npm start` - Start production server (port 3000)
+- `npm run clean` - Clean installation files
+- `npm run deploy:frontend` - Deploy frontend to Azure Static Web Apps
 
 Note: When running batch files in PowerShell, prefix them with `.\` (e.g., `.\scripts\server.bat`, `.\scripts\build-app.bat`)
 

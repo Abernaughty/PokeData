@@ -34,7 +34,7 @@ if "%BUILD_TYPE%"=="css" (
     if exist public\build\main.js del public\build\main.js
     
     echo Running Rollup to build the application...
-    pnpm build
+    npm run build
     
     echo Updating cache-busting parameters...
     powershell -Command "(Get-Content public\index.html) -replace 'global.css\?v=\d+', 'global.css?v=%date:~10,4%%date:~4,2%%date:~7,2%' -replace 'bundle.css\?v=\d+', 'bundle.css?v=%date:~10,4%%date:~4,2%%date:~7,2%' | Set-Content public\index.html"
@@ -63,10 +63,10 @@ if %ERRORLEVEL% NEQ 0 (
     )
 )
 
-:: Check if pnpm is installed
-where pnpm >nul 2>&1
+:: Check if npm is installed
+where npm >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
-    echo pnpm is required but not found.
+    echo npm is required but not found.
     echo Running setup script...
     call tools.bat setup
     if %ERRORLEVEL% NEQ 0 (

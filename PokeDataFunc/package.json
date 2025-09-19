@@ -8,12 +8,12 @@
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
-    "prestart": "pnpm run build",
+    "prestart": "npm run build",
     "start": "func start",
     "test": "node test-api.js",
     "test:azure": "node test-azure.js",
     "test:cosmos": "node test-cosmos.js",
-    "import": "pnpm exec ts-node import-data.ts",
+    "import": "npx ts-node import-data.ts",
     "deploy": "deploy.bat",
     "deploy:staging": "func azure functionapp publish pokedata-func --slot staging"
   },

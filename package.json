@@ -7,7 +7,7 @@
     "build": "rollup -c",
     "dev": "set PORT=3000 && rollup -c -w",
     "start": "sirv public --no-clear --port 3000",
-    "clean": "rimraf node_modules .pnpm-store pnpm-lock.yaml",
+    "clean": "rimraf node_modules package-lock.json",
     "deploy:frontend": "node scripts/deploy-frontend.js"
   },
   "devDependencies": {
@@ -33,7 +33,7 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "packageManager": "pnpm@10.9.0",
+  "packageManager": "npm@latest",
   "keywords": [
     "svelte",
     "pokemon",

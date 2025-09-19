@@ -80,7 +80,7 @@ set PORT=3000
 
 :: Start the appropriate server
 if /i "%MODE%"=="dev" (
-    pnpm dev
+    npm run dev
 ) else (
     :: Check if build exists for production mode
     if not exist "public\build\main.js" (
@@ -88,7 +88,7 @@ if /i "%MODE%"=="dev" (
         echo [WARNING] No production build found!
         echo Building the application first...
         echo.
-        call pnpm build
+        call npm run build
         if %ERRORLEVEL% NEQ 0 (
             echo [ERROR] Build failed. Cannot start production server.
             pause
@@ -97,7 +97,7 @@ if /i "%MODE%"=="dev" (
         echo Build completed successfully.
         echo.
     )
-    pnpm start
+    npm start
 )
 exit /b 0
 
@@ -115,10 +115,10 @@ if %ERRORLEVEL% NEQ 0 (
     )
 )
 
-:: Check if pnpm is installed
-where pnpm >nul 2>&1
+:: Check if npm is installed
+where npm >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
-    echo pnpm is required but not found.
+    echo npm is required but not found.
     echo Running setup script...
     call tools.bat setup
     if %ERRORLEVEL% NEQ 0 (

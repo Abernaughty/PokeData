@@ -58,31 +58,24 @@ echo [OK] Node.js found:
 node --version
 
 echo.
-echo Checking for pnpm installation...
-where pnpm >nul 2>&1
+echo Checking for npm installation...
+where npm >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
-    echo [WARNING] pnpm not found, attempting to install it...
-    call npm install -g pnpm@8.15.4
-    
-    if %ERRORLEVEL% NEQ 0 (
-        echo [ERROR] Failed to install pnpm. Please try installing manually:
-        echo npm install -g pnpm@8.15.4
-        echo Press any key to exit...
-        pause >nul
-        exit /b 1
-    )
-    
-    echo [OK] pnpm installed successfully.
+    echo [ERROR] npm not found. npm should be installed with Node.js.
+    echo Please reinstall Node.js from https://nodejs.org/
+    echo Press any key to exit...
+    pause >nul
+    exit /b 1
 ) else (
-    echo [OK] pnpm found:
-    pnpm --version
+    echo [OK] npm found:
+    npm --version
 )
 
 echo.
 echo Checking if dependencies are installed...
 if not exist "node_modules" (
     echo [INFO] Installing project dependencies...
-    call pnpm install
+    call npm install
     
     if %ERRORLEVEL% NEQ 0 (
         echo [ERROR] Failed to install dependencies.
@@ -134,14 +127,14 @@ if %errorlevel% equ 0 (
   echo npm NOT found in PATH
 )
 echo.
-echo ----- pnpm Check -----
-where pnpm 2>nul
+echo ----- npm Check (Additional) -----
+where npm 2>nul
 if %errorlevel% equ 0 (
-  echo pnpm found in PATH
+  echo npm found in PATH (confirmed)
   echo Version:
-  pnpm -v
+  npm -v
 ) else (
-  echo pnpm NOT found in PATH
+  echo npm NOT found in PATH (this should not happen)
 )
 echo.
 echo ----- Recent Changes Check -----

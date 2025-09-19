@@ -63,7 +63,7 @@ function checkBuildExists() {
 async function buildFrontend() {
     console.log('Building frontend...');
     try {
-        await runCommand('pnpm', ['build']);
+        await runCommand('npm', ['run', 'build']);
         console.log('[OK] Build completed successfully\n');
         return true;
     } catch (error) {
@@ -250,7 +250,7 @@ async function cleanDeploy() {
     
     console.log('Step 2: Installing dependencies...');
     try {
-        await runCommand('pnpm', ['install']);
+        await runCommand('npm', ['install']);
         console.log('[OK] Dependencies installed\n');
     } catch (error) {
         console.error('[ERROR] Failed to install dependencies:', error.message);
@@ -299,7 +299,7 @@ async function buildOnly() {
     console.log('========================================\n');
     console.log('[OK] Frontend built successfully');
     console.log('[OK] Output location: public/build/\n');
-    console.log('To test locally, run: pnpm start');
+    console.log('To test locally, run: npm start');
     console.log('To deploy, run this script again and choose option 1 or 2\n');
     return true;
 }

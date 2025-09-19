@@ -229,42 +229,52 @@ The current implementation focuses on a client-side architecture with robust cac
 
 ## Key Technical Decisions
 
-### 1. Cloud Architecture Migration
+### 1. Package Manager Compatibility Decision (2025-09-16)
+- **Issue**: Azure Functions v4 programming model incompatible with pnpm's symlink-based node_modules structure
+- **Investigation**: Used GitHub MCP Server to access deployment logs and identify root cause
+- **Decision**: Complete reversion from pnpm to npm across entire project
+- **Rationale**: Azure Functions v4 requires traditional npm dependency structure for function discovery
+- **Alternatives Considered**: Configuration workarounds, Azure Functions v3 downgrade, alternative serverless platforms
+- **Trade-offs**: Lost pnpm performance benefits vs. restored Azure Functions functionality
+- **Implementation**: Reverted GitHub Actions workflow, updated .funcignore, cleaned dependencies, fixed caching
+- **Lessons Learned**: Package manager migrations require thorough staging testing, especially for serverless platforms
+
+### 2. Cloud Architecture Migration
 - **Rationale**: Better scalability, performance, reliability, and feature capabilities
 - **Alternatives Considered**: Enhanced client-side architecture, hybrid approach
 - **Trade-offs**: Increased complexity and operational costs vs. improved capabilities and performance
 - **Implementation**: Phased approach starting with core infrastructure and data migration
 
-### 2. Hybrid API Approach
+### 3. Hybrid API Approach
 - **Rationale**: Leverage strengths of both Pokémon TCG API and PokeData API
 - **Alternatives Considered**: Single API source, custom API aggregation
 - **Trade-offs**: Increased complexity vs. more comprehensive data
 - **Implementation**: Use Pokémon TCG API for metadata and images, PokeData API for enhanced pricing
 
-### 3. Cosmos DB for Data Storage
+### 4. Cosmos DB for Data Storage
 - **Rationale**: Scalable, globally distributed, flexible schema, automatic indexing
 - **Alternatives Considered**: SQL Database, Table Storage, MongoDB
 - **Trade-offs**: Cost considerations vs. flexibility and performance
 - **Implementation**: JSON document model with optimized indexing for card queries
 
-### 4. Standalone Repository Architecture
+### 5. Standalone Repository Architecture
 - **Rationale**: Better isolation, focused development, and clearer project boundaries
 - **Alternatives Considered**: Multi-project repository, monorepo approach
 - **Trade-offs**: Requires additional setup but provides cleaner project management and better focus
 - **Implementation**: Moved from `C:\Users\maber\Documents\GitHub\git-maber\PokeData-repo` to `C:\Users\maber\Documents\GitHub\PokeData`
 - **Note**: The directory at `C:\Users\maber\Documents\GitHub\git-maber\PokeData` is a separate static web app workflow directory and should not be modified unless explicitly requested
 
-### 7. Svelte as Frontend Framework
+### 6. Svelte as Frontend Framework
 - **Rationale**: Lightweight, reactive framework with excellent performance characteristics
 - **Alternatives Considered**: React, Vue.js
 - **Trade-offs**: Smaller ecosystem than React, but better performance and simpler state management
 
-### 8. Two-Step Search Process
+### 7. Two-Step Search Process
 - **Rationale**: Improves user experience by breaking down the search into manageable steps
 - **Alternatives Considered**: Single search field with autocomplete
 - **Trade-offs**: Additional step in the process but more structured and efficient search
 
-### 9. Large Image URLs by Default (2025-01-12)
+### 8. Large Image URLs by Default (2025-01-12)
 - **Rationale**: Provides better visual quality for card collectors who value high-resolution images
 - **Alternatives Considered**: Small images for faster loading, progressive image loading
 - **Trade-offs**: Slightly larger bandwidth usage vs significantly better image quality
@@ -631,6 +641,21 @@ App.svelte
 
 ## Performance Considerations
 
+### Package Manager Performance Impact Analysis (2025-09-16)
+
+#### Azure Functions Deployment Performance
+- **pnpm Symlink Issue**: Azure Functions v4 runtime cannot resolve symlinked dependencies
+- **Function Discovery Failure**: Functions fail to register despite successful GitHub Actions builds
+- **False Positive Deployments**: Build success doesn't guarantee runtime functionality
+- **Resolution Performance**: Complete npm reversion restored function visibility in <5 minutes
+- **Deployment Reliability**: npm-based deployments now consistently successful
+
+#### GitHub Actions Build Performance
+- **npm vs pnpm Build Times**: Minimal difference in CI/CD pipeline performance
+- **Caching Efficiency**: npm caching requires package-lock.json presence for optimal performance
+- **Cache Miss Resolution**: Force-adding package-lock.json resolved "unable to cache dependencies" warnings
+- **Overall Impact**: Package manager reversion had negligible impact on build performance
+
 ### Major Performance Optimization Breakthrough (2025-06-05)
 
 #### GetCardsBySet Optimization Achievement
@@ -795,20 +820,40 @@ App.svelte
 
 ## Future Architecture Considerations
 
-1. **Dependency Management**:
-   - Evaluation of major version updates (Svelte 3.x to 5.x)
+1. **Package Manager Compatibility Strategy**:
+   - **Azure Functions Constraint**: Maintain npm for Azure Functions v4 compatibility
+   - **Frontend Flexibility**: Consider pnpm for frontend-only projects in the future
+   - **Monitoring Azure Roadmap**: Watch for potential pnpm support in Azure Functions v5+
+   - **Hybrid Approach**: Evaluate separate package managers for frontend vs backend if beneficial
+   - **Documentation**: Maintain compatibility matrix for different platforms and package managers
+
+2. **Dependency Management**:
+   - Evaluation of major version updates (Svelte 3.x to 5.x) with npm compatibility maintained
    - Incremental update strategy for dependencies
    - Testing framework for compatibility verification
    - Documentation of breaking changes and solutions
+   - **Package Manager Testing**: Always test dependency updates in staging with target package manager
 
-2. **Collection Management**:
+3. **Deployment Pattern Evolution**:
+   - **Serverless Platform Compatibility**: Document and test package manager requirements for all serverless platforms
+   - **CI/CD Robustness**: Implement deployment validation that checks runtime functionality, not just build success
+   - **Rollback Strategies**: Maintain quick rollback procedures for package manager or dependency issues
+   - **Staging Environment**: Ensure staging environment mirrors production package manager configuration
+
+4. **Collection Management**:
    - Cosmos DB storage for user collections
    - Azure Functions for collection operations
    - UI components for collection management
    - Collection statistics and valuation
 
-3. **Price History**:
+5. **Price History**:
    - Time-series data in Cosmos DB
    - Graph visualization components
    - Historical data collection via Azure Functions
    - Date range selection UI
+
+6. **Knowledge Base and Documentation**:
+   - **Package Manager Compatibility Guide**: Comprehensive documentation of platform-specific requirements
+   - **Deployment Troubleshooting**: Step-by-step guides for common serverless deployment issues
+   - **Migration Best Practices**: Lessons learned from package manager migration attempts
+   - **Platform Constraint Matrix**: Document known limitations and workarounds for different cloud platforms

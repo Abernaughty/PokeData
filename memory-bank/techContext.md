@@ -20,7 +20,7 @@ This document outlines the technologies used, development setup, technical const
 
 ### Development Tools
 - **Rollup**: Module bundler for JavaScript
-- **PNPM**: Package manager for Node.js dependencies
+- **NPM**: Package manager for Node.js dependencies (project standard, required for Azure Functions v4 compatibility)
 - **SirvCLI**: Static file server for development and testing
 - **Batch Scripts**: Automation for common development tasks
 - **Azure CLI**: Command-line tools for Azure resource management (✅ installed and configured)
@@ -66,6 +66,8 @@ This document outlines the technologies used, development setup, technical const
    │   ├── src/               # TypeScript source code
    │   ├── scripts/           # Data management scripts
    │   ├── docs/              # Backend documentation
+   │   ├── package.json       # Backend dependencies (npm)
+   │   ├── package-lock.json  # NPM lock file
    │   └── ...
    ├── public/                # Static assets
    │   ├── build/             # Compiled code (generated)
@@ -106,8 +108,8 @@ This document outlines the technologies used, development setup, technical const
    ├── .gitignore             # Git ignore file
    ├── .npmrc                 # NPM configuration
    ├── DEPLOYMENT_GUIDE.md    # Comprehensive deployment guide
-   ├── package.json           # Package configuration
-   ├── pnpm-lock.yaml         # PNPM lock file
+   ├── package.json           # Package configuration (npm)
+   ├── package-lock.json      # NPM lock file
    ├── README.md              # Project documentation
    └── rollup.config.cjs      # Rollup configuration
    ```
@@ -121,10 +123,10 @@ This document outlines the technologies used, development setup, technical const
    cd PokeData
 
    # Install dependencies
-   pnpm install
+   npm install
 
    # Start development server
-   pnpm dev
+   npm run dev
    ```
    
    **PowerShell:**
@@ -134,10 +136,10 @@ This document outlines the technologies used, development setup, technical const
    cd PokeData
 
    # Install dependencies
-   pnpm install
+   npm install
 
    # Start development server
-   pnpm dev
+   npm run dev
    ```
 
    Note: The PokeData repository is located at `C:\Users\maber\Documents\GitHub\PokeData` and is also available on GitHub at https://github.com/Abernaughty/PokeData. There is a separate static web app workflow directory at `C:\Users\maber\Documents\GitHub\git-maber\PokeData` that should not be modified unless explicitly requested.
@@ -163,16 +165,16 @@ This document outlines the technologies used, development setup, technical const
 
 ### Development Workflow
 1. **Local Development**:
-   - Run `pnpm dev` or `scripts\server.bat dev` to start the development server
+   - Run `npm run dev` or `scripts\server.bat dev` to start the development server
    - Access the application at http://localhost:3000
    - Changes to source files trigger hot reloading
 
 2. **Building for Production**:
-   - Run `pnpm build` or `scripts\build-app.bat` to create a production build
+   - Run `npm run build` or `scripts\build-app.bat` to create a production build
    - Output is generated in the `public/build` directory
 
 3. **Running in Production Mode**:
-   - Run `pnpm start` or `scripts\server.bat prod` to serve the production build
+   - Run `npm start` or `scripts\server.bat prod` to serve the production build
    - Access the application at http://localhost:3000
 
 ### Planned Cloud Development Workflow
@@ -240,11 +242,13 @@ This document outlines the technologies used, development setup, technical const
 ## Dependencies
 
 ### Current Dependency Status
-The project uses fixed dependency versions to ensure stability. As of June 4, 2025, the dependency status is as follows:
+The project uses fixed dependency versions to ensure stability. As of September 16, 2025, the dependency status is as follows:
+
+**Package Manager Status**: Reverted from pnpm to npm due to Azure Functions v4 compatibility issues
 
 | Package | Current Version | Latest Version | Status |
 |---------|----------------|----------------|--------|
-| PNPM | 10.9.0 | 10.9.0 | ✅ Up to date |
+| NPM | Latest | Latest | ✅ Using system npm |
 | Svelte | 4.2.19 | 5.28.2 | Major version update available |
 | Rollup | 2.79.2 | 4.40.0 | Major version update available |
 | @rollup/plugin-commonjs | 21.1.0 | 28.0.3 | Major version update available |
@@ -270,11 +274,39 @@ For the cloud-based architecture, we've implemented the following dependencies:
 | chart.js | Library for price history visualization | 🔄 Planned |
 | azure-functions-core-tools | Local development tools for Azure Functions | ✅ Implemented |
 
+### Package Manager Compatibility Constraints
+
+#### Azure Functions v4 + pnpm Incompatibility (Critical Finding - September 16, 2025)
+- **Issue**: Azure Functions v4 programming model is fundamentally incompatible with pnpm's symlink-based node_modules structure
+- **Symptoms**: 
+  - Functions fail to register with Azure runtime despite successful deployments
+  - "No job functions found" errors in Azure portal
+  - 404 responses from all function endpoints
+  - GitHub Actions report successful builds and deployments
+- **Root Cause**: pnpm's symlink structure prevents Azure Functions runtime from properly resolving modules
+- **Resolution**: Complete reversion from pnpm to npm required
+- **Impact**: No workaround available - this is a platform limitation, not a configuration issue
+
+#### Package Manager Decision Matrix
+| Platform/Service | npm Support | pnpm Support | Recommendation |
+|------------------|-------------|--------------|----------------|
+| Azure Functions v4 | ✅ Full | ❌ Incompatible | npm required |
+| GitHub Actions | ✅ Full | ✅ Full | Either |
+| Local Development | ✅ Full | ✅ Full | Either |
+| Azure Static Web Apps | ✅ Full | ✅ Full | Either |
+| Rollup Build Process | ✅ Full | ✅ Full | Either |
+
+#### Current Package Manager Status
+- **Frontend**: npm (reverted from pnpm September 16, 2025)
+- **Backend (PokeDataFunc)**: npm (reverted from pnpm September 16, 2025)
+- **CI/CD Pipeline**: npm with proper caching configuration
+- **Reason for Reversion**: Azure Functions v4 compatibility requirement
+
 ### Dependency Update Plan
-1. **Package Manager Update**:
-   - Update PNPM from 8.15.4 to 10.9.0
-   - Evaluate compatibility with existing scripts and workflows
-   - Document any changes to PNPM commands or behavior
+1. **Package Manager Stability**:
+   - Maintain npm for Azure Functions compatibility
+   - Monitor Azure Functions roadmap for potential pnpm support
+   - Consider pnpm for frontend-only projects in the future
 
 2. **Non-Breaking Updates**:
    - Apply patch and minor updates first (rollup-plugin-livereload, rollup-plugin-svelte, rollup-plugin-terser)
@@ -346,13 +378,13 @@ For the cloud-based architecture, we've implemented the following dependencies:
    - Features Used: Code splitting, tree shaking, plugin system
    - Update Considerations: Configuration changes required for v4
 
-3. **PNPM**:
-   - Current Version: 10.9.0 ✅ MIGRATED
-   - Latest Version: 10.9.0
-   - Purpose: Fast, disk space efficient package manager
+3. **NPM**:
+   - Current Version: System npm (reverted from pnpm September 16, 2025)
+   - Purpose: Package manager for Node.js dependencies
    - Features Used: Package installation, script running, dependency management
-   - Migration Status: Successfully migrated entire project to pnpm@10.9.0 (2025-06-04)
-   - Update Considerations: Migration complete - both frontend and backend now use consistent pnpm@10.9.0
+   - Migration Status: Reverted from pnpm to npm due to Azure Functions v4 incompatibility
+   - Compatibility: Required for Azure Functions v4 programming model
+   - Update Considerations: Maintain npm for Azure Functions compatibility
 
 4. **sirv-cli**:
    - Current Version: 1.0.0
