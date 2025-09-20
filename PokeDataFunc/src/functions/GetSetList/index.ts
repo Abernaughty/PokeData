@@ -30,13 +30,14 @@ export async function getSetList(request: HttpRequest, context: InvocationContex
         const language = request.query.get("language") || "ENGLISH";
         const includeCardCounts = request.query.get("includeCardCounts") === "true";
         const forceRefresh = request.query.get("forceRefresh") === "true";
+        const returnAll = request.query.get("all") === "true";
         const page = parseInt(request.query.get("page") || "1");
         const pageSize = parseInt(request.query.get("pageSize") || "100");
         
         // Long TTL for sets since they don't change frequently
         const setsTtl = parseInt(process.env.CACHE_TTL_SETS || "604800"); // 7 days default
         
-        context.log(`${correlationId} Parameters: language=${language}, includeCardCounts=${includeCardCounts}, page=${page}, pageSize=${pageSize}`);
+        context.log(`${correlationId} Parameters: language=${language}, includeCardCounts=${includeCardCounts}, returnAll=${returnAll}, page=${page}, pageSize=${pageSize}`);
         
         // Check Redis cache first (if enabled and not forcing refresh)
         const cacheKey = `${getSetListCacheKey()}-pokedata-${language}`;
@@ -125,14 +126,42 @@ export async function getSetList(request: HttpRequest, context: InvocationContex
             return new Date(b.release_date).getTime() - new Date(a.release_date).getTime();
         });
         
-        // Apply pagination
-        const totalCount = enhancedSets.length;
-        const totalPages = Math.ceil(totalCount / pageSize);
-        const startIndex = (page - 1) * pageSize;
-        const endIndex = Math.min(startIndex + pageSize, totalCount);
-        const paginatedSets = enhancedSets.slice(startIndex, endIndex);
+        // Apply pagination or return all sets
+        let finalSets: EnhancedPokeDataSet[];
+        let paginationInfo: {
+            page: number;
+            pageSize: number;
+            totalCount: number;
+            totalPages: number;
+        };
         
-        context.log(`${correlationId} Returning page ${page}/${totalPages} with ${paginatedSets.length} sets (${startIndex + 1}-${startIndex + paginatedSets.length} of ${totalCount})`);
+        if (returnAll) {
+            // Return all sets without pagination
+            finalSets = enhancedSets;
+            paginationInfo = {
+                page: 1,
+                pageSize: enhancedSets.length,
+                totalCount: enhancedSets.length,
+                totalPages: 1
+            };
+            context.log(`${correlationId} Returning ALL ${enhancedSets.length} sets (all=true parameter)`);
+        } else {
+            // Apply standard pagination
+            const totalCount = enhancedSets.length;
+            const totalPages = Math.ceil(totalCount / pageSize);
+            const startIndex = (page - 1) * pageSize;
+            const endIndex = Math.min(startIndex + pageSize, totalCount);
+            finalSets = enhancedSets.slice(startIndex, endIndex);
+            
+            paginationInfo = {
+                page,
+                pageSize,
+                totalCount,
+                totalPages
+            };
+            
+            context.log(`${correlationId} Returning page ${page}/${totalPages} with ${finalSets.length} sets (${startIndex + 1}-${startIndex + finalSets.length} of ${totalCount})`);
+        }
         
         // If card counts are requested, we could fetch them here
         // For now, we'll skip this to maintain fast response times
@@ -153,20 +182,15 @@ export async function getSetList(request: HttpRequest, context: InvocationContex
         }> = {
             status: 200,
             data: {
-                sets: paginatedSets,
-                pagination: {
-                    page,
-                    pageSize,
-                    totalCount,
-                    totalPages
-                }
+                sets: finalSets,
+                pagination: paginationInfo
             },
             timestamp: new Date().toISOString(),
             cached: cacheHit,
             cacheAge: cacheHit ? cacheAge : undefined
         };
         
-        context.log(`${correlationId} Successfully returning ${paginatedSets.length} PokeData sets`);
+        context.log(`${correlationId} Successfully returning ${finalSets.length} PokeData sets`);
         
         return { 
             jsonBody: response,
