@@ -1,189 +1,148 @@
-# Pokémon Card Price Checker
+# Pokémon Card Price Checker (PokeData)
 
-A web application for looking up Pokémon card pricing data based on set name and card name. This tool helps collectors make informed decisions by providing pricing information from multiple sources in a user-friendly interface.
+A full-stack web application for looking up Pokémon card pricing data by set and card name. Combines a Svelte frontend with an Azure Functions backend, backed by Cosmos DB and Azure Blob Storage.
+
+> **Note:** This is the original version of the project. An updated enterprise version with additional features, testing, and CI/CD is maintained in [PCPC](https://github.com/Abernaughty/PCPC).
+
+## Architecture
+
+```
+Browser (Svelte SPA)
+    │
+    ▼
+Azure API Management (optional gateway)
+    │
+    ▼
+Azure Functions (Node.js / TypeScript) ── PokeData API
+    │                                  ── Pokémon TCG API
+    ▼
+Cosmos DB + Azure Blob Storage
+```
 
 ## Features
 
 - Search for cards by set name and card name
-- View detailed pricing information from various sources
+- Pricing data from multiple sources (PokeData API, Pokémon TCG API)
 - Set grouping by expansion series (Scarlet & Violet, Sword & Shield, etc.)
-- Filtering of zero-value pricing results
-- Consistent price decimal formatting
-- Enhanced error handling with fallbacks
-
-## Planned Features
-
-- Responsive design for better mobile experience
-- Card images in price results
-- Price history graphs
-- Collection management
+- Card variant support (1st Edition, Shadowless, Holo, etc.)
+- Intelligent caching (Redis + IndexedDB)
+- Debug panel and feature flags for development
 
 ## Quick Start
 
-The easiest way to run the application is to use the provided server script:
-
-### Command Prompt
 ```bash
+git clone https://github.com/Abernaughty/PokeData.git
+cd PokeData
+npm install
+npm run dev
+```
+
+The app runs at `http://localhost:3000`.
+
+**Windows users** can also use the bundled scripts:
+```bat
 scripts\server.bat
 ```
 
-### PowerShell
-```powershell
-.\scripts\server.bat
-```
+## Frontend
 
-This will start the development server with hot reloading at http://localhost:3000.
+Built with **Svelte** and bundled with **Rollup**.
 
-## System Requirements
+### Scripts
 
-- Windows operating system
-- Node.js (v14 or higher)
-- Internet connection (for initial setup and API calls)
-
-## Dependencies
-
-- Svelte (UI framework) - Core UI framework for building the application
-- Rollup (module bundler) - Bundles JavaScript modules for browser use
-- NPM (package manager) - Node.js package manager
-- SirvCLI (static file server) - Serves the compiled application files during development and production, handling HTTP requests to the local server at port 3000
-
-## Manual Installation
-
-If you prefer to set up manually, this project uses npm for package management.
-
-1. Clone the repository:
-   
-   **Command Prompt:**
-   ```bash
-   git clone https://github.com/Abernaughty/PokeData.git
-   cd PokeData
-   ```
-   
-   **PowerShell:**
-   ```powershell
-   git clone https://github.com/Abernaughty/PokeData.git
-   cd PokeData
-   ```
-
-2. Install dependencies:
-   
-   **Command Prompt:**
-   ```bash
-   npm install
-   ```
-   
-   **PowerShell:**
-   ```powershell
-   npm install
-   ```
-
-3. Start the application:
-   
-   **Command Prompt:**
-   ```bash
-   npm start
-   ```
-   
-   **PowerShell:**
-   ```powershell
-   npm start
-   ```
-
-## Scripts
-
-All utility scripts are located in the `scripts/` directory:
-
-- **scripts/server.bat**: Unified server script with parameter support
-  - Use `scripts\server.bat` or `scripts\server.bat dev` for development server with hot reloading
-  - Use `scripts\server.bat prod` for production server with optimized build
-  - Automatically detects and safely terminates any existing processes on port 3000
-- **scripts/build-app.bat**: Builds the application for production
-  - Use `scripts\build-app.bat` for a full build
-  - Use `scripts\build-app.bat css` to rebuild only CSS
-- **scripts/tools.bat**: Provides utility tools
-  - Use `scripts\tools.bat setup` to install dependencies
-  - Use `scripts\tools.bat diagnose` to diagnose environment issues
-  - Use `scripts\tools.bat fix-path` to fix Node.js path issues
-- **scripts/deploy-frontend.js**: Deploy to Azure Static Web Apps
-  - Use `npm run deploy:frontend` to run the deployment script
-
-See [scripts/README.md](scripts/README.md) for detailed documentation.
-
-## Development
-
-Start the development server:
-
-**Command Prompt:**
 ```bash
-scripts\server.bat dev
+npm run dev      # Development server with hot reloading (port 3000)
+npm run build    # Production build
+npm start        # Serve production build
+npm run clean    # Clean build artifacts
 ```
 
-**PowerShell:**
-```powershell
-.\scripts\server.bat dev
+**Windows batch scripts** (`scripts/`) wrap these with additional setup and port management:
+- `scripts\server.bat [dev|prod]` — start dev or production server
+- `scripts\build-app.bat` — full production build
+- `scripts\tools.bat [setup|diagnose|fix-path]` — utilities
+
+### Project Structure
+
+```
+src/
+├── App.svelte              # Root component
+├── components/             # UI components (search, card variants, etc.)
+├── services/               # API and data services
+│   ├── cloudDataService.js # Azure Functions API client
+│   ├── pokeDataService.js  # PokeData API integration
+│   ├── hybridDataService.js
+│   └── featureFlagService.js
+├── data/                   # API config and set list
+├── config/                 # Environment configuration
+└── debug/                  # Debug panel and tools
+public/
+├── index.html
+├── global.css
+└── data/                   # Static JSON data files
 ```
 
-The app will be available at http://localhost:3000 with hot reloading enabled. The development server is configured to always use port 3000, which is required for API Management service integration.
+## Backend (Azure Functions)
 
-## Production Build
+The backend is an **Azure Functions v4** app written in **TypeScript**, located in `PokeDataFunc/`.
 
-Build for production:
+### API Endpoints
 
-**Command Prompt:**
+| Function | Trigger | Description |
+|---|---|---|
+| `GetSetList` | HTTP GET | Returns all available card sets |
+| `GetCardsBySet` | HTTP GET | Returns cards for a given set |
+| `GetCardInfo` | HTTP GET | Returns pricing data for a specific card |
+| `RefreshData` | Timer | Refreshes card/price data from upstream APIs |
+| `MonitorCredits` | Timer | Monitors API credit usage |
+
+### Backend Structure
+
+```
+PokeDataFunc/
+├── src/
+│   ├── functions/          # Azure Function handlers
+│   ├── services/           # Business logic
+│   │   ├── CosmosDbService.ts
+│   │   ├── BlobStorageService.ts
+│   │   ├── PokeDataApiService.ts
+│   │   ├── PokemonTcgApiService.ts
+│   │   ├── RedisCacheService.ts
+│   │   └── ImageEnhancementService.ts
+│   ├── models/             # TypeScript interfaces
+│   └── utils/              # Shared utilities
+├── data/                   # Bundled set mapping JSON
+└── scripts/                # Data management scripts
+```
+
+### Backend Setup
+
 ```bash
-scripts\build-app.bat
+cd PokeDataFunc
+npm install
 ```
 
-**PowerShell:**
-```powershell
-.\scripts\build-app.bat
-```
+For local development, copy and configure `local.settings.json` with your Azure connection strings. See `PokeDataFunc/docs/deployment-guide.md` for full deployment instructions.
 
-Start the production server:
+## Tech Stack
 
-**Command Prompt:**
-```bash
-scripts\server.bat prod
-```
+| Layer | Technology |
+|---|---|
+| Frontend | Svelte, Rollup |
+| Backend | Azure Functions v4, TypeScript, Node.js |
+| Database | Azure Cosmos DB |
+| Cache | Redis, IndexedDB |
+| Storage | Azure Blob Storage |
+| Gateway | Azure API Management (optional) |
 
-**PowerShell:**
-```powershell
-.\scripts\server.bat prod
-```
+## Documentation
 
-## Available Scripts
-
-### Command Prompt
-- `npm run dev` - Start development server (port 3000)
-- `npm run build` - Build for production
-- `npm start` - Start production server (port 3000)
-- `npm run clean` - Clean installation files
-
-### PowerShell
-- `npm run dev` - Start development server (port 3000)
-- `npm run build` - Build for production
-- `npm start` - Start production server (port 3000)
-- `npm run clean` - Clean installation files
-- `npm run deploy:frontend` - Deploy frontend to Azure Static Web Apps
-
-Note: When running batch files in PowerShell, prefix them with `.\` (e.g., `.\scripts\server.bat`, `.\scripts\build-app.bat`)
-
-## Project Structure
-
-- `src/` - Source code
-  - `components/` - UI components (SearchableSelect, CardSearchSelect, etc.)
-  - `data/` - Static data and configuration
-  - `services/` - API and data services
-    - `storage/` - Database and caching services
-- `public/` - Static assets
-  - `build/` - Compiled code (generated)
-  - `images/` - Images
-  - `data/` - Static data files
-- `scripts/` - Build, deployment, and utility scripts
-- `docs/` - Documentation files
-- `memory-bank/` - Project memory documentation
-- `PokeDataFunc/` - Azure Functions backend
+- [Backend Deployment Guide](PokeDataFunc/docs/deployment-guide.md)
+- [API Documentation](docs/api-documentation.md)
+- [Azure Deployment](docs/azure-deployment.md)
+- [CI/CD Guide](docs/cicd-deployment-guide.md)
+- [Debugging Guide](docs/debugging-guide.md)
 
 ## License
 
-Private
+MIT
