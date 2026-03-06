@@ -1,8 +1,10 @@
+> ⚠️ **Archived.** This project has been superseded by [PCPC](https://github.com/Abernaughty/PCPC),
+> which consolidates and extends this work into a production-ready monorepo.
+> This repository is kept for historical reference and is no longer actively maintained.
+
 # Pokémon Card Price Checker (PokeData)
 
 A full-stack web application for looking up Pokémon card pricing data by set and card name. Combines a Svelte frontend with an Azure Functions backend, backed by Cosmos DB and Azure Blob Storage.
-
-> **Note:** This is the original version of the project. An updated enterprise version with additional features, testing, and CI/CD is maintained in [PCPC](https://github.com/Abernaughty/PCPC).
 
 ## Architecture
 
