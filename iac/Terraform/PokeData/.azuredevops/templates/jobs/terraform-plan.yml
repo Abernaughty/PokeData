@@ -1,0 +1,130 @@
+# ... parameters unchanged ...
+
+steps:
+  - task: TerraformInstaller@1
+    displayName: 'Install Terraform latest'
+    inputs:
+      terraformVersion: latest
+
+  - task: TerraformTaskV4@4
+    displayName: 'Terraform Init'
+    inputs:
+      provider: 'azurerm'
+      command: 'init'
+      workingDirectory: '${{ parameters.workingDirectory }}'
+      backendServiceArm: '$(azureServiceConnection)'
+      backendAzureRmResourceGroupName: 'pokedata-terraform-state-rg'
+      backendAzureRmStorageAccountName: 'tfstateyul4ts'
+      backendAzureRmContainerName: 'tfstate-${{ parameters.environment }}'
+      backendAzureRmKey: 'pokedata/${{ parameters.environment }}.tfstate'
+    env:
+      TF_VAR_repository_token: $(github_token)   # secret var from ADO group/Key Vault
+      TF_VAR_pokemon_tcg_api_key: $(pokemon_tcg_api_key)
+      TF_VAR_pokedata_api_key: $(pokedata_api_key)
+
+  - task: TerraformTaskV4@4
+    displayName: 'Terraform Plan'
+    inputs:
+      provider: 'azurerm'
+      command: 'plan'
+      workingDirectory: '${{ parameters.workingDirectory }}'
+      # Explicit var-file; detailed-exitcode = 0 (no change) or 2 (changes)
+      commandOptions: '-var-file=terraform.tfvars -out=tfplan -input=false -detailed-exitcode'
+      environmentServiceNameAzureRM: '$(azureServiceConnection)'
+      publishPlanResults: 'tfplan-${{ parameters.environment }}'
+    env:
+      TF_VAR_repository_token: $(github_token)
+      TF_VAR_pokemon_tcg_api_key: $(pokemon_tcg_api_key)
+      TF_VAR_pokedata_api_key: $(pokedata_api_key)
+    # Let exit code 2 (changes) pass; the task reports nonzero -> don't fail the job
+    continueOnError: true
+
+  - task: PowerShell@2
+    displayName: 'Generate Plan Summary'
+    inputs:
+      targetType: inline
+      pwsh: true
+      workingDirectory: '${{ parameters.workingDirectory }}'
+      script: |
+        $ErrorActionPreference = 'Stop'
+        $planPath = Join-Path (Get-Location) 'tfplan'
+        if (-not (Test-Path $planPath)) { throw "Plan file not found: $planPath" }
+
+        terraform show -no-color $planPath | Out-File -Encoding utf8 'tfplan.txt'
+        terraform show -json     $planPath | Out-File -Encoding utf8 'tfplan.json'
+
+        $plan = Get-Content 'tfplan.json' -Raw | ConvertFrom-Json
+        $rc = @($plan.resource_changes)
+        $creates = @($rc | Where-Object { $_.change.actions -contains 'create' }).Count
+        $updates = @($rc | Where-Object { $_.change.actions -contains 'update' -and $_.change.actions -notcontains 'create' -and $_.change.actions -notcontains 'delete' }).Count
+        $deletes = @($rc | Where-Object { $_.change.actions -contains 'delete' }).Count
+        $top = $rc | Select-Object -First 20 | ForEach-Object { "- $($_.address) : $([string]::Join(',', $_.change.actions))" }
+
+        @"
+        ## Terraform Plan Summary for ${{ parameters.environment }}
+
+        **Environment:** ${{ parameters.environment }}
+        **Build:** $(Build.BuildNumber)
+        **Triggered by:** $(Build.RequestedFor)
+
+        ### Change summary
+        - Creates:  $creates
+        - Updates:  $updates
+        - Deletes:  $deletes
+
+        ### First 20 resource changes
+        $($top -join "`n")
+
+        _Full plan attached as artifacts._
+        "@ | Out-File -Encoding utf8 'plan-summary.md'
+
+        Write-Host "Wrote plan-summary.md, tfplan.txt, tfplan.json"
+    env:
+      TF_VAR_repository_token: $(github_token)
+      TF_VAR_pokemon_tcg_api_key: $(pokemon_tcg_api_key)
+      TF_VAR_pokedata_api_key: $(pokedata_api_key)
+
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Terraform Plan'
+    inputs:
+      pathToPublish: '${{ parameters.workingDirectory }}/tfplan'
+      artifactName: '${{ parameters.artifactName }}'
+      publishLocation: 'Container'
+
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Plan Output'
+    inputs:
+      pathToPublish: '${{ parameters.workingDirectory }}/tfplan.txt'
+      artifactName: 'plan-output-${{ parameters.environment }}'
+      publishLocation: 'Container'
+
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Plan JSON'
+    inputs:
+      pathToPublish: '${{ parameters.workingDirectory }}/tfplan.json'
+      artifactName: 'plan-json-${{ parameters.environment }}'
+      publishLocation: 'Container'
+
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Plan Summary'
+    inputs:
+      pathToPublish: '${{ parameters.workingDirectory }}/plan-summary.md'
+      artifactName: 'plan-summary-${{ parameters.environment }}'
+      publishLocation: 'Container'
+
+  - task: GitHubComment@0
+    displayName: 'Post Plan to PR'
+    condition: and(succeeded(), eq(variables['Build.Reason'], 'PullRequest'))
+    inputs:
+      gitHubConnection: '$(githubServiceConnection)'
+      repositoryName: '$(Build.Repository.Name)'
+      comment: |
+        ## Terraform Plan Results - ${{ parameters.environment }}
+        Build: $(Build.BuildNumber)
+        The Terraform plan has been generated and saved.
+        [View Artifacts]($(System.TeamFoundationCollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)&view=artifacts)
+    continueOnError: true
+
+  - script: |
+      echo "✅ Terraform plan completed"
+    displayName: 'Plan Complete'

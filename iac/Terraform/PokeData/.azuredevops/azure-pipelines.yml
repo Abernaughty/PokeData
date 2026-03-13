@@ -1,0 +1,363 @@
+# Azure DevOps CI/CD Pipeline for PokeData Infrastructure
+# This pipeline demonstrates enterprise-grade DevOps practices for Terraform deployments
+
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - IaC_Projects/Terraform/PokeData/**
+    exclude:
+      - IaC_Projects/Terraform/PokeData/memory-bank/**
+      - IaC_Projects/Terraform/PokeData/**/*.md
+
+pr:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - IaC_Projects/Terraform/PokeData/**
+    exclude:
+      - IaC_Projects/Terraform/PokeData/memory-bank/**
+      - IaC_Projects/Terraform/PokeData/**/*.md
+
+variables:
+  - group: terraform-common
+  - group: terraform-dev
+  - name: terraformVersion
+    value: '1.9.0'
+  - name: workingDirectory
+    value: '$(System.DefaultWorkingDirectory)/IaC_Projects/Terraform/PokeData/environments/dev'
+  - name: artifactName
+    value: 'terraform-plan'
+  - name: environment
+    value: 'dev'
+  - name: azureServiceConnection
+    value: 'ARM Service Connection - Thunderdome'
+  - name: githubServiceConnection
+    value: 'PokeData Repo Service Connection'
+
+resources:
+  repositories:
+    - repository: pokedata_app
+      type: github
+      name: Abernaughty/PokeData
+      endpoint: "PokeData Repo Service Connection"
+      ref: refs/heads/main
+
+pool:
+  name: Default
+  # vmImage: 'ubuntu-latest'
+
+stages:
+  # Stage 1: Validation and Security Scanning
+  - stage: Validate
+    displayName: 'Validate & Scan'
+    jobs:
+      - job: ValidateTerraform
+        displayName: 'Validate Terraform Configuration'
+        steps:
+          - template: templates/jobs/terraform-validate.yml
+            parameters:
+              workingDirectory: $(workingDirectory)
+              terraformVersion: $(terraformVersion)
+
+      - job: SecurityScan
+        displayName: 'Security Scanning'
+        dependsOn: ValidateTerraform
+        steps:
+          - template: templates/jobs/security-scan.yml
+            parameters:
+              workingDirectory: $(workingDirectory)
+
+  # Stage 2: Build Application
+  - stage: BuildApp
+    displayName: 'Build Function App'
+    jobs:
+      - job: Build
+        displayName: 'Build Node.js Function App'
+        steps:
+          # Checkout repositories using service connection
+          - checkout: self
+            displayName: 'Checkout Portfolio repository'
+            clean: true
+            fetchDepth: 1
+          
+          - checkout: pokedata_app
+            displayName: 'Checkout PokeData repository'
+            clean: true
+            fetchDepth: 1
+          
+          # Verify repository structure
+          - task: PowerShell@2
+            displayName: 'Verify Repository Structure'
+            inputs:
+              targetType: 'inline'
+              pwsh: true
+              script: |
+                Write-Host "=== REPOSITORY STRUCTURE VERIFICATION ===" -ForegroundColor Cyan
+                Write-Host ""
+                
+                # Debug: Show environment variables and paths
+                Write-Host "=== DEBUG INFORMATION ===" -ForegroundColor Yellow
+                Write-Host "BUILD_SOURCESDIRECTORY: $env:BUILD_SOURCESDIRECTORY"
+                Write-Host "Available directories in sources:"
+                if (Test-Path $env:BUILD_SOURCESDIRECTORY) {
+                    Get-ChildItem $env:BUILD_SOURCESDIRECTORY -Directory | ForEach-Object {
+                        Write-Host "  - $($_.Name)" -ForegroundColor Gray
+                    }
+                } else {
+                    Write-Host "  BUILD_SOURCESDIRECTORY does not exist!" -ForegroundColor Red
+                }
+                Write-Host ""
+                
+                # Check for PokeData directory (default Azure DevOps behavior)
+                $pokeDataPath = Join-Path $env:BUILD_SOURCESDIRECTORY "PokeData"
+                Write-Host "Checking PokeData repository at: $pokeDataPath" -ForegroundColor Yellow
+                
+                if (-not (Test-Path $pokeDataPath)) {
+                    Write-Host "ERROR: PokeData repository not found!" -ForegroundColor Red
+                    Write-Host "Expected path: $pokeDataPath" -ForegroundColor Red
+                    
+                    # Additional debugging - look for any directory that might contain PokeData
+                    Write-Host "Searching for PokeData content in other directories..." -ForegroundColor Yellow
+                    Get-ChildItem $env:BUILD_SOURCESDIRECTORY -Directory | ForEach-Object {
+                        $dirPath = $_.FullName
+                        Write-Host "Checking directory: $($_.Name)" -ForegroundColor Gray
+                        if (Test-Path (Join-Path $dirPath "PokeDataFunc")) {
+                            Write-Host "  ✓ Found PokeDataFunc in: $($_.Name)" -ForegroundColor Green
+                        }
+                        if (Test-Path (Join-Path $dirPath "package.json")) {
+                            Write-Host "  ✓ Found package.json in: $($_.Name)" -ForegroundColor Green
+                        }
+                    }
+                    exit 1
+                }
+                
+                Write-Host "✓ PokeData repository found" -ForegroundColor Green
+                
+                # Check for PokeDataFunc directory
+                $funcPath = Join-Path $pokeDataPath "PokeDataFunc"
+                if (-not (Test-Path $funcPath)) {
+                    Write-Host "ERROR: PokeDataFunc directory not found!" -ForegroundColor Red
+                    exit 1
+                }
+                
+                Write-Host "✓ PokeDataFunc directory found" -ForegroundColor Green
+                
+                # Verify required files
+                $packageJson = Join-Path $funcPath "package.json"
+                $packageLock = Join-Path $funcPath "package-lock.json"
+                
+                if (-not (Test-Path $packageJson)) {
+                    Write-Host "ERROR: package.json not found!" -ForegroundColor Red
+                    exit 1
+                }
+                Write-Host "✓ package.json found" -ForegroundColor Green
+                
+                if (-not (Test-Path $packageLock)) {
+                    Write-Host "ERROR: package-lock.json not found!" -ForegroundColor Red
+                    exit 1
+                }
+                Write-Host "✓ package-lock.json found" -ForegroundColor Green
+                
+                Write-Host ""
+                Write-Host "=== REPOSITORY VERIFICATION SUCCESSFUL ===" -ForegroundColor Green
+                Write-Host "Ready to build real PokeData functions!" -ForegroundColor Green
+          
+          - task: NodeTool@0
+            displayName: 'Use Node.js 22.x'
+            inputs:
+              versionSpec: '22.x'
+          
+          - task: PowerShell@2
+            displayName: 'Install dependencies and build with npm'
+            inputs:
+              targetType: 'inline'
+              pwsh: true
+              workingDirectory: '$(Build.SourcesDirectory)/PokeData/PokeDataFunc'
+              script: |
+                Write-Host "=== Installing dependencies with npm ===" -ForegroundColor Yellow
+                npm ci
+                
+                Write-Host "=== Building with npm ===" -ForegroundColor Yellow
+                npm run build
+                
+                Write-Host "=== Build completed successfully ===" -ForegroundColor Green
+          
+          - task: ArchiveFiles@2
+            displayName: 'Archive function app files'
+            inputs:
+              rootFolderOrFile: '$(Build.SourcesDirectory)/PokeData/PokeDataFunc'
+              includeRootFolder: false
+              archiveType: 'zip'
+              archiveFile: '$(Build.ArtifactStagingDirectory)/PokeDataFunc.zip'
+              replaceExistingArchive: true
+              exclude: |
+                **/node_modules/**
+                **/.vscode/**
+                .env
+          
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publish Function App artifact'
+            inputs:
+              PathtoPublish: '$(Build.ArtifactStagingDirectory)/PokeDataFunc.zip'
+              ArtifactName: 'functionapp'
+
+  # Stage 3: Plan
+  - stage: Plan
+    displayName: 'Terraform Plan'
+    dependsOn: Validate
+    condition: succeeded()
+    jobs:
+      - job: TerraformPlan
+        displayName: 'Generate Terraform Plan'
+        steps:
+          - template: templates/jobs/terraform-plan.yml
+            parameters:
+              workingDirectory: $(workingDirectory)
+              terraformVersion: $(terraformVersion)
+              environment: $(environment)
+              artifactName: $(artifactName)
+
+  # Stage 4: Deploy (Only on main branch)
+  - stage: Deploy
+    displayName: 'Deploy to Dev'
+    dependsOn: 
+      - Plan
+      - BuildApp
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: DeployDev
+        displayName: 'Deploy Infrastructure to Dev'
+        environment: 'dev'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - template: templates/jobs/terraform-apply.yml
+                  parameters:
+                    workingDirectory: $(workingDirectory)
+                    terraformVersion: $(terraformVersion)
+                    environment: $(environment)
+                    artifactName: $(artifactName)
+      - deployment: DeployApp
+        displayName: 'Deploy Function App to Dev'
+        environment: 'dev'
+        dependsOn: DeployDev
+        variables:
+          # Only need Function App name for deployment target
+          FUNCTION_APP_NAME: $[ dependencies.DeployDev.outputs['DeployDev.setOutputs.FUNCTION_APP_NAME'] ]
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: PowerShell@2
+                  displayName: 'Verify Function App Deployment Target'
+                  inputs:
+                    targetType: 'inline'
+                    pwsh: true
+                    script: |
+                      Write-Host "=== DEPLOYMENT TARGET VERIFICATION ===" -ForegroundColor Cyan
+                      Write-Host ""
+                      Write-Host "Function App Name: $(FUNCTION_APP_NAME)" -ForegroundColor Green
+                      
+                      # Verify Function App name is available
+                      if ([string]::IsNullOrWhiteSpace("$(FUNCTION_APP_NAME)")) {
+                        Write-Host "❌ FUNCTION_APP_NAME is empty!" -ForegroundColor Red
+                        exit 1
+                      } else {
+                        Write-Host "✓ Function App deployment target confirmed" -ForegroundColor Green
+                      }
+                      
+                      Write-Host ""
+                      Write-Host "ℹ️ App settings are managed by Terraform - no pipeline configuration needed" -ForegroundColor Blue
+                      Write-Host "✅ Ready for code deployment!" -ForegroundColor Green
+                
+                - task: DownloadBuildArtifacts@1
+                  displayName: 'Download Function App artifact'
+                  inputs:
+                    buildType: 'current'
+                    downloadType: 'single'
+                    artifactName: 'functionapp'
+                    downloadPath: '$(System.ArtifactsDirectory)'
+                
+                - task: AzureFunctionApp@2
+                  displayName: 'Deploy Function App Code Only'
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    appName: '$(FUNCTION_APP_NAME)'
+                    package: '$(System.ArtifactsDirectory)/functionapp/PokeDataFunc.zip'
+                    # App settings are managed by Terraform - no pipeline configuration needed
+
+
+  # Stage 5: Post-Deployment Tests
+  - stage: Test
+    displayName: 'Post-Deployment Tests'
+    dependsOn: Deploy
+    condition: succeeded()
+    jobs:
+      - job: InfrastructureTests
+        displayName: 'Run Infrastructure Tests'
+        steps:
+          - template: templates/jobs/infrastructure-tests.yml
+            parameters:
+              environment: $(environment)
+
+  - stage: Notify
+    displayName: Send Notifications
+    condition: always()
+    jobs:
+    - job: SendZohoMail
+      displayName: Send status via Zoho SMTP
+      steps:
+      - task: PowerShell@2
+        displayName: 'Send Pipeline Status Email (Zoho)'
+        inputs:
+          targetType: 'inline'
+          pwsh: true
+          script: |
+            $fromAddr = 'devops@maber.io'
+            $fromName = 'PokeData CI'
+            $to       = 'mike@maber.io'
+
+            $smtpHost = 'smtp.zoho.com'    # change to smtp.zoho.eu if needed
+            $smtpUser = 'devops@maber.io'
+            $smtpPass = $env:ZOHO_SMTP_PASSWORD
+            if ([string]::IsNullOrWhiteSpace($smtpPass)) { throw 'ZOHO_SMTP_PASSWORD is empty/unavailable' }
+
+            [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+
+            $lines = @(
+              "<b>Pipeline Status:</b> $(Agent.JobStatus)<br/>"
+              "<b>Environment:</b> $(environment)<br/>"
+              "<b>Build Number:</b> $(Build.BuildNumber)<br/>"
+              "<b>Commit:</b> $(Build.SourceVersion)<br/>"
+              "<b>Triggered By:</b> $(Build.RequestedFor)<br/>"
+              "<br/>"
+              "<a href='$(System.TeamFoundationCollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)'>View Pipeline</a>"
+            )
+            $body = ($lines -join "`n")
+
+            $msg = [System.Net.Mail.MailMessage]::new()
+            $msg.From = [System.Net.Mail.MailAddress]::new($fromAddr, $fromName)
+            $msg.To.Add($to)
+            $msg.Subject = "PokeData Pipeline - $(environment) - $(Build.SourceBranchName) - $(Agent.JobStatus)"
+            $msg.Body = $body
+            $msg.IsBodyHtml = $true
+
+            $client = [System.Net.Mail.SmtpClient]::new($smtpHost, 587)  # STARTTLS
+            $client.DeliveryMethod = [System.Net.Mail.SmtpDeliveryMethod]::Network
+            $client.UseDefaultCredentials = $false
+            $client.EnableSsl = $true
+            $client.Credentials = [System.Net.NetworkCredential]::new($smtpUser, $smtpPass)
+
+            $client.Send($msg)
+            Write-Host ("Mail sent via {0}:{1}" -f $smtpHost, 587)
+
+            $client.Dispose()
+            $msg.Dispose()
+        env:
+          ZOHO_SMTP_PASSWORD: $(ZOHO_SMTP_PASSWORD)   # your Library/variable name

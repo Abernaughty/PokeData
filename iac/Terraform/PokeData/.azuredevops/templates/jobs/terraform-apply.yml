@@ -1,0 +1,288 @@
+# Template for Terraform Apply
+parameters:
+  - name: workingDirectory
+    type: string
+  - name: terraformVersion
+    type: string
+  - name: environment
+    type: string
+  - name: artifactName
+    type: string
+
+steps:
+  - checkout: self
+    persistCredentials: true
+
+  - task: TerraformInstaller@1
+    displayName: 'Install Terraform latest'
+    inputs:
+      terraformVersion: latest
+
+  # Re-init so provider plugins/backends exist in this fresh job workspace
+  - task: TerraformTaskV4@4
+    displayName: 'Terraform Init (Apply)'
+    inputs:
+      provider: 'azurerm'
+      command: 'init'
+      workingDirectory: '${{ parameters.workingDirectory }}'
+      backendServiceArm: '$(azureServiceConnection)'
+      backendAzureRmResourceGroupName: 'pokedata-terraform-state-rg'
+      backendAzureRmStorageAccountName: 'tfstateyul4ts'
+      backendAzureRmContainerName: 'tfstate-${{ parameters.environment }}'
+      backendAzureRmKey: 'pokedata/${{ parameters.environment }}.tfstate'
+    env:
+      TF_VAR_repository_token: $(github_token)   # secret from variable group / Key Vault
+      TF_VAR_pokemon_tcg_api_key: $(pokemon_tcg_api_key)
+      TF_VAR_pokedata_api_key: $(pokedata_api_key)
+
+  # Pull the saved plan artifact produced in the Plan stage
+  - task: DownloadBuildArtifacts@1
+    displayName: 'Download Terraform Plan'
+    inputs:
+      buildType: 'current'
+      downloadType: 'single'
+      artifactName: '${{ parameters.artifactName }}'
+      downloadPath: '$(Agent.TempDirectory)'
+
+  # Place tfplan next to the code for a simple relative apply
+  - task: PowerShell@2
+    displayName: 'Restore Plan File'
+    inputs:
+      pwsh: true
+      targetType: inline
+      workingDirectory: '${{ parameters.workingDirectory }}'
+      script: |
+        $src = Join-Path "$(Agent.TempDirectory)" "${{ parameters.artifactName }}\tfplan"
+        $dst = Join-Path "${{ parameters.workingDirectory }}" "tfplan"
+        Write-Host "Copying plan: $src -> $dst"
+
+        if (-not (Test-Path $src)) {
+          throw "Plan artifact not found at $src. Check that the Plan stage published the artifact named '${{ parameters.artifactName }}' and that you're downloading it in Apply."
+        }
+
+        Copy-Item -LiteralPath $src -Destination $dst -Force
+        if (-not (Test-Path $dst)) { throw "Failed to copy plan to $dst" }
+        Write-Host "✅ Terraform plan file restored at $dst"
+
+  # Apply the exact plan reviewed earlier (no -var-file here)
+  - task: TerraformTaskV4@4
+    displayName: 'Terraform Apply'
+    inputs:
+      provider: 'azurerm'
+      command: 'apply'
+      workingDirectory: '${{ parameters.workingDirectory }}'
+      commandOptions: '-input=false -auto-approve tfplan'
+      environmentServiceNameAzureRM: '$(azureServiceConnection)'
+    env:
+      TF_VAR_repository_token: $(github_token)
+      TF_VAR_pokemon_tcg_api_key: $(pokemon_tcg_api_key)
+      TF_VAR_pokedata_api_key: $(pokedata_api_key)
+
+  # Extract Terraform Outputs as Pipeline Variables
+  - task: PowerShell@2
+    displayName: Extract Terraform outputs for pipeline variables
+    name: setOutputs             # <-- required to reference output vars
+    env:
+      TF_VAR_repository_token: $(github_token)
+      TF_VAR_pokemon_tcg_api_key: $(pokemon_tcg_api_key)
+      TF_VAR_pokedata_api_key: $(pokedata_api_key)
+    inputs:
+      pwsh: true
+      targetType: inline
+      workingDirectory: ${{ parameters.workingDirectory }}
+      script: |
+        # Use Continue instead of Stop to handle missing outputs gracefully
+        $ErrorActionPreference = 'Continue'
+        $env:TF_IN_AUTOMATION = 'true'
+
+        Write-Host "=== EXTRACTING TERRAFORM OUTPUTS ==="
+        
+        # Get terraform outputs with error handling
+        try {
+          $json = terraform output -json
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "##vso[task.logissue type=warning]Terraform output command failed with exit code $LASTEXITCODE"
+            $json = "{}"
+          }
+        } catch {
+          Write-Host "##vso[task.logissue type=warning]Failed to get terraform outputs: $($_.Exception.Message)"
+          $json = "{}"
+        }
+
+        try {
+          $outs = $json | ConvertFrom-Json
+        } catch {
+          Write-Host "##vso[task.logissue type=error]Failed to parse terraform outputs JSON: $($_.Exception.Message)"
+          exit 1
+        }
+
+        # Show available outputs for debugging
+        Write-Host "Available Terraform outputs:"
+        if ($outs.PSObject.Properties.Count -gt 0) {
+          $outs.PSObject.Properties | ForEach-Object { 
+            Write-Host "  - $($_.Name)" 
+          }
+        } else {
+          Write-Host "  (no outputs found)"
+        }
+
+        function Get-OutVal {
+          param([object]$Obj,[string]$Name)
+          try {
+            if ($Obj.PSObject.Properties.Name -contains $Name) {
+              $v = $Obj.$Name.value
+              if ($null -ne $v) { return [string]$v }
+            }
+          } catch {
+            Write-Host "##vso[task.logissue type=warning]Error accessing output '$Name': $($_.Exception.Message)"
+          }
+          return $null
+        }
+
+        # Extract outputs with individual error handling
+        $cosmos = $null
+        $funcApp = $null
+        $blob = $null
+        $redis = $null
+
+        try {
+          $cosmos = Get-OutVal $outs 'cosmos_db_connection_string'
+          if ($cosmos) { Write-Host "✅ Found cosmos_db_connection_string" }
+        } catch {
+          Write-Host "##vso[task.logissue type=warning]Error extracting cosmos_db_connection_string: $($_.Exception.Message)"
+        }
+
+        try {
+          $funcApp = Get-OutVal $outs 'function_app_name'
+          if ($funcApp) { Write-Host "✅ Found function_app_name: $funcApp" }
+        } catch {
+          Write-Host "##vso[task.logissue type=warning]Error extracting function_app_name: $($_.Exception.Message)"
+        }
+
+        try {
+          $blob = Get-OutVal $outs 'blob_storage_connection_string'
+          if ($blob) { Write-Host "✅ Found blob_storage_connection_string" } else { Write-Host "ℹ️ blob_storage_connection_string not available (optional)" }
+        } catch {
+          Write-Host "##vso[task.logissue type=warning]Error extracting blob_storage_connection_string: $($_.Exception.Message)"
+        }
+
+        try {
+          $redis = Get-OutVal $outs 'redis_connection_string'
+          if ($redis) { Write-Host "✅ Found redis_connection_string" } else { Write-Host "ℹ️ redis_connection_string not available (optional)" }
+        } catch {
+          Write-Host "##vso[task.logissue type=warning]Error extracting redis_connection_string: $($_.Exception.Message)"
+        }
+
+        # Check for required outputs
+        $missing = @()
+        if ([string]::IsNullOrWhiteSpace($cosmos))  { $missing += 'cosmos_db_connection_string' }
+        if ([string]::IsNullOrWhiteSpace($funcApp)) { $missing += 'function_app_name' }
+
+        # Set pipeline variables (only if values exist)
+        if ($cosmos)  { 
+          Write-Host "##vso[task.setvariable variable=COSMOS_CONNECTION;isOutput=true;isSecret=true]$cosmos"
+          Write-Host "✅ Set COSMOS_CONNECTION pipeline variable"
+        }
+        if ($funcApp) { 
+          Write-Host "##vso[task.setvariable variable=FUNCTION_APP_NAME;isOutput=true]$funcApp"
+          Write-Host "✅ Set FUNCTION_APP_NAME pipeline variable"
+        }
+        if ($blob)    { 
+          Write-Host "##vso[task.setvariable variable=BLOB_CONNECTION;isOutput=true;isSecret=true]$blob"
+          Write-Host "✅ Set BLOB_CONNECTION pipeline variable"
+        }
+        if ($redis)   { 
+          Write-Host "##vso[task.setvariable variable=REDIS_CONNECTION;isOutput=true;isSecret=true]$redis"
+          Write-Host "✅ Set REDIS_CONNECTION pipeline variable"
+        }
+
+        # Set availability flags
+        Write-Host "##vso[task.setvariable variable=HAS_BLOB_STORAGE;isOutput=true]$(([bool]$blob).ToString().ToLower())"
+        Write-Host "##vso[task.setvariable variable=HAS_REDIS_CACHE;isOutput=true]$(([bool]$redis).ToString().ToLower())"
+        Write-Host "✅ Set availability flags: HAS_BLOB_STORAGE=$([bool]$blob), HAS_REDIS_CACHE=$([bool]$redis)"
+
+        # Fail only if required outputs are missing
+        if ($missing.Count -gt 0) {
+          Write-Host "##vso[task.logissue type=error]Missing required outputs: $($missing -join ', ')"
+          Write-Host "##vso[task.logissue type=error]Required outputs must be defined in environments/dev/outputs.tf"
+          exit 1
+        }
+
+        Write-Host "=== PIPELINE VARIABLES SET SUCCESSFULLY ==="
+        Write-Host "Required variables: COSMOS_CONNECTION, FUNCTION_APP_NAME"
+        Write-Host "Optional variables: BLOB_CONNECTION (available: $([bool]$blob)), REDIS_CONNECTION (available: $([bool]$redis))"
+        exit 0
+
+  # Generate Deployment Summary  
+  - task: PowerShell@2
+    displayName: 'Generate Deployment Summary'
+    env:
+      TF_VAR_repository_token: $(github_token)
+      TF_VAR_pokemon_tcg_api_key: $(pokemon_tcg_api_key)
+      TF_VAR_pokedata_api_key: $(pokedata_api_key)
+    inputs:
+      pwsh: true
+      targetType: inline
+      workingDirectory: '${{ parameters.workingDirectory }}'
+      script: |
+        $ErrorActionPreference = 'Stop'
+        $env:TF_IN_AUTOMATION = "true"
+
+        $file = "deployment-summary.md"
+        $lines = @()
+        $lines += "## Deployment Summary for ${{ parameters.environment }}"
+        $lines += ""
+        $lines += "**Environment:** ${{ parameters.environment }}"
+        $lines += "**Build:** $(Build.BuildNumber)"
+        $lines += "**Deployed by:** $(Build.RequestedFor)"
+        $lines += "**Deployment Time:** $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss zzz')"
+        $lines += ""
+        $lines += "### Terraform Outputs:"
+        Set-Content -Path $file -Value $lines -Encoding utf8
+
+        terraform output -json | Out-File -FilePath "outputs.json" -Encoding utf8
+        terraform output       | Out-File -FilePath $file -Append -Encoding utf8
+
+        Add-Content -Path $file -Value ""
+        Add-Content -Path $file -Value "✅ Infrastructure successfully deployed to ${{ parameters.environment }}"
+
+        Get-Content $file | Write-Host
+
+  # Publish artifacts
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Deployment Summary'
+    inputs:
+      pathToPublish: '${{ parameters.workingDirectory }}/deployment-summary.md'
+      artifactName: 'deployment-summary-${{ parameters.environment }}'
+      publishLocation: 'Container'
+
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Terraform Outputs'
+    inputs:
+      pathToPublish: '${{ parameters.workingDirectory }}/outputs.json'
+      artifactName: 'terraform-outputs-${{ parameters.environment }}'
+      publishLocation: 'Container'
+
+  # Tag Deployment (optional)
+  - script: |
+      git config user.email "azure-pipeline@maber.io"
+      git config user.name "Azure Pipeline"
+      $TAG_NAME="${{ parameters.environment }}-$(Build.BuildNumber)"
+      git tag -a "$TAG_NAME" -m "Deployed to ${{ parameters.environment }} by $(Build.RequestedFor)"
+      git push origin "$TAG_NAME" || echo "Could not push tag (no permissions)"
+      echo "✅ Deployment tagged as: $TAG_NAME"
+    displayName: 'Tag Deployment'
+    continueOnError: true
+
+  # Deployment Complete (move workingDirectory under inputs)
+  - task: PowerShell@2
+    displayName: 'Deployment Complete'
+    inputs:
+      pwsh: true
+      targetType: inline
+      workingDirectory: '${{ parameters.workingDirectory }}'
+      script: |
+        Write-Host "🎉 Deployment to ${{ parameters.environment }} completed successfully!"
+        Write-Host ""
+        Write-Host "Resources deployed:"
+        terraform state list
